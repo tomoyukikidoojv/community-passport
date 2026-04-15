@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { C, EVENTS, USERS, getLevel, NOTICE_CATS } from "../constants";
 import { getApplicationsByEvent } from "./ApplyPage";
+import EventFormBuilder from "./admin/EventFormBuilder";
+import { getForm } from "../lib/formStorage";
 
 const inputStyle = {
   width: "100%", padding: "9px 12px",
@@ -476,6 +478,9 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
           </div>
         </div>
 
+        {/* ── Form builder ─────────────────────── */}
+        <EventFormBuilder />
+
         {/* ── Applications section ─────────────── */}
         <ApplicationsPanel />
 
@@ -510,6 +515,8 @@ function ApplicationsPanel() {
       <div style={{ padding: "12px 16px" }}>
         {EVENTS.map(ev => {
           const apps = getApplicationsByEvent(ev.id);
+          const formConfig = getForm(ev.id);
+          const questions = formConfig?.questions || [];
           const isOpen = openEventId === ev.id;
           return (
             <div key={ev.id} style={{ marginBottom: 8 }}>
@@ -559,43 +566,57 @@ function ApplicationsPanel() {
                       申し込みはまだありません
                     </div>
                   ) : (
-                    <table style={{
-                      width: "100%", borderCollapse: "collapse",
-                      fontSize: 12, fontFamily: "inherit",
-                    }}>
-                      <thead>
-                        <tr style={{ background: C.offWhite }}>
-                          {["名前", "参加人数", "コメント", "申込日時"].map(h => (
-                            <th key={h} style={{
-                              padding: "8px 12px", textAlign: "left",
-                              color: C.gray, fontWeight: 700, fontSize: 11,
-                              borderBottom: `1px solid ${C.lightGray}`,
-                            }}>{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {apps.map((app, i) => (
-                          <tr key={i} style={{ background: i % 2 === 0 ? C.white : C.offWhite }}>
-                            <td style={{ padding: "9px 12px", borderBottom: `1px solid ${C.lightGray}` }}>
-                              <div style={{ fontWeight: 700, color: C.charcoal }}>
+                    <div>
+                      {apps.map((app, i) => (
+                        <div key={i} style={{
+                          padding: "12px 16px",
+                          borderBottom: i < apps.length - 1 ? `1px solid ${C.lightGray}` : "none",
+                          background: i % 2 === 0 ? C.white : C.offWhite,
+                        }}>
+                          {/* Header row */}
+                          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: questions.length > 0 ? 8 : 0 }}>
+                            <div style={{ flex: 1 }}>
+                              <span style={{ fontWeight: 700, color: C.charcoal, fontSize: 13 }}>
                                 {app.userFlag} {app.userName}
-                              </div>
-                              <div style={{ color: C.gray, fontSize: 10 }}>{app.userNameEn}</div>
-                            </td>
-                            <td style={{ padding: "9px 12px", borderBottom: `1px solid ${C.lightGray}`, color: C.charcoal }}>
+                              </span>
+                              {app.userNameEn && (
+                                <span style={{ color: C.gray, fontSize: 11, marginLeft: 6 }}>({app.userNameEn})</span>
+                              )}
+                            </div>
+                            <div style={{
+                              background: `${ev.color}20`, color: ev.color,
+                              borderRadius: 6, padding: "2px 8px",
+                              fontSize: 11, fontWeight: 700,
+                            }}>
                               {app.count}
-                            </td>
-                            <td style={{ padding: "9px 12px", borderBottom: `1px solid ${C.lightGray}`, color: C.gray, maxWidth: 200 }}>
-                              {app.comment || "—"}
-                            </td>
-                            <td style={{ padding: "9px 12px", borderBottom: `1px solid ${C.lightGray}`, color: C.gray, whiteSpace: "nowrap" }}>
+                            </div>
+                            <div style={{ color: C.gray, fontSize: 11, whiteSpace: "nowrap" }}>
                               {new Date(app.appliedAt).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                            </div>
+                          </div>
+
+                          {/* Custom answers */}
+                          {questions.length > 0 && app.answers && (
+                            <div style={{
+                              background: C.offWhite, borderRadius: 8,
+                              padding: "8px 12px",
+                              display: "flex", flexDirection: "column", gap: 5,
+                            }}>
+                              {questions.map(q => {
+                                const ans = app.answers[q.id];
+                                const display = Array.isArray(ans) ? ans.join("、") : (ans || "—");
+                                return (
+                                  <div key={q.id} style={{ display: "flex", gap: 8, fontSize: 12 }}>
+                                    <span style={{ color: C.gray, flexShrink: 0, minWidth: 100 }}>{q.label}</span>
+                                    <span style={{ color: C.charcoal, fontWeight: 600 }}>{display}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
               )}

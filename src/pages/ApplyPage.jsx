@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { C, EVENTS } from "../constants";
+import { getForm, isFormActive } from "../lib/formStorage";
 
 const APPLY_KEY = "cp_applications";
 
@@ -34,6 +35,8 @@ export default function ApplyPage({ user }) {
   const event = EVENTS.find(e => e.id === Number(eventId));
 
   const existing = event && user ? getApplication(event.id, user.id) : null;
+  const formConfig = event ? getForm(event.id) : null;
+  const active = event ? isFormActive(event.id) : false;
 
   const [form, setForm] = useState({
     name: user?.name || "",
@@ -41,22 +44,54 @@ export default function ApplyPage({ user }) {
     email: "",
     count: "1人",
     comment: "",
+    answers: {},
   });
   const [submitted, setSubmitted] = useState(!!existing);
   const [errors, setErrors] = useState({});
 
-  if (!event) {
-    return (
+  const center = (content) => (
+    <div style={{
+      minHeight: "100vh",
+      background: `linear-gradient(135deg, ${C.teal} 0%, ${C.navy} 100%)`,
+      display: "flex", alignItems: "center", justifyContent: "center",
+      padding: "32px 16px",
+      fontFamily: "'Segoe UI','Hiragino Sans','Meiryo',sans-serif",
+    }}>
       <div style={{
-        minHeight: "100vh",
-        background: `linear-gradient(135deg, ${C.teal} 0%, ${C.navy} 100%)`,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        fontFamily: "'Segoe UI','Hiragino Sans','Meiryo',sans-serif",
-        color: C.white, fontSize: 16,
+        background: C.white, borderRadius: 16, maxWidth: 420, width: "100%",
+        padding: "36px 28px", textAlign: "center",
+        boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
       }}>
-        イベントが見つかりません
+        {content}
+        <button
+          onClick={() => navigate("/calendar")}
+          style={{
+            marginTop: 20, padding: "10px 28px",
+            background: `linear-gradient(90deg, ${C.teal}, ${C.tealMid})`,
+            color: C.white, border: "none", borderRadius: 8,
+            fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+          }}
+        >カレンダーに戻る</button>
       </div>
-    );
+    </div>
+  );
+
+  if (!event) return center(<><div style={{ fontSize: 36, marginBottom: 10 }}>🔍</div><div style={{ fontWeight: 700, color: C.charcoal }}>イベントが見つかりません</div></>);
+  if (!formConfig) return center(<><div style={{ fontSize: 36, marginBottom: 10 }}>🛠️</div><div style={{ fontWeight: 700, color: C.charcoal, marginBottom: 6 }}>申し込みフォーム準備中</div><div style={{ fontSize: 13, color: C.gray }}>まだフォームが作成されていません</div></>);
+  if (!active) {
+    const now = new Date();
+    const notYet = formConfig.openDate && new Date(formConfig.openDate) > now;
+    return center(<>
+      <div style={{ fontSize: 36, marginBottom: 10 }}>{notYet ? "⏳" : "🔒"}</div>
+      <div style={{ fontWeight: 700, color: C.charcoal, marginBottom: 6 }}>
+        {notYet ? "受付開始前です" : "受付は終了しました"}
+      </div>
+      {notYet && formConfig.openDate && (
+        <div style={{ fontSize: 13, color: C.gray }}>
+          受付開始：{formConfig.openDate}
+        </div>
+      )}
+    </>);
   }
 
   const isPast = new Date(event.fullDate) < new Date(new Date().toDateString());
@@ -66,9 +101,28 @@ export default function ApplyPage({ user }) {
     if (errors[k]) setErrors(er => ({ ...er, [k]: null }));
   };
 
+  const setAnswer = (qId, value) => {
+    setForm(f => ({ ...f, answers: { ...f.answers, [qId]: value } }));
+    if (errors[`q_${qId}`]) setErrors(er => ({ ...er, [`q_${qId}`]: null }));
+  };
+
+  const toggleCheckbox = (qId, option) => {
+    const cur = form.answers[qId] || [];
+    const next = cur.includes(option) ? cur.filter(o => o !== option) : [...cur, option];
+    setAnswer(qId, next);
+    if (errors[`q_${qId}`]) setErrors(er => ({ ...er, [`q_${qId}`]: null }));
+  };
+
   const validate = () => {
     const errs = {};
     if (!form.name.trim()) errs.name = "お名前を入力してください";
+    (formConfig.questions || []).forEach(q => {
+      if (!q.required) return;
+      const ans = form.answers[q.id];
+      if (!ans || (Array.isArray(ans) ? ans.length === 0 : !String(ans).trim())) {
+        errs[`q_${q.id}`] = "この項目は必須です";
+      }
+    });
     return errs;
   };
 
@@ -85,7 +139,7 @@ export default function ApplyPage({ user }) {
       userFlag: user?.flag || "🌍",
       email: form.email,
       count: form.count,
-      comment: form.comment,
+      answers: form.answers,
       appliedAt: new Date().toISOString(),
     };
     saveApplication(app);
@@ -143,7 +197,7 @@ export default function ApplyPage({ user }) {
                 ["日時",     `${dateStr}　${event.time}`],
                 ["場所",     event.place],
                 ["参加人数", form.count],
-              ].map(([k, v]) => (
+              ].filter(([, v]) => v).map(([k, v]) => (
                 <div key={k} style={{
                   display: "flex", gap: 12, marginBottom: 8, fontSize: 13,
                 }}>
@@ -334,19 +388,83 @@ export default function ApplyPage({ user }) {
                 </div>
               </div>
 
-              {/* Comment */}
-              <div style={{ marginBottom: 20 }}>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.charcoal, marginBottom: 5 }}>
-                  質問・コメント
-                  <span style={{ fontWeight: 400, color: C.gray, marginLeft: 8, fontSize: 11 }}>任意</span>
-                </label>
-                <textarea
-                  value={form.comment} onChange={set("comment")}
-                  placeholder="アレルギーや配慮が必要なことがあればご記入ください"
-                  rows={3}
-                  style={{ ...inputStyle, resize: "vertical", lineHeight: 1.6 }}
-                />
-              </div>
+              {/* Dynamic questions from admin form builder */}
+              {(formConfig.questions || []).map((q) => (
+                <div key={q.id} style={{ marginBottom: 20 }}>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.charcoal, marginBottom: 6 }}>
+                    {q.label || "（質問未入力）"}
+                    {q.required && <span style={{ color: "#E74C3C", marginLeft: 4 }}>*</span>}
+                  </label>
+
+                  {q.type === "text" && (
+                    <textarea
+                      value={form.answers[q.id] || ""}
+                      onChange={e => setAnswer(q.id, e.target.value)}
+                      rows={3}
+                      style={{
+                        ...inputStyle,
+                        resize: "vertical", lineHeight: 1.6,
+                        borderColor: errors[`q_${q.id}`] ? "#E74C3C" : C.lightGray,
+                      }}
+                    />
+                  )}
+
+                  {q.type === "radio" && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {(q.options || []).map((opt, i) => (
+                        <label key={i} style={{
+                          display: "flex", alignItems: "center", gap: 10,
+                          padding: "9px 14px", borderRadius: 8, cursor: "pointer",
+                          border: `1.5px solid ${form.answers[q.id] === opt ? event.color : C.lightGray}`,
+                          background: form.answers[q.id] === opt ? `${event.color}10` : C.white,
+                          transition: "all 0.15s",
+                        }}>
+                          <input
+                            type="radio"
+                            name={`q_${q.id}`}
+                            value={opt}
+                            checked={form.answers[q.id] === opt}
+                            onChange={() => setAnswer(q.id, opt)}
+                            style={{ accentColor: event.color }}
+                          />
+                          <span style={{ fontSize: 13, color: C.charcoal }}>{opt}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+
+                  {q.type === "checkbox" && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {(q.options || []).map((opt, i) => {
+                        const checked = (form.answers[q.id] || []).includes(opt);
+                        return (
+                          <label key={i} style={{
+                            display: "flex", alignItems: "center", gap: 10,
+                            padding: "9px 14px", borderRadius: 8, cursor: "pointer",
+                            border: `1.5px solid ${checked ? event.color : C.lightGray}`,
+                            background: checked ? `${event.color}10` : C.white,
+                            transition: "all 0.15s",
+                          }}>
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => toggleCheckbox(q.id, opt)}
+                              style={{ accentColor: event.color }}
+                            />
+                            <span style={{ fontSize: 13, color: C.charcoal }}>{opt}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {errors[`q_${q.id}`] && (
+                    <div style={{ color: "#E74C3C", fontSize: 11, marginTop: 5 }}>
+                      {errors[`q_${q.id}`]}
+                    </div>
+                  )}
+                </div>
+              ))}
 
               {/* Note */}
               <div style={{
