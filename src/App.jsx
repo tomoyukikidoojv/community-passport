@@ -100,9 +100,9 @@ function AdminGate({ children }) {
 // ── User nav ──────────────────────────────────────────
 function UserNav({ registeredUser, myStamps, unreadCount, onLogout }) {
   const NAV = [
-    { path: "/announcements", label: "📢 お知らせ",       labelEn: "Announcements" },
-    { path: "/calendar",      label: "📅 カレンダー",     labelEn: "Calendar"      },
-    { path: "/passport",      label: "🎫 マイパスポート", labelEn: "My Passport"   },
+    { path: "/announcements", label: "📢 お知らせ",   labelEn: "Announcements" },
+    { path: "/calendar",      label: "📅 カレンダー", labelEn: "Calendar"      },
+    { path: "/passport",      label: "🎫 パスポート", labelEn: "My Passport"   },
   ];
 
   return (
@@ -110,33 +110,76 @@ function UserNav({ registeredUser, myStamps, unreadCount, onLogout }) {
       position: "sticky", top: 0, zIndex: 100,
       background: `linear-gradient(90deg, ${C.navy} 0%, ${C.teal} 100%)`,
       boxShadow: "0 2px 16px rgba(0,0,0,0.35)",
-      display: "flex", alignItems: "stretch",
     }}>
-      {/* Logo */}
+      {/* Row 1: Logo + User info */}
       <div style={{
-        padding: "0 20px",
-        display: "flex", alignItems: "center", gap: 10,
-        borderRight: "1px solid rgba(255,255,255,0.12)",
-        flexShrink: 0,
+        display: "flex", alignItems: "center",
+        padding: "0 12px", height: 48,
+        borderBottom: "1px solid rgba(255,255,255,0.10)",
       }}>
-        <div style={{
-          width: 32, height: 32, borderRadius: 8,
-          background: C.gold,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 18,
-        }}>🌏</div>
-        <div style={{ lineHeight: 1.2 }}>
-          <div style={{ color: C.white, fontWeight: 800, fontSize: 13, letterSpacing: 0.5 }}>
-            Community
-          </div>
-          <div style={{ color: C.gold, fontWeight: 800, fontSize: 13, letterSpacing: 0.5 }}>
-            Passport
+        {/* Logo */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1 }}>
+          <div style={{
+            width: 28, height: 28, borderRadius: 7,
+            background: C.gold,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 16, flexShrink: 0,
+          }}>🌏</div>
+          <div style={{ lineHeight: 1.2 }}>
+            <div style={{ color: C.white, fontWeight: 800, fontSize: 12, letterSpacing: 0.5 }}>
+              Community
+            </div>
+            <div style={{ color: C.gold, fontWeight: 800, fontSize: 12, letterSpacing: 0.5 }}>
+              Passport
+            </div>
           </div>
         </div>
+
+        {/* User chip + logout */}
+        {registeredUser && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{
+              width: 26, height: 26, borderRadius: "50%",
+              background: C.goldLight, border: `2px solid ${C.gold}`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 14, flexShrink: 0,
+            }}>{registeredUser.flag}</div>
+            <div style={{ lineHeight: 1.25 }}>
+              <div style={{ color: C.white, fontSize: 11, fontWeight: 600 }}>
+                {registeredUser.name}
+              </div>
+              <div style={{ color: C.gold, fontSize: 10 }}>
+                ⭐ {myStamps.size}/6 スタンプ
+              </div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+              <button
+                onClick={onLogout}
+                style={{
+                  background: "rgba(255,255,255,0.12)",
+                  border: "1px solid rgba(255,255,255,0.2)",
+                  borderRadius: 5, padding: "3px 7px",
+                  color: "rgba(255,255,255,0.7)", fontSize: 10,
+                  cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
+                }}
+              >ログアウト</button>
+              <NavLink
+                to="/kanri-ashiya2026"
+                style={{
+                  background: "rgba(255,255,255,0.08)",
+                  border: "1px solid rgba(255,255,255,0.15)",
+                  borderRadius: 5, padding: "3px 7px",
+                  color: "rgba(255,255,255,0.4)", fontSize: 10,
+                  textDecoration: "none", textAlign: "center", whiteSpace: "nowrap",
+                }}
+              >管理者</NavLink>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Tabs */}
-      <div style={{ display: "flex", flex: 1 }}>
+      {/* Row 2: Tabs */}
+      <div style={{ display: "flex" }}>
         {NAV.map((item) => {
           const isNotices = item.path === "/announcements";
           return (
@@ -144,33 +187,32 @@ function UserNav({ registeredUser, myStamps, unreadCount, onLogout }) {
               key={item.path}
               to={item.path}
               style={({ isActive }) => ({
+                flex: 1,
                 background: isActive ? "rgba(255,255,255,0.10)" : "transparent",
-                border: "none", cursor: "pointer",
-                padding: "0 28px",
                 borderBottom: isActive ? `3px solid ${C.gold}` : "3px solid transparent",
-                borderTop: "3px solid transparent",
+                borderTop: "none",
                 display: "flex", flexDirection: "column",
                 alignItems: "center", justifyContent: "center", gap: 1,
-                transition: "all 0.18s",
+                padding: "8px 4px",
                 position: "relative",
                 textDecoration: "none",
+                transition: "all 0.18s",
               })}
             >
               {({ isActive }) => (
                 <>
                   {isNotices && unreadCount > 0 && (
                     <div style={{
-                      position: "absolute", top: 6, right: 12,
+                      position: "absolute", top: 4, right: "calc(50% - 18px)",
                       minWidth: 16, height: 16, borderRadius: 8,
                       background: "#E74C3C", color: C.white,
                       fontSize: 9, fontWeight: 800,
                       display: "flex", alignItems: "center", justifyContent: "center",
                       padding: "0 4px",
-                      boxShadow: "0 1px 4px rgba(231,76,60,0.6)",
                     }}>{unreadCount}</div>
                   )}
                   <span style={{
-                    fontSize: 13,
+                    fontSize: 12,
                     color: isActive ? C.white : "rgba(255,255,255,0.55)",
                     fontWeight: isActive ? 700 : 400,
                   }}>{item.label}</span>
@@ -185,63 +227,6 @@ function UserNav({ registeredUser, myStamps, unreadCount, onLogout }) {
           );
         })}
       </div>
-
-      {/* User chip + logout */}
-      {registeredUser && (
-        <div style={{
-          display: "flex", alignItems: "center", gap: 8,
-          padding: "0 16px", borderLeft: "1px solid rgba(255,255,255,0.12)",
-          flexShrink: 0,
-        }}>
-          <div style={{
-            width: 30, height: 30, borderRadius: "50%",
-            background: C.goldLight, border: `2px solid ${C.gold}`,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 15,
-          }}>{registeredUser.flag}</div>
-          <div style={{ lineHeight: 1.25 }}>
-            <div style={{ color: C.white, fontSize: 12, fontWeight: 600 }}>
-              {registeredUser.name}
-            </div>
-            <div style={{ color: C.gold, fontSize: 10 }}>
-              ⭐ {myStamps.size}/6 スタンプ
-            </div>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 3, marginLeft: 4 }}>
-            <button
-              onClick={onLogout}
-              style={{
-                background: "rgba(255,255,255,0.12)",
-                border: "1px solid rgba(255,255,255,0.2)",
-                borderRadius: 6, padding: "3px 8px",
-                color: "rgba(255,255,255,0.7)", fontSize: 10,
-                cursor: "pointer", fontFamily: "inherit",
-                transition: "all 0.15s",
-              }}
-              onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.22)"}
-              onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.12)"}
-            >
-              ログアウト
-            </button>
-            <NavLink
-              to="/kanri-ashiya2026"
-              style={{
-                background: "rgba(255,255,255,0.08)",
-                border: "1px solid rgba(255,255,255,0.15)",
-                borderRadius: 6, padding: "3px 8px",
-                color: "rgba(255,255,255,0.45)", fontSize: 10,
-                cursor: "pointer", fontFamily: "inherit",
-                textDecoration: "none", textAlign: "center",
-                transition: "all 0.15s",
-              }}
-              onMouseEnter={e => e.currentTarget.style.color = "rgba(255,255,255,0.8)"}
-              onMouseLeave={e => e.currentTarget.style.color = "rgba(255,255,255,0.45)"}
-            >
-              管理者
-            </NavLink>
-          </div>
-        </div>
-      )}
     </nav>
   );
 }
