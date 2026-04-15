@@ -104,6 +104,7 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
   const [hoveredCell, setHoveredCell] = useState(null);
   const [flash, setFlash] = useState(null);
   const [showQrScanner, setShowQrScanner] = useState(false);
+  const [editMode, setEditMode] = useState(false);
   const navigate = useNavigate();
 
   const toggleAttendance = (userId, eventId) => {
@@ -215,9 +216,18 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
               }} />
               参加状況一覧
             </div>
-            <div style={{ fontSize: 11, color: C.gray }}>
-              セルをクリックして出席を記録・取消
-            </div>
+            <button
+              onClick={() => setEditMode(e => !e)}
+              style={{
+                padding: "5px 14px", borderRadius: 20, border: "none",
+                cursor: "pointer", fontSize: 12, fontWeight: 700,
+                background: editMode ? C.teal : C.offWhite,
+                color: editMode ? C.white : C.gray,
+                transition: "all 0.15s", fontFamily: "inherit",
+              }}
+            >
+              {editMode ? "✏️ 編集中" : "編集"}
+            </button>
           </div>
 
           <div style={{ overflowX: "auto" }}>
@@ -297,14 +307,14 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
                         return (
                           <td
                             key={ev.id}
-                            onClick={() => toggleAttendance(user.id, ev.id)}
-                            onMouseEnter={() => setHoveredCell({ userId: user.id, eventId: ev.id })}
-                            onMouseLeave={() => setHoveredCell(null)}
+                            onClick={() => editMode && toggleAttendance(user.id, ev.id)}
+                            onMouseEnter={() => editMode && setHoveredCell({ userId: user.id, eventId: ev.id })}
+                            onMouseLeave={() => editMode && setHoveredCell(null)}
                             style={{
-                              textAlign: "center", cursor: "pointer",
+                              textAlign: "center", cursor: editMode ? "pointer" : "default",
                               background: isFlash ? `${ev.color}25`
                                 : attended ? `${ev.color}12`
-                                : isHovered ? C.tealPale : rowBg,
+                                : (editMode && isHovered) ? C.tealPale : rowBg,
                               borderBottom: `1px solid ${C.lightGray}`,
                               borderLeft: `1px solid ${C.lightGray}`,
                               transition: "background 0.15s",
@@ -323,12 +333,13 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
                             ) : (
                               <div style={{
                                 width: 28, height: 28, borderRadius: "50%",
-                                border: `2px dashed ${isHovered ? ev.color : C.lightGray}`,
+                                border: `2px dashed ${(editMode && isHovered) ? ev.color : C.lightGray}`,
                                 display: "flex", alignItems: "center",
                                 justifyContent: "center", margin: "0 auto",
-                                color: isHovered ? ev.color : C.lightGray,
+                                color: (editMode && isHovered) ? ev.color : C.lightGray,
                                 fontSize: 14, transition: "all 0.15s",
-                              }}>+</div>
+                                opacity: editMode ? 1 : 0.5,
+                              }}>{editMode ? "+" : "−"}</div>
                             )}
                           </td>
                         );
