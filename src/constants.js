@@ -21,12 +21,12 @@ export const C = {
 
 // ── Events (6 total) ───────────────────────
 export const EVENTS = [
-  { id: 1, emoji: "🌏", name: "Multicultural\nWelcome Meetup", nameShort: "Welcome Meetup",    date: "5月",  color: "#1B4F72" },
-  { id: 2, emoji: "🍽️", name: "Exchange\nDinner",              nameShort: "Exchange Dinner",   date: "6月",  color: "#2471A3" },
-  { id: 3, emoji: "📖", name: "Storytelling\nNight",           nameShort: "Storytelling Night",date: "9月",  color: "#8E44AD" },
-  { id: 4, emoji: "💬", name: "Dialogue\nSession",             nameShort: "Dialogue Session",  date: "11月", color: "#1A6B45" },
-  { id: 5, emoji: "💡", name: "Community Ideas\nWorkshop",     nameShort: "Ideas Workshop",    date: "2月",  color: "#9B3A1B" },
-  { id: 6, emoji: "🚨", name: "防災講座",                       nameShort: "防災講座",           date: "10月", color: "#C0392B" },
+  { id: 1, emoji: "🌏", name: "Multicultural\nWelcome Meetup", nameShort: "Welcome Meetup",    date: "5月",  fullDate: "2026-05-15", time: "14:00〜16:00", place: "芦屋市民センター 大ホール",   color: "#1B4F72" },
+  { id: 2, emoji: "🍽️", name: "Exchange\nDinner",              nameShort: "Exchange Dinner",   date: "6月",  fullDate: "2026-06-21", time: "18:00〜20:00", place: "芦屋市立市民センター 会議室", color: "#2471A3" },
+  { id: 3, emoji: "📖", name: "Storytelling\nNight",           nameShort: "Storytelling Night",date: "9月",  fullDate: "2026-09-12", time: "15:00〜17:00", place: "芦屋図書館 多目的室",         color: "#8E44AD" },
+  { id: 4, emoji: "💬", name: "Dialogue\nSession",             nameShort: "Dialogue Session",  date: "11月", fullDate: "2026-11-07", time: "14:00〜16:00", place: "芦屋市民センター 研修室",     color: "#1A6B45" },
+  { id: 5, emoji: "💡", name: "Community Ideas\nWorkshop",     nameShort: "Ideas Workshop",    date: "2月",  fullDate: "2027-02-06", time: "13:00〜16:00", place: "芦屋市立市民センター 大会議室",color: "#9B3A1B" },
+  { id: 6, emoji: "🚨", name: "防災講座",                       nameShort: "防災講座",           date: "10月", fullDate: "2026-10-17", time: "10:00〜12:00", place: "芦屋市消防署",               color: "#C0392B" },
 ];
 
 // ── Users (mock) ───────────────────────────

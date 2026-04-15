@@ -4,6 +4,7 @@ import RegisterPage from "./pages/RegisterPage";
 import LoginPage from "./pages/LoginPage";
 import CommunityPassport from "./pages/CommunityPassport";
 import AnnouncementsPage from "./pages/AnnouncementsPage";
+import CalendarPage from "./pages/CalendarPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import { C, initialAttendance, initialAnnouncements } from "./constants";
 
@@ -94,11 +95,12 @@ function AdminGate({ children }) {
   );
 }
 
-// ── User nav (2 tabs only) ────────────────────────────
+// ── User nav ──────────────────────────────────────────
 function UserNav({ registeredUser, myStamps, unreadCount, onLogout }) {
   const NAV = [
-    { path: "/passport",      label: "🎫 マイパスポート", labelEn: "My Passport"   },
     { path: "/announcements", label: "📢 お知らせ",       labelEn: "Announcements" },
+    { path: "/calendar",      label: "📅 カレンダー",     labelEn: "Calendar"      },
+    { path: "/passport",      label: "🎫 マイパスポート", labelEn: "My Passport"   },
   ];
 
   return (
@@ -372,10 +374,7 @@ function AppRoutes() {
             onLogout={handleLogout}
           />
           <Routes>
-            <Route path="/" element={<Navigate to="/passport" replace />} />
-            <Route path="/passport" element={
-              <CommunityPassport stamps={myStamps} onManualStamp={toggleStamp} user={registeredUser} />
-            } />
+            <Route path="/" element={<Navigate to="/announcements" replace />} />
             <Route path="/announcements" element={
               <AnnouncementsPage
                 announcements={announcements}
@@ -384,7 +383,13 @@ function AppRoutes() {
                 onReadAll={markAllRead}
               />
             } />
-            <Route path="*" element={<Navigate to="/passport" replace />} />
+            <Route path="/calendar" element={
+              <CalendarPage stamps={myStamps} />
+            } />
+            <Route path="/passport" element={
+              <CommunityPassport stamps={myStamps} onManualStamp={toggleStamp} user={registeredUser} />
+            } />
+            <Route path="*" element={<Navigate to="/announcements" replace />} />
           </Routes>
         </div>
       } />
