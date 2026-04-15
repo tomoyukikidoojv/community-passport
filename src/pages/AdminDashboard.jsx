@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { C, EVENTS, USERS, getLevel, NOTICE_CATS } from "../constants";
+import { getApplicationsByEvent } from "./ApplyPage";
 
 const inputStyle = {
   width: "100%", padding: "9px 12px",
@@ -475,6 +476,132 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
           </div>
         </div>
 
+        {/* ── Applications section ─────────────── */}
+        <ApplicationsPanel />
+
+      </div>
+    </div>
+  );
+}
+
+function ApplicationsPanel() {
+  const [openEventId, setOpenEventId] = useState(null);
+
+  return (
+    <div style={{
+      background: C.white, borderRadius: 16,
+      boxShadow: "0 8px 30px rgba(0,0,0,0.2)",
+      overflow: "hidden", marginTop: 20,
+    }}>
+      <div style={{
+        padding: "16px 20px 14px",
+        borderBottom: `1px solid ${C.lightGray}`,
+        display: "flex", alignItems: "center", gap: 8,
+      }}>
+        <span style={{
+          display: "inline-block", width: 4, height: 16,
+          background: C.purple, borderRadius: 2,
+        }} />
+        <span style={{ fontSize: 13, fontWeight: 700, color: C.charcoal }}>
+          イベント申し込み一覧
+        </span>
+      </div>
+
+      <div style={{ padding: "12px 16px" }}>
+        {EVENTS.map(ev => {
+          const apps = getApplicationsByEvent(ev.id);
+          const isOpen = openEventId === ev.id;
+          return (
+            <div key={ev.id} style={{ marginBottom: 8 }}>
+              <div
+                onClick={() => setOpenEventId(isOpen ? null : ev.id)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 12,
+                  padding: "10px 14px", borderRadius: 10, cursor: "pointer",
+                  border: `1px solid ${isOpen ? ev.color + "60" : C.lightGray}`,
+                  background: isOpen ? `${ev.color}08` : C.offWhite,
+                  transition: "all 0.15s",
+                }}
+              >
+                <span style={{ fontSize: 20 }}>{ev.emoji}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: C.charcoal }}>
+                    {ev.nameShort}
+                  </div>
+                  <div style={{ fontSize: 11, color: C.gray }}>{ev.fullDate}</div>
+                </div>
+                <div style={{
+                  background: apps.length > 0 ? ev.color : C.lightGray,
+                  color: apps.length > 0 ? C.white : C.gray,
+                  borderRadius: 20, padding: "2px 12px",
+                  fontSize: 12, fontWeight: 700,
+                }}>
+                  {apps.length}件
+                </div>
+                <span style={{
+                  fontSize: 12, color: C.gray,
+                  transform: isOpen ? "rotate(180deg)" : "none",
+                  transition: "transform 0.2s",
+                }}>▼</span>
+              </div>
+
+              {isOpen && (
+                <div style={{
+                  border: `1px solid ${ev.color}30`,
+                  borderTop: "none", borderRadius: "0 0 10px 10px",
+                  overflow: "hidden",
+                }}>
+                  {apps.length === 0 ? (
+                    <div style={{
+                      padding: "16px", textAlign: "center",
+                      color: C.gray, fontSize: 13,
+                    }}>
+                      申し込みはまだありません
+                    </div>
+                  ) : (
+                    <table style={{
+                      width: "100%", borderCollapse: "collapse",
+                      fontSize: 12, fontFamily: "inherit",
+                    }}>
+                      <thead>
+                        <tr style={{ background: C.offWhite }}>
+                          {["名前", "参加人数", "コメント", "申込日時"].map(h => (
+                            <th key={h} style={{
+                              padding: "8px 12px", textAlign: "left",
+                              color: C.gray, fontWeight: 700, fontSize: 11,
+                              borderBottom: `1px solid ${C.lightGray}`,
+                            }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {apps.map((app, i) => (
+                          <tr key={i} style={{ background: i % 2 === 0 ? C.white : C.offWhite }}>
+                            <td style={{ padding: "9px 12px", borderBottom: `1px solid ${C.lightGray}` }}>
+                              <div style={{ fontWeight: 700, color: C.charcoal }}>
+                                {app.userFlag} {app.userName}
+                              </div>
+                              <div style={{ color: C.gray, fontSize: 10 }}>{app.userNameEn}</div>
+                            </td>
+                            <td style={{ padding: "9px 12px", borderBottom: `1px solid ${C.lightGray}`, color: C.charcoal }}>
+                              {app.count}
+                            </td>
+                            <td style={{ padding: "9px 12px", borderBottom: `1px solid ${C.lightGray}`, color: C.gray, maxWidth: 200 }}>
+                              {app.comment || "—"}
+                            </td>
+                            <td style={{ padding: "9px 12px", borderBottom: `1px solid ${C.lightGray}`, color: C.gray, whiteSpace: "nowrap" }}>
+                              {new Date(app.appliedAt).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

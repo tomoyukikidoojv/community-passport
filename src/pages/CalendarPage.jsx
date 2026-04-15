@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { C, EVENTS } from "../constants";
 
 const RSVP_KEY = "cp_rsvp"; // { eventId: "going" | "not_going" }
@@ -32,6 +33,7 @@ function formatFullDate(iso) {
 }
 
 export default function CalendarPage({ stamps }) {
+  const navigate = useNavigate();
   const today = new Date();
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
@@ -294,22 +296,21 @@ export default function CalendarPage({ stamps }) {
                   </div>
                 )}
 
-                {/* Apply URL button */}
-                {selectedEvent.applyUrl && (
-                  <a
-                    href={selectedEvent.applyUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                {/* Apply button */}
+                {new Date(selectedEvent.fullDate) >= new Date(today.toDateString()) && !stamps?.has(selectedEvent.id) && (
+                  <button
+                    onClick={() => { setSelectedEvent(null); navigate(`/apply/${selectedEvent.id}`); }}
                     style={{
-                      display: "block", width: "100%", padding: "11px",
+                      width: "100%", padding: "11px", marginBottom: 8,
                       background: `linear-gradient(90deg, ${selectedEvent.color}, ${selectedEvent.color}cc)`,
-                      color: C.white, borderRadius: 8, fontSize: 13, fontWeight: 700,
-                      textAlign: "center", textDecoration: "none",
-                      marginBottom: 8, boxSizing: "border-box",
+                      color: C.white, border: "none", borderRadius: 8,
+                      fontSize: 13, fontWeight: 700,
+                      cursor: "pointer", fontFamily: "inherit",
+                      boxShadow: `0 3px 10px ${selectedEvent.color}40`,
                     }}
                   >
-                    📝 申し込みフォームへ →
-                  </a>
+                    📝 このイベントに申し込む →
+                  </button>
                 )}
 
                 <button

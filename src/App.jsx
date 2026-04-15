@@ -5,6 +5,7 @@ import LoginPage from "./pages/LoginPage";
 import CommunityPassport from "./pages/CommunityPassport";
 import AnnouncementsPage from "./pages/AnnouncementsPage";
 import CalendarPage from "./pages/CalendarPage";
+import ApplyPage from "./pages/ApplyPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import { C, initialAttendance, initialAnnouncements } from "./constants";
 
@@ -385,6 +386,9 @@ function AppRoutes() {
             } />
             <Route path="/calendar" element={
               <CalendarPage stamps={myStamps} />
+            } />
+            <Route path="/apply/:eventId" element={
+              <ApplyPage user={registeredUser} />
             } />
             <Route path="/passport" element={
               <CommunityPassport stamps={myStamps} onManualStamp={toggleStamp} user={registeredUser} />
