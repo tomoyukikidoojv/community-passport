@@ -152,40 +152,53 @@ export default function AnnouncementsPage({ announcements, readIds, onRead, onRe
         {/* Filter + actions bar */}
         <div style={{
           background: C.white, borderRadius: 14,
-          padding: "12px 16px",
-          display: "flex", alignItems: "center", gap: 8,
-          marginBottom: 16, flexWrap: "wrap",
+          marginBottom: 16,
           boxShadow: "0 4px 16px rgba(0,0,0,0.15)",
+          overflow: "hidden",
         }}>
-          <div style={{ display: "flex", gap: 6, flex: 1, flexWrap: "wrap" }}>
+          {/* Scrollable filter row */}
+          <div style={{
+            display: "flex", gap: 6,
+            padding: "12px 16px",
+            overflowX: "auto",
+            WebkitOverflowScrolling: "touch",
+            scrollbarWidth: "none",
+          }}>
             {[{ id: "all", label: "すべて", color: C.teal }, ...NOTICE_CATS.filter(c => sortedCats.includes(c.id))].map(cat => (
               <button
                 key={cat.id}
                 onClick={() => setFilter(cat.id)}
                 style={{
-                  padding: "4px 14px", borderRadius: 20, border: "none",
-                  cursor: "pointer", fontSize: 12, fontWeight: filter === cat.id ? 700 : 400,
+                  padding: "6px 16px", borderRadius: 20, border: "none",
+                  cursor: "pointer", fontSize: 13, fontWeight: filter === cat.id ? 700 : 400,
                   background: filter === cat.id ? cat.color : C.offWhite,
                   color: filter === cat.id ? C.white : C.gray,
                   transition: "all 0.15s", fontFamily: "inherit",
+                  whiteSpace: "nowrap", flexShrink: 0,
                 }}
               >{cat.label}</button>
             ))}
           </div>
 
+          {/* Read-all button row */}
           {unreadCount > 0 && (
-            <button
-              onClick={onReadAll}
-              style={{
-                padding: "4px 14px", borderRadius: 20,
-                border: `1px solid ${C.lightGray}`,
-                background: C.white, color: C.gray,
-                cursor: "pointer", fontSize: 11, fontFamily: "inherit",
-                whiteSpace: "nowrap", transition: "all 0.15s",
-              }}
-            >
-              ✓ 全て既読にする
-            </button>
+            <div style={{
+              borderTop: `1px solid ${C.lightGray}`,
+              padding: "8px 16px",
+              display: "flex", justifyContent: "flex-end",
+            }}>
+              <button
+                onClick={onReadAll}
+                style={{
+                  padding: "5px 16px", borderRadius: 20,
+                  border: `1px solid ${C.lightGray}`,
+                  background: C.white, color: C.gray,
+                  cursor: "pointer", fontSize: 12, fontFamily: "inherit",
+                }}
+              >
+                ✓ 全て既読にする
+              </button>
+            </div>
           )}
         </div>
 

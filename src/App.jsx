@@ -152,25 +152,25 @@ function UserNav({ registeredUser, myStamps, unreadCount, onLogout }) {
                 ⭐ {myStamps.size}/6 スタンプ
               </div>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            <div style={{ display: "flex", gap: 4 }}>
               <button
                 onClick={onLogout}
                 style={{
                   background: "rgba(255,255,255,0.12)",
                   border: "1px solid rgba(255,255,255,0.2)",
-                  borderRadius: 5, padding: "3px 7px",
-                  color: "rgba(255,255,255,0.7)", fontSize: 10,
+                  borderRadius: 4, padding: "2px 6px",
+                  color: "rgba(255,255,255,0.7)", fontSize: 9,
                   cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
                 }}
               >ログアウト</button>
               <NavLink
                 to="/kanri-ashiya2026"
                 style={{
-                  background: "rgba(255,255,255,0.08)",
-                  border: "1px solid rgba(255,255,255,0.15)",
-                  borderRadius: 5, padding: "3px 7px",
-                  color: "rgba(255,255,255,0.4)", fontSize: 10,
-                  textDecoration: "none", textAlign: "center", whiteSpace: "nowrap",
+                  background: "rgba(255,255,255,0.06)",
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  borderRadius: 4, padding: "2px 6px",
+                  color: "rgba(255,255,255,0.35)", fontSize: 9,
+                  textDecoration: "none", whiteSpace: "nowrap",
                 }}
               >管理者</NavLink>
             </div>
