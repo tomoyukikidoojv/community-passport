@@ -2,14 +2,26 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { C, EVENTS } from "../constants";
 
-const RSVP_KEY = "cp_rsvp"; // { eventId: "going" | "not_going" }
+const RSVP_KEY = "cp_rsvp"; // { "userId_eventId": "going" | "not_going" }
 
-function loadRsvp() {
+function loadAllRsvp() {
   try { return JSON.parse(localStorage.getItem(RSVP_KEY)) || {}; }
   catch { return {}; }
 }
-function saveRsvp(data) {
+function saveAllRsvp(data) {
   localStorage.setItem(RSVP_KEY, JSON.stringify(data));
+}
+
+export function getRsvpCounts(eventId) {
+  const all = loadAllRsvp();
+  let going = 0, notGoing = 0;
+  Object.entries(all).forEach(([key, status]) => {
+    if (key.endsWith(`_${eventId}`)) {
+      if (status === "going") going++;
+      else if (status === "not_going") notGoing++;
+    }
+  });
+  return { going, notGoing };
 }
 
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
@@ -32,23 +44,32 @@ function formatFullDate(iso) {
   return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日（${WEEKDAYS[d.getDay()]}）`;
 }
 
-export default function CalendarPage({ stamps }) {
+export default function CalendarPage({ stamps, user }) {
   const navigate = useNavigate();
   const today = new Date();
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
   const [selectedEvent, setSelectedEvent] = useState(null);
-  const [rsvp, setRsvp] = useState(loadRsvp);
+  const [allRsvp, setAllRsvp] = useState(loadAllRsvp);
+
+  const uid = user?.id ?? "guest";
+  // Current user's RSVP: { [eventId]: status }
+  const rsvp = Object.fromEntries(
+    Object.entries(allRsvp)
+      .filter(([k]) => k.startsWith(`${uid}_`))
+      .map(([k, v]) => [k.slice(`${uid}_`.length), v])
+  );
 
   const handleRsvp = (eventId, status) => {
-    const updated = { ...rsvp };
-    if (updated[eventId] === status) {
-      delete updated[eventId]; // toggle off
+    const key = `${uid}_${eventId}`;
+    const updated = { ...allRsvp };
+    if (updated[key] === status) {
+      delete updated[key]; // toggle off
     } else {
-      updated[eventId] = status;
+      updated[key] = status;
     }
-    setRsvp(updated);
-    saveRsvp(updated);
+    setAllRsvp(updated);
+    saveAllRsvp(updated);
   };
 
   const daysInMonth = getDaysInMonth(viewYear, viewMonth);

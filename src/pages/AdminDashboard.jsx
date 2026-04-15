@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { C, EVENTS, USERS, getLevel, NOTICE_CATS } from "../constants";
 import { getApplicationsByEvent } from "./ApplyPage";
+import { getRsvpCounts } from "./CalendarPage";
 import EventFormBuilder from "./admin/EventFormBuilder";
 import { getForm } from "../lib/formStorage";
 
@@ -479,11 +480,97 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
         </div>
 
         {/* ── Form builder ─────────────────────── */}
+        <RsvpSummaryPanel />
         <EventFormBuilder />
 
         {/* ── Applications section ─────────────── */}
         <ApplicationsPanel />
 
+      </div>
+    </div>
+  );
+}
+
+function RsvpSummaryPanel() {
+  return (
+    <div style={{
+      background: C.white, borderRadius: 16,
+      boxShadow: "0 8px 30px rgba(0,0,0,0.2)",
+      overflow: "hidden", marginTop: 20,
+    }}>
+      <div style={{
+        padding: "16px 20px 14px",
+        borderBottom: `1px solid ${C.lightGray}`,
+        display: "flex", alignItems: "center", gap: 8,
+      }}>
+        <span style={{
+          display: "inline-block", width: 4, height: 16,
+          background: C.teal, borderRadius: 2,
+        }} />
+        <span style={{ fontSize: 13, fontWeight: 700, color: C.charcoal }}>
+          参加意向サマリー
+        </span>
+      </div>
+
+      <div style={{ padding: "12px 16px" }}>
+        {EVENTS.map(ev => {
+          const { going, notGoing } = getRsvpCounts(ev.id);
+          const total = going + notGoing;
+          const goingPct = total > 0 ? Math.round((going / total) * 100) : 0;
+          return (
+            <div key={ev.id} style={{
+              display: "flex", alignItems: "center", gap: 12,
+              padding: "10px 12px", marginBottom: 6,
+              borderRadius: 10, border: `1px solid ${C.lightGray}`,
+              background: C.offWhite,
+            }}>
+              <span style={{ fontSize: 20, flexShrink: 0 }}>{ev.emoji}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: C.charcoal, marginBottom: 5 }}>
+                  {ev.nameShort}
+                </div>
+                {total > 0 ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <div style={{
+                      flex: 1, height: 8, borderRadius: 4,
+                      background: C.lightGray, overflow: "hidden",
+                    }}>
+                      <div style={{
+                        width: `${goingPct}%`, height: "100%",
+                        background: `linear-gradient(90deg, ${ev.color}, ${ev.color}bb)`,
+                        borderRadius: 4, transition: "width 0.3s",
+                      }} />
+                    </div>
+                    <span style={{ fontSize: 11, color: ev.color, fontWeight: 700, flexShrink: 0 }}>
+                      {goingPct}%
+                    </span>
+                  </div>
+                ) : (
+                  <div style={{ height: 8, borderRadius: 4, background: C.lightGray }} />
+                )}
+              </div>
+              <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                <div style={{ textAlign: "center" }}>
+                  <div style={{
+                    fontSize: 16, fontWeight: 800, color: going > 0 ? ev.color : C.lightGray,
+                    lineHeight: 1,
+                  }}>{going}</div>
+                  <div style={{ fontSize: 10, color: C.gray, marginTop: 2 }}>参加したい</div>
+                </div>
+                <div style={{
+                  width: 1, background: C.lightGray, alignSelf: "stretch",
+                }} />
+                <div style={{ textAlign: "center" }}>
+                  <div style={{
+                    fontSize: 16, fontWeight: 800, color: notGoing > 0 ? C.gray : C.lightGray,
+                    lineHeight: 1,
+                  }}>{notGoing}</div>
+                  <div style={{ fontSize: 10, color: C.gray, marginTop: 2 }}>不参加</div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

@@ -385,7 +385,7 @@ function AppRoutes() {
               />
             } />
             <Route path="/calendar" element={
-              <CalendarPage stamps={myStamps} />
+              <CalendarPage stamps={myStamps} user={registeredUser} />
             } />
             <Route path="/apply/:eventId" element={
               <ApplyPage user={registeredUser} />
