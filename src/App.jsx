@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { BrowserRouter, Routes, Route, NavLink, useNavigate, Navigate } from "react-router-dom";
 import RegisterPage from "./pages/RegisterPage";
+import LoginPage from "./pages/LoginPage";
 import CommunityPassport from "./pages/CommunityPassport";
 import AnnouncementsPage from "./pages/AnnouncementsPage";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -94,7 +95,7 @@ function AdminGate({ children }) {
 }
 
 // ── User nav (2 tabs only) ────────────────────────────
-function UserNav({ registeredUser, myStamps, unreadCount }) {
+function UserNav({ registeredUser, myStamps, unreadCount, onLogout }) {
   const NAV = [
     { path: "/passport",      label: "🎫 マイパスポート", labelEn: "My Passport"   },
     { path: "/announcements", label: "📢 お知らせ",       labelEn: "Announcements" },
@@ -181,11 +182,11 @@ function UserNav({ registeredUser, myStamps, unreadCount }) {
         })}
       </div>
 
-      {/* User chip */}
+      {/* User chip + logout */}
       {registeredUser && (
         <div style={{
           display: "flex", alignItems: "center", gap: 8,
-          padding: "0 20px", borderLeft: "1px solid rgba(255,255,255,0.12)",
+          padding: "0 16px", borderLeft: "1px solid rgba(255,255,255,0.12)",
           flexShrink: 0,
         }}>
           <div style={{
@@ -202,6 +203,23 @@ function UserNav({ registeredUser, myStamps, unreadCount }) {
               ⭐ {myStamps.size}/6 スタンプ
             </div>
           </div>
+          <button
+            onClick={onLogout}
+            title="ログアウト"
+            style={{
+              marginLeft: 4,
+              background: "rgba(255,255,255,0.12)",
+              border: "1px solid rgba(255,255,255,0.2)",
+              borderRadius: 6, padding: "4px 8px",
+              color: "rgba(255,255,255,0.7)", fontSize: 11,
+              cursor: "pointer", fontFamily: "inherit",
+              transition: "all 0.15s",
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.22)"}
+            onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.12)"}
+          >
+            ログアウト
+          </button>
         </div>
       )}
     </nav>
@@ -221,6 +239,28 @@ function AppRoutes() {
       return null;
     }
   });
+
+  // Login state: stored in sessionStorage (resets when browser closes)
+  const [loggedIn, setLoggedIn] = useState(
+    () => sessionStorage.getItem("cp_loggedin") === "1"
+  );
+
+  const handleLogin = () => {
+    sessionStorage.setItem("cp_loggedin", "1");
+    setLoggedIn(true);
+  };
+
+  const handleLogout = () => {
+    sessionStorage.removeItem("cp_loggedin");
+    setLoggedIn(false);
+  };
+
+  const handleReset = () => {
+    localStorage.removeItem(STORAGE_KEY);
+    sessionStorage.removeItem("cp_loggedin");
+    setRegisteredUser(null);
+    setLoggedIn(false);
+  };
 
   const [attendance, setAttendance] = useState(
     () => Object.fromEntries(
@@ -242,7 +282,9 @@ function AppRoutes() {
 
   const handleRegistered = (newUser) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newUser));
+    sessionStorage.setItem("cp_loggedin", "1");
     setRegisteredUser(newUser);
+    setLoggedIn(true);
     setAttendance(prev => ({ ...prev, [newUser.id]: new Set() }));
     navigate("/passport");
   };
@@ -260,11 +302,26 @@ function AppRoutes() {
   const myStamps = attendance[registeredUser?.id] || new Set();
   const unreadCount = announcements.filter(a => !readIds.has(a.id)).length;
 
-  // Not registered yet → show registration full screen (no nav)
+  // Not registered yet → registration
   if (!registeredUser) {
     return (
       <Routes>
         <Route path="*" element={<RegisterPage onRegistered={handleRegistered} />} />
+      </Routes>
+    );
+  }
+
+  // Registered but not logged in → login screen
+  if (!loggedIn) {
+    return (
+      <Routes>
+        <Route path="*" element={
+          <LoginPage
+            savedUser={registeredUser}
+            onLogin={handleLogin}
+            onReset={handleReset}
+          />
+        } />
       </Routes>
     );
   }
@@ -294,6 +351,7 @@ function AppRoutes() {
             registeredUser={registeredUser}
             myStamps={myStamps}
             unreadCount={unreadCount}
+            onLogout={handleLogout}
           />
           <Routes>
             <Route path="/" element={<Navigate to="/passport" replace />} />

@@ -52,6 +52,7 @@ export default function RegisterPage({ onRegistered }) {
   const [form, setForm] = useState({
     nameJa: "", nameEn: "", email: "",
     country: "", years: "", lang: "",
+    password: "", passwordConfirm: "",
   });
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
@@ -70,11 +71,13 @@ export default function RegisterPage({ onRegistered }) {
 
   const validate = () => {
     const errs = {};
-    if (!form.nameJa.trim())       errs.nameJa  = "お名前を入力してください";
-    if (!form.nameEn.trim())       errs.nameEn  = "Enter your name in English";
-    if (!form.email.includes("@")) errs.email   = "有効なメールアドレスを入力してください";
-    if (!form.country)             errs.country = "国籍を選択してください";
-    if (!form.years)               errs.years   = "在住歴を選択してください";
+    if (!form.nameJa.trim())                   errs.nameJa         = "お名前を入力してください";
+    if (!form.nameEn.trim())                   errs.nameEn         = "Enter your name in English";
+    if (!form.email.includes("@"))             errs.email          = "有効なメールアドレスを入力してください";
+    if (!form.country)                         errs.country        = "国籍を選択してください";
+    if (!form.years)                           errs.years          = "在住歴を選択してください";
+    if (form.password.length < 4)              errs.password       = "4文字以上で設定してください";
+    if (form.password !== form.passwordConfirm) errs.passwordConfirm = "パスワードが一致しません";
     return errs;
   };
 
@@ -93,6 +96,7 @@ export default function RegisterPage({ onRegistered }) {
       since: "2026年" + new Date().toLocaleString("ja-JP", { month: "long" }),
       lang: form.lang,
       years: form.years,
+      password: form.password,
     };
     setNewUser(user);
     setSubmitted(true);
@@ -371,6 +375,43 @@ export default function RegisterPage({ onRegistered }) {
                 }}
               />
             </Field>
+
+            {/* Password */}
+            <div style={{ margin: "4px 0 16px", borderTop: `1px dashed ${C.lightGray}` }} />
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+              <Field label="パスワード" labelEn="Password" required>
+                <input
+                  type="password" value={form.password} onChange={set("password")}
+                  placeholder="4文字以上"
+                  onFocus={() => setFocusedField("password")}
+                  onBlur={() => setFocusedField(null)}
+                  style={{
+                    ...inputStyle,
+                    borderColor: errors.password ? "#E74C3C"
+                      : focusedField === "password" ? C.teal : C.lightGray,
+                  }}
+                />
+                {errors.password && (
+                  <div style={{ color: "#E74C3C", fontSize: 11, marginTop: 4 }}>{errors.password}</div>
+                )}
+              </Field>
+              <Field label="パスワード確認" labelEn="Confirm" required>
+                <input
+                  type="password" value={form.passwordConfirm} onChange={set("passwordConfirm")}
+                  placeholder="もう一度入力"
+                  onFocus={() => setFocusedField("passwordConfirm")}
+                  onBlur={() => setFocusedField(null)}
+                  style={{
+                    ...inputStyle,
+                    borderColor: errors.passwordConfirm ? "#E74C3C"
+                      : focusedField === "passwordConfirm" ? C.teal : C.lightGray,
+                  }}
+                />
+                {errors.passwordConfirm && (
+                  <div style={{ color: "#E74C3C", fontSize: 11, marginTop: 4 }}>{errors.passwordConfirm}</div>
+                )}
+              </Field>
+            </div>
 
             <div style={{ margin: "4px 0 20px", borderTop: `1px dashed ${C.lightGray}` }} />
 
