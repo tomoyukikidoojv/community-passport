@@ -1,149 +1,226 @@
-import { useState } from "react";
-import { BrowserRouter, Routes, Route, NavLink, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { BrowserRouter, Routes, Route, NavLink, useNavigate, Navigate } from "react-router-dom";
 import RegisterPage from "./pages/RegisterPage";
 import CommunityPassport from "./pages/CommunityPassport";
 import AnnouncementsPage from "./pages/AnnouncementsPage";
 import AdminDashboard from "./pages/AdminDashboard";
-import { C, USERS, initialAttendance, initialAnnouncements } from "./constants";
+import { C, initialAttendance, initialAnnouncements } from "./constants";
 
-const NAV_ITEMS = [
-  { path: "/register",      label: "📝 登録",         labelEn: "Register"      },
-  { path: "/passport",      label: "🎫 マイパスポート", labelEn: "My Passport"   },
-  { path: "/announcements", label: "📢 お知らせ",       labelEn: "Announcements" },
-  { path: "/admin",         label: "👑 管理者",         labelEn: "Admin"         },
-];
+const ADMIN_PASSWORD = "Kidodomo1551";
+const STORAGE_KEY = "cp_user";
 
-function AppLayout({ children, registeredUser, myStamps, unreadCount }) {
+// ── Admin login gate ───────────────────────────────────
+function AdminGate({ children }) {
+  const [input, setInput] = useState("");
+  const [authed, setAuthed] = useState(() => sessionStorage.getItem("cp_admin") === "1");
+  const [error, setError] = useState(false);
+
+  const submit = (e) => {
+    e.preventDefault();
+    if (input === ADMIN_PASSWORD) {
+      sessionStorage.setItem("cp_admin", "1");
+      setAuthed(true);
+    } else {
+      setError(true);
+      setInput("");
+    }
+  };
+
+  if (authed) return children;
+
   return (
-    <div style={{ fontFamily: "'Segoe UI','Hiragino Sans','Meiryo',sans-serif" }}>
-      <nav style={{
-        position: "sticky", top: 0, zIndex: 100,
-        background: `linear-gradient(90deg, ${C.navy} 0%, ${C.teal} 100%)`,
-        boxShadow: "0 2px 16px rgba(0,0,0,0.35)",
-        display: "flex", alignItems: "stretch",
+    <div style={{
+      minHeight: "100vh",
+      background: `linear-gradient(135deg, ${C.teal} 0%, ${C.navy} 100%)`,
+      display: "flex", alignItems: "center", justifyContent: "center",
+      fontFamily: "'Segoe UI','Hiragino Sans','Meiryo',sans-serif",
+    }}>
+      <div style={{
+        background: C.white, borderRadius: 20, maxWidth: 380, width: "100%",
+        margin: "0 16px",
+        boxShadow: "0 20px 60px rgba(0,0,0,0.35)", overflow: "hidden",
       }}>
-        {/* Logo */}
         <div style={{
-          padding: "0 20px",
-          display: "flex", alignItems: "center", gap: 10,
-          borderRight: "1px solid rgba(255,255,255,0.12)",
-          flexShrink: 0,
+          background: `linear-gradient(90deg, ${C.teal}, ${C.tealMid})`,
+          padding: "24px",
+          textAlign: "center",
         }}>
-          <div style={{
-            width: 32, height: 32, borderRadius: 8,
-            background: C.gold,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 18, flexShrink: 0,
-          }}>🌏</div>
-          <div style={{ lineHeight: 1.2 }}>
-            <div style={{ color: C.white, fontWeight: 800, fontSize: 13, letterSpacing: 0.5 }}>
-              Community
-            </div>
-            <div style={{ color: C.gold, fontWeight: 800, fontSize: 13, letterSpacing: 0.5 }}>
-              Passport
-            </div>
+          <div style={{ fontSize: 36, marginBottom: 8 }}>👑</div>
+          <div style={{ color: C.white, fontSize: 18, fontWeight: 800 }}>管理者ページ</div>
+          <div style={{ color: "rgba(255,255,255,0.65)", fontSize: 12, marginTop: 4 }}>
+            Admin Dashboard
           </div>
         </div>
-
-        {/* Nav links */}
-        <div style={{ display: "flex", flex: 1 }}>
-          {NAV_ITEMS.map((item, i) => {
-            const isNotices = item.path === "/announcements";
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                style={({ isActive }) => ({
-                  background: isActive ? "rgba(255,255,255,0.10)" : "transparent",
-                  border: "none", cursor: "pointer",
-                  padding: "0 22px",
-                  borderBottom: isActive ? `3px solid ${C.gold}` : "3px solid transparent",
-                  borderTop: "3px solid transparent",
-                  display: "flex", flexDirection: "column",
-                  alignItems: "center", justifyContent: "center", gap: 1,
-                  transition: "all 0.18s",
-                  fontFamily: "inherit",
-                  position: "relative",
-                  textDecoration: "none",
-                })}
-              >
-                {({ isActive }) => (
-                  <>
-                    <div style={{
-                      position: "absolute", top: 8, left: 14,
-                      width: 16, height: 16, borderRadius: "50%",
-                      background: isActive ? C.gold : "rgba(255,255,255,0.2)",
-                      color: isActive ? C.teal : "rgba(255,255,255,0.5)",
-                      fontSize: 9, fontWeight: 800,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      transition: "all 0.18s",
-                    }}>{i + 1}</div>
-
-                    {isNotices && unreadCount > 0 && (
-                      <div style={{
-                        position: "absolute", top: 6, right: 8,
-                        minWidth: 16, height: 16, borderRadius: 8,
-                        background: "#E74C3C", color: C.white,
-                        fontSize: 9, fontWeight: 800,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        padding: "0 4px",
-                        boxShadow: "0 1px 4px rgba(231,76,60,0.6)",
-                      }}>{unreadCount}</div>
-                    )}
-
-                    <span style={{
-                      fontSize: 13,
-                      color: isActive ? C.white : "rgba(255,255,255,0.55)",
-                      fontWeight: isActive ? 700 : 400,
-                      transition: "all 0.18s",
-                    }}>{item.label}</span>
-                    <span style={{
-                      fontSize: 9,
-                      color: isActive ? C.gold : "rgba(255,255,255,0.3)",
-                      letterSpacing: 0.5,
-                      transition: "all 0.18s",
-                    }}>{item.labelEn}</span>
-                  </>
-                )}
-              </NavLink>
-            );
-          })}
-        </div>
-
-        {/* User chip */}
-        {registeredUser && (
-          <div style={{
-            display: "flex", alignItems: "center", gap: 8,
-            padding: "0 20px", borderLeft: "1px solid rgba(255,255,255,0.12)",
-            flexShrink: 0,
-          }}>
-            <div style={{
-              width: 30, height: 30, borderRadius: "50%",
-              background: C.goldLight, border: `2px solid ${C.gold}`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 15,
-            }}>{registeredUser.flag}</div>
-            <div style={{ lineHeight: 1.25 }}>
-              <div style={{ color: C.white, fontSize: 12, fontWeight: 600 }}>
-                {registeredUser.name}
+        <form onSubmit={submit} style={{ padding: "28px 28px 24px" }}>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 6 }}>
+              パスワード
+            </label>
+            <input
+              type="password"
+              value={input}
+              onChange={e => { setInput(e.target.value); setError(false); }}
+              placeholder="パスワードを入力"
+              autoFocus
+              style={{
+                width: "100%", padding: "10px 14px", boxSizing: "border-box",
+                border: `1.5px solid ${error ? "#E74C3C" : C.lightGray}`,
+                borderRadius: 8, fontSize: 14, fontFamily: "inherit",
+                outline: "none", color: C.charcoal,
+              }}
+            />
+            {error && (
+              <div style={{ color: "#E74C3C", fontSize: 12, marginTop: 6 }}>
+                パスワードが違います
               </div>
-              <div style={{ color: C.gold, fontSize: 10 }}>
-                ⭐ {myStamps.size}/6 スタンプ
-              </div>
-            </div>
+            )}
           </div>
-        )}
-      </nav>
-
-      {children}
+          <button
+            type="submit"
+            style={{
+              width: "100%", padding: "12px",
+              background: `linear-gradient(90deg, ${C.teal}, ${C.tealMid})`,
+              color: C.white, border: "none", borderRadius: 8,
+              fontSize: 14, fontWeight: 700, cursor: "pointer",
+              fontFamily: "inherit",
+            }}
+          >
+            ログイン
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
 
+// ── User nav (2 tabs only) ────────────────────────────
+function UserNav({ registeredUser, myStamps, unreadCount }) {
+  const NAV = [
+    { path: "/passport",      label: "🎫 マイパスポート", labelEn: "My Passport"   },
+    { path: "/announcements", label: "📢 お知らせ",       labelEn: "Announcements" },
+  ];
+
+  return (
+    <nav style={{
+      position: "sticky", top: 0, zIndex: 100,
+      background: `linear-gradient(90deg, ${C.navy} 0%, ${C.teal} 100%)`,
+      boxShadow: "0 2px 16px rgba(0,0,0,0.35)",
+      display: "flex", alignItems: "stretch",
+    }}>
+      {/* Logo */}
+      <div style={{
+        padding: "0 20px",
+        display: "flex", alignItems: "center", gap: 10,
+        borderRight: "1px solid rgba(255,255,255,0.12)",
+        flexShrink: 0,
+      }}>
+        <div style={{
+          width: 32, height: 32, borderRadius: 8,
+          background: C.gold,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 18,
+        }}>🌏</div>
+        <div style={{ lineHeight: 1.2 }}>
+          <div style={{ color: C.white, fontWeight: 800, fontSize: 13, letterSpacing: 0.5 }}>
+            Community
+          </div>
+          <div style={{ color: C.gold, fontWeight: 800, fontSize: 13, letterSpacing: 0.5 }}>
+            Passport
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display: "flex", flex: 1 }}>
+        {NAV.map((item) => {
+          const isNotices = item.path === "/announcements";
+          return (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              style={({ isActive }) => ({
+                background: isActive ? "rgba(255,255,255,0.10)" : "transparent",
+                border: "none", cursor: "pointer",
+                padding: "0 28px",
+                borderBottom: isActive ? `3px solid ${C.gold}` : "3px solid transparent",
+                borderTop: "3px solid transparent",
+                display: "flex", flexDirection: "column",
+                alignItems: "center", justifyContent: "center", gap: 1,
+                transition: "all 0.18s",
+                position: "relative",
+                textDecoration: "none",
+              })}
+            >
+              {({ isActive }) => (
+                <>
+                  {isNotices && unreadCount > 0 && (
+                    <div style={{
+                      position: "absolute", top: 6, right: 12,
+                      minWidth: 16, height: 16, borderRadius: 8,
+                      background: "#E74C3C", color: C.white,
+                      fontSize: 9, fontWeight: 800,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      padding: "0 4px",
+                      boxShadow: "0 1px 4px rgba(231,76,60,0.6)",
+                    }}>{unreadCount}</div>
+                  )}
+                  <span style={{
+                    fontSize: 13,
+                    color: isActive ? C.white : "rgba(255,255,255,0.55)",
+                    fontWeight: isActive ? 700 : 400,
+                  }}>{item.label}</span>
+                  <span style={{
+                    fontSize: 9,
+                    color: isActive ? C.gold : "rgba(255,255,255,0.3)",
+                    letterSpacing: 0.5,
+                  }}>{item.labelEn}</span>
+                </>
+              )}
+            </NavLink>
+          );
+        })}
+      </div>
+
+      {/* User chip */}
+      {registeredUser && (
+        <div style={{
+          display: "flex", alignItems: "center", gap: 8,
+          padding: "0 20px", borderLeft: "1px solid rgba(255,255,255,0.12)",
+          flexShrink: 0,
+        }}>
+          <div style={{
+            width: 30, height: 30, borderRadius: "50%",
+            background: C.goldLight, border: `2px solid ${C.gold}`,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 15,
+          }}>{registeredUser.flag}</div>
+          <div style={{ lineHeight: 1.25 }}>
+            <div style={{ color: C.white, fontSize: 12, fontWeight: 600 }}>
+              {registeredUser.name}
+            </div>
+            <div style={{ color: C.gold, fontSize: 10 }}>
+              ⭐ {myStamps.size}/6 スタンプ
+            </div>
+          </div>
+        </div>
+      )}
+    </nav>
+  );
+}
+
+// ── Main app routes ───────────────────────────────────
 function AppRoutes() {
   const navigate = useNavigate();
 
-  const [registeredUser, setRegisteredUser] = useState(USERS[0]);
+  // Load user from localStorage
+  const [registeredUser, setRegisteredUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
 
   const [attendance, setAttendance] = useState(
     () => Object.fromEntries(
@@ -164,6 +241,7 @@ function AppRoutes() {
   };
 
   const handleRegistered = (newUser) => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(newUser));
     setRegisteredUser(newUser);
     setAttendance(prev => ({ ...prev, [newUser.id]: new Set() }));
     navigate("/passport");
@@ -182,27 +260,23 @@ function AppRoutes() {
   const myStamps = attendance[registeredUser?.id] || new Set();
   const unreadCount = announcements.filter(a => !readIds.has(a.id)).length;
 
-  return (
-    <AppLayout
-      registeredUser={registeredUser}
-      myStamps={myStamps}
-      unreadCount={unreadCount}
-    >
+  // Not registered yet → show registration full screen (no nav)
+  if (!registeredUser) {
+    return (
       <Routes>
-        <Route path="/" element={<RegisterPage onRegistered={handleRegistered} />} />
-        <Route path="/register" element={<RegisterPage onRegistered={handleRegistered} />} />
-        <Route path="/passport" element={
-          <CommunityPassport stamps={myStamps} onManualStamp={toggleStamp} user={registeredUser} />
-        } />
-        <Route path="/announcements" element={
-          <AnnouncementsPage
-            announcements={announcements}
-            readIds={readIds}
-            onRead={markRead}
-            onReadAll={markAllRead}
-          />
-        } />
-        <Route path="/admin" element={
+        <Route path="*" element={<RegisterPage onRegistered={handleRegistered} />} />
+      </Routes>
+    );
+  }
+
+  // Admin route → password protected, no user nav
+  // (handled separately via <Route> below)
+
+  return (
+    <Routes>
+      {/* Admin: separate password-protected area */}
+      <Route path="/admin" element={
+        <AdminGate>
           <AdminDashboard
             attendance={attendance}
             onStamp={toggleStamp}
@@ -210,9 +284,35 @@ function AppRoutes() {
             onPostAnnouncement={postAnnouncement}
             onDeleteAnnouncement={deleteAnnouncement}
           />
-        } />
-      </Routes>
-    </AppLayout>
+        </AdminGate>
+      } />
+
+      {/* User area: 2-tab nav */}
+      <Route path="*" element={
+        <div style={{ fontFamily: "'Segoe UI','Hiragino Sans','Meiryo',sans-serif" }}>
+          <UserNav
+            registeredUser={registeredUser}
+            myStamps={myStamps}
+            unreadCount={unreadCount}
+          />
+          <Routes>
+            <Route path="/" element={<Navigate to="/passport" replace />} />
+            <Route path="/passport" element={
+              <CommunityPassport stamps={myStamps} onManualStamp={toggleStamp} user={registeredUser} />
+            } />
+            <Route path="/announcements" element={
+              <AnnouncementsPage
+                announcements={announcements}
+                readIds={readIds}
+                onRead={markRead}
+                onReadAll={markAllRead}
+              />
+            } />
+            <Route path="*" element={<Navigate to="/passport" replace />} />
+          </Routes>
+        </div>
+      } />
+    </Routes>
   );
 }
 
