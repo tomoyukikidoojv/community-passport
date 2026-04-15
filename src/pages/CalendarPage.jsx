@@ -1,6 +1,16 @@
 import { useState } from "react";
 import { C, EVENTS } from "../constants";
 
+const RSVP_KEY = "cp_rsvp"; // { eventId: "going" | "not_going" }
+
+function loadRsvp() {
+  try { return JSON.parse(localStorage.getItem(RSVP_KEY)) || {}; }
+  catch { return {}; }
+}
+function saveRsvp(data) {
+  localStorage.setItem(RSVP_KEY, JSON.stringify(data));
+}
+
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
 
 function getDaysInMonth(year, month) {
@@ -26,6 +36,18 @@ export default function CalendarPage({ stamps }) {
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [rsvp, setRsvp] = useState(loadRsvp);
+
+  const handleRsvp = (eventId, status) => {
+    const updated = { ...rsvp };
+    if (updated[eventId] === status) {
+      delete updated[eventId]; // toggle off
+    } else {
+      updated[eventId] = status;
+    }
+    setRsvp(updated);
+    saveRsvp(updated);
+  };
 
   const daysInMonth = getDaysInMonth(viewYear, viewMonth);
   const firstDay = getFirstDayOfWeek(viewYear, viewMonth);
@@ -236,13 +258,67 @@ export default function CalendarPage({ stamps }) {
                     <div style={{ fontSize: 14, fontWeight: 600, color: C.charcoal }}>{value}</div>
                   </div>
                 ))}
+
+                {/* RSVP buttons (only for future events) */}
+                {new Date(selectedEvent.fullDate) >= new Date(today.toDateString()) && !stamps?.has(selectedEvent.id) && (
+                  <div style={{ marginBottom: 14 }}>
+                    <div style={{ fontSize: 11, color: C.gray, marginBottom: 8 }}>参加予定</div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button
+                        onClick={() => handleRsvp(selectedEvent.id, "going")}
+                        style={{
+                          flex: 1, padding: "10px",
+                          background: rsvp[selectedEvent.id] === "going" ? selectedEvent.color : C.offWhite,
+                          color: rsvp[selectedEvent.id] === "going" ? C.white : C.charcoal,
+                          border: `2px solid ${rsvp[selectedEvent.id] === "going" ? selectedEvent.color : C.lightGray}`,
+                          borderRadius: 8, fontSize: 13, fontWeight: 700,
+                          cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
+                        }}
+                      >
+                        {rsvp[selectedEvent.id] === "going" ? "✓ 参加予定" : "🙋 参加したい"}
+                      </button>
+                      <button
+                        onClick={() => handleRsvp(selectedEvent.id, "not_going")}
+                        style={{
+                          flex: 1, padding: "10px",
+                          background: rsvp[selectedEvent.id] === "not_going" ? C.lightGray : C.offWhite,
+                          color: rsvp[selectedEvent.id] === "not_going" ? C.gray : C.charcoal,
+                          border: `2px solid ${rsvp[selectedEvent.id] === "not_going" ? C.gray : C.lightGray}`,
+                          borderRadius: 8, fontSize: 13, fontWeight: 700,
+                          cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
+                        }}
+                      >
+                        {rsvp[selectedEvent.id] === "not_going" ? "✗ 不参加" : "不参加"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Apply URL button */}
+                {selectedEvent.applyUrl && (
+                  <a
+                    href={selectedEvent.applyUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: "block", width: "100%", padding: "11px",
+                      background: `linear-gradient(90deg, ${selectedEvent.color}, ${selectedEvent.color}cc)`,
+                      color: C.white, borderRadius: 8, fontSize: 13, fontWeight: 700,
+                      textAlign: "center", textDecoration: "none",
+                      marginBottom: 8, boxSizing: "border-box",
+                    }}
+                  >
+                    📝 申し込みフォームへ →
+                  </a>
+                )}
+
                 <button
                   onClick={() => setSelectedEvent(null)}
                   style={{
                     width: "100%", padding: "10px",
                     background: C.offWhite, border: `1px solid ${C.lightGray}`,
                     borderRadius: 8, fontSize: 13, color: C.gray,
-                    cursor: "pointer", fontFamily: "inherit", marginTop: 4,
+                    cursor: "pointer", fontFamily: "inherit",
                   }}
                 >閉じる</button>
               </div>
@@ -305,7 +381,7 @@ export default function CalendarPage({ stamps }) {
                     </div>
                     <div style={{ fontSize: 11, color: C.gray }}>📍 {ev.place}</div>
                   </div>
-                  <div style={{ flexShrink: 0, textAlign: "center" }}>
+                  <div style={{ flexShrink: 0, textAlign: "right", display: "flex", flexDirection: "column", gap: 4 }}>
                     {stamped ? (
                       <div style={{
                         background: ev.color, color: C.white,
@@ -318,13 +394,25 @@ export default function CalendarPage({ stamps }) {
                         borderRadius: 20, padding: "3px 10px",
                         fontSize: 10,
                       }}>終了</div>
+                    ) : rsvp[ev.id] === "going" ? (
+                      <div style={{
+                        background: ev.color, color: C.white,
+                        borderRadius: 20, padding: "3px 10px",
+                        fontSize: 10, fontWeight: 700,
+                      }}>🙋 参加予定</div>
+                    ) : rsvp[ev.id] === "not_going" ? (
+                      <div style={{
+                        background: C.lightGray, color: C.gray,
+                        borderRadius: 20, padding: "3px 10px",
+                        fontSize: 10,
+                      }}>✗ 不参加</div>
                     ) : (
                       <div style={{
                         background: `${ev.color}18`, color: ev.color,
                         border: `1px solid ${ev.color}40`,
                         borderRadius: 20, padding: "3px 10px",
                         fontSize: 10, fontWeight: 700,
-                      }}>予定</div>
+                      }}>未回答</div>
                     )}
                   </div>
                 </div>
