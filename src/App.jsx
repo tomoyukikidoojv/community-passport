@@ -318,19 +318,34 @@ function AppRoutes() {
   const myStamps = attendance[registeredUser?.id] || new Set();
   const unreadCount = announcements.filter(a => !readIds.has(a.id)).length;
 
-  // Not registered yet → registration
+  const adminElement = (
+    <AdminGate>
+      <AdminDashboard
+        attendance={attendance}
+        onStamp={toggleStamp}
+        announcements={announcements}
+        onPostAnnouncement={postAnnouncement}
+        onDeleteAnnouncement={deleteAnnouncement}
+      />
+    </AdminGate>
+  );
+
+  // Admin route is always accessible regardless of user login state
+  // Not registered yet → registration (except admin)
   if (!registeredUser) {
     return (
       <Routes>
+        <Route path="/kanri-ashiya2026" element={adminElement} />
         <Route path="*" element={<RegisterPage onRegistered={handleRegistered} />} />
       </Routes>
     );
   }
 
-  // Registered but not logged in → login screen
+  // Registered but not logged in → login screen (except admin)
   if (!loggedIn) {
     return (
       <Routes>
+        <Route path="/kanri-ashiya2026" element={adminElement} />
         <Route path="*" element={
           <LoginPage
             savedUser={registeredUser}
@@ -342,23 +357,10 @@ function AppRoutes() {
     );
   }
 
-  // Admin route → password protected, no user nav
-  // (handled separately via <Route> below)
-
   return (
     <Routes>
       {/* Admin: separate password-protected area */}
-      <Route path="/kanri-ashiya2026" element={
-        <AdminGate>
-          <AdminDashboard
-            attendance={attendance}
-            onStamp={toggleStamp}
-            announcements={announcements}
-            onPostAnnouncement={postAnnouncement}
-            onDeleteAnnouncement={deleteAnnouncement}
-          />
-        </AdminGate>
-      } />
+      <Route path="/kanri-ashiya2026" element={adminElement} />
 
       {/* User area: 2-tab nav */}
       <Route path="*" element={
