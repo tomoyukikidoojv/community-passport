@@ -73,6 +73,7 @@ function Stamp({ event, stamped, onClick }) {
 
 export default function CommunityPassport({ stamps, onManualStamp, user }) {
   const [flash, setFlash] = useState(null);
+  const [qrExpanded, setQrExpanded] = useState(false);
   const ME = user || USERS[0];
 
   const toggle = (id) => {
@@ -84,6 +85,10 @@ export default function CommunityPassport({ stamps, onManualStamp, user }) {
   const count = stamps.size;
   const level = getLevel(count);
   const pct = Math.round((count / EVENTS.length) * 100);
+
+  const qrValue = btoa(unescape(encodeURIComponent(JSON.stringify({
+    id: ME.id, name: ME.name, nameEn: ME.nameEn, flag: ME.flag,
+  }))));
 
   return (
     <div style={{
@@ -139,11 +144,117 @@ export default function CommunityPassport({ stamps, onManualStamp, user }) {
             </div>
           </div>
 
+          {/* QR Card — at the top for easy staff scan */}
+          <div
+            onClick={() => setQrExpanded(true)}
+            style={{
+              margin: "22px 22px 0",
+              background: `linear-gradient(135deg, ${C.navy} 0%, #1a3a5c 50%, ${C.teal} 100%)`,
+              borderRadius: 16,
+              padding: "20px 24px",
+              position: "relative",
+              overflow: "hidden",
+              boxShadow: `0 8px 24px rgba(0,0,0,0.25)`,
+              cursor: "pointer",
+            }}>
+            {/* Decorative circles */}
+            <div style={{
+              position: "absolute", top: -30, right: -30,
+              width: 120, height: 120, borderRadius: "50%",
+              background: "rgba(255,255,255,0.05)",
+              pointerEvents: "none",
+            }} />
+            <div style={{
+              position: "absolute", bottom: -20, left: 60,
+              width: 80, height: 80, borderRadius: "50%",
+              background: "rgba(255,255,255,0.04)",
+              pointerEvents: "none",
+            }} />
+
+            <div style={{ display: "flex", alignItems: "center", gap: 20, position: "relative" }}>
+              {/* QR code */}
+              <div style={{
+                background: C.white,
+                borderRadius: 12,
+                padding: 10,
+                boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
+                flexShrink: 0,
+              }}>
+                <QRCodeSVG value={qrValue} size={110} fgColor={C.navy} level="M" />
+              </div>
+
+              {/* Info */}
+              <div style={{ flex: 1 }}>
+                <div style={{
+                  fontSize: 9, letterSpacing: 3,
+                  color: "rgba(255,255,255,0.45)",
+                  marginBottom: 6, textTransform: "uppercase",
+                }}>
+                  Member ID Card
+                </div>
+                <div style={{
+                  fontSize: 18, fontWeight: 800, color: C.white,
+                  lineHeight: 1.2, marginBottom: 2,
+                }}>
+                  {ME.name}
+                </div>
+                <div style={{
+                  fontSize: 11, color: "rgba(255,255,255,0.5)",
+                  marginBottom: 12,
+                }}>
+                  {ME.nameEn}
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{
+                      fontSize: 9, color: "rgba(255,255,255,0.4)",
+                      letterSpacing: 1, minWidth: 28,
+                    }}>NO.</span>
+                    <span style={{
+                      fontSize: 12, fontWeight: 700,
+                      color: C.gold, letterSpacing: 1,
+                      fontFamily: "monospace",
+                    }}>{ME.no}</span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{
+                      fontSize: 9, color: "rgba(255,255,255,0.4)",
+                      letterSpacing: 1, minWidth: 28,
+                    }}>LV.</span>
+                    <span style={{
+                      background: level.color,
+                      color: C.white,
+                      borderRadius: 4, padding: "1px 8px",
+                      fontSize: 10, fontWeight: 800, letterSpacing: 0.5,
+                    }}>⭐ {level.label}</span>
+                  </div>
+                </div>
+
+                <div style={{
+                  marginTop: 12,
+                  fontSize: 10, color: "rgba(255,255,255,0.35)",
+                  lineHeight: 1.5,
+                }}>
+                  受付でこのQRを<br />スタッフに提示
+                </div>
+                <div style={{
+                  marginTop: 8, fontSize: 9,
+                  color: "rgba(255,255,255,0.25)",
+                  letterSpacing: 0.5,
+                }}>
+                  タップで拡大 ↗
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Stats */}
           <div style={{
             background: C.offWhite, padding: "12px 22px",
             display: "flex", alignItems: "center", gap: 20,
             borderBottom: `1px solid ${C.lightGray}`,
+            marginTop: 22,
           }}>
             <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
               <span style={{ fontSize: 30, fontWeight: 800, color: C.teal }}>{count}</span>
@@ -255,38 +366,6 @@ export default function CommunityPassport({ stamps, onManualStamp, user }) {
             </div>
           </div>
 
-          {/* QR Code */}
-          <div style={{
-            margin: "0 22px 22px",
-            background: C.offWhite, border: `1px solid ${C.lightGray}`,
-            borderRadius: 12, padding: "16px 20px",
-            display: "flex", alignItems: "center", gap: 20,
-          }}>
-            <div style={{
-              background: C.white, borderRadius: 10, padding: 10,
-              boxShadow: "0 2px 8px rgba(0,0,0,0.1)", flexShrink: 0,
-            }}>
-              <QRCodeSVG
-                value={btoa(unescape(encodeURIComponent(JSON.stringify({
-                  id: ME.id, name: ME.name, nameEn: ME.nameEn, flag: ME.flag,
-                }))))}
-                size={100}
-                fgColor={C.navy}
-                level="M"
-              />
-            </div>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 5 }}>
-                📱 受付用QRコード
-              </div>
-              <div style={{ fontSize: 12, color: C.gray, lineHeight: 1.6 }}>
-                イベント受付でスタッフに<br />
-                このQRコードをご提示ください。<br />
-                スキャンで出席が記録されます。
-              </div>
-            </div>
-          </div>
-
           {/* Footer */}
           <div style={{
             background: C.teal, padding: "8px 22px",
@@ -301,6 +380,43 @@ export default function CommunityPassport({ stamps, onManualStamp, user }) {
           </div>
         </div>
       </div>
+
+      {/* QR expanded modal */}
+      {qrExpanded && (
+        <div
+          onClick={() => setQrExpanded(false)}
+          style={{
+            position: "fixed", inset: 0, zIndex: 200,
+            background: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)",
+            display: "flex", flexDirection: "column",
+            alignItems: "center", justifyContent: "center", gap: 20,
+            fontFamily: "'Segoe UI','Hiragino Sans','Meiryo',sans-serif",
+          }}
+        >
+          <div style={{
+            fontSize: 11, letterSpacing: 3,
+            color: "rgba(255,255,255,0.4)", marginBottom: 4,
+            textTransform: "uppercase",
+          }}>Member ID Card</div>
+          <div style={{
+            background: C.white, borderRadius: 16, padding: 16,
+            boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
+          }}>
+            <QRCodeSVG value={qrValue} size={220} fgColor={C.navy} level="M" />
+          </div>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ color: C.white, fontWeight: 800, fontSize: 18 }}>
+              {ME.flag} {ME.name}
+            </div>
+            <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 12, marginTop: 3 }}>
+              {ME.nameEn}　／　No. {ME.no}
+            </div>
+          </div>
+          <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 12, marginTop: 8 }}>
+            タップして閉じる
+          </div>
+        </div>
+      )}
     </div>
   );
 }
