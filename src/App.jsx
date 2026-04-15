@@ -11,6 +11,7 @@ import { C, initialAttendance, initialAnnouncements } from "./constants";
 
 const ADMIN_PASSWORD = "Kidodomo1551";
 const STORAGE_KEY = "cp_user";
+const ATTENDANCE_KEY = "cp_attendance";
 
 // ── Admin login gate ───────────────────────────────────
 function AdminGate({ children }) {
@@ -281,11 +282,13 @@ function AppRoutes() {
     setLoggedIn(false);
   };
 
-  const [attendance, setAttendance] = useState(
-    () => Object.fromEntries(
-      Object.entries(initialAttendance).map(([k, v]) => [k, new Set(v)])
-    )
-  );
+  const [attendance, setAttendance] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(ATTENDANCE_KEY));
+      if (saved) return Object.fromEntries(Object.entries(saved).map(([k, v]) => [k, new Set(v)]));
+    } catch {}
+    return Object.fromEntries(Object.entries(initialAttendance).map(([k, v]) => [k, new Set(v)]));
+  });
 
   const [announcements, setAnnouncements] = useState([...initialAnnouncements]);
   const [readIds, setReadIds] = useState(new Set());
@@ -295,7 +298,11 @@ function AppRoutes() {
       const userSet = new Set(prev[userId] || []);
       if (userSet.has(eventId)) userSet.delete(eventId);
       else userSet.add(eventId);
-      return { ...prev, [userId]: userSet };
+      const next = { ...prev, [userId]: userSet };
+      localStorage.setItem(ATTENDANCE_KEY, JSON.stringify(
+        Object.fromEntries(Object.entries(next).map(([k, v]) => [k, [...v]]))
+      ));
+      return next;
     });
   };
 

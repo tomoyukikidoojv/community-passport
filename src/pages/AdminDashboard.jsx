@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { Html5Qrcode } from "html5-qrcode";
 import { C, EVENTS, USERS, getLevel, NOTICE_CATS } from "../constants";
 import { getApplicationsByEvent } from "./ApplyPage";
 import { getRsvpCounts } from "./CalendarPage";
@@ -102,6 +103,7 @@ function NoticeForm({ onPost }) {
 export default function AdminDashboard({ attendance, onStamp, announcements, onPostAnnouncement, onDeleteAnnouncement }) {
   const [hoveredCell, setHoveredCell] = useState(null);
   const [flash, setFlash] = useState(null);
+  const [showQrScanner, setShowQrScanner] = useState(false);
   const navigate = useNavigate();
 
   const toggleAttendance = (userId, eventId) => {
@@ -117,6 +119,13 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
   const grandTotal = totalPerUser.reduce((a, b) => a + b, 0);
 
   return (
+    <>
+    {showQrScanner && (
+      <QrScanModal
+        onStamp={onStamp}
+        onClose={() => setShowQrScanner(false)}
+      />
+    )}
     <div style={{
       minHeight: "100vh",
       background: `linear-gradient(135deg, ${C.teal} 0%, ${C.navy} 100%)`,
@@ -145,6 +154,19 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
             onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.15)"}
           >
             👤 利用者画面を見る
+          </button>
+          <button
+            onClick={() => setShowQrScanner(true)}
+            style={{
+              padding: "9px 18px", borderRadius: 8, border: "none",
+              background: "rgba(255,255,255,0.15)", color: C.white,
+              fontSize: 13, fontWeight: 700, cursor: "pointer",
+              fontFamily: "inherit", transition: "all 0.15s",
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.25)"}
+            onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.15)"}
+          >
+            📷 QRスキャン
           </button>
         </div>
 
@@ -486,6 +508,260 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
         {/* ── Applications section ─────────────── */}
         <ApplicationsPanel />
 
+      </div>
+    </div>
+    </>
+  );
+}
+
+function QrScanModal({ onStamp, onClose }) {
+  const [scanned, setScanned] = useState(null);
+  const [selectedEventId, setSelectedEventId] = useState(EVENTS[0].id);
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState(null);
+  const scannerRef = useRef(null);
+  const scannedRef = useRef(false);
+
+  useEffect(() => {
+    const qr = new Html5Qrcode("qr-reader-admin");
+    scannerRef.current = qr;
+    qr.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 220, height: 220 } },
+      (text) => {
+        if (scannedRef.current) return;
+        try {
+          const data = JSON.parse(decodeURIComponent(escape(atob(text))));
+          if (!data.id || !data.name) return;
+          scannedRef.current = true;
+          setScanned(data);
+          qr.stop().catch(() => {});
+        } catch {
+          // not our QR, ignore
+        }
+      },
+      () => {}
+    ).catch(err => setError("カメラへのアクセスが許可されていません"));
+
+    return () => {
+      qr.stop().catch(() => {});
+    };
+  }, []);
+
+  const handleRecord = () => {
+    if (!scanned || !selectedEventId) return;
+    onStamp(scanned.id, selectedEventId);
+    setDone(true);
+  };
+
+  const handleReset = () => {
+    setScanned(null);
+    setDone(false);
+    scannedRef.current = false;
+    const qr = scannerRef.current;
+    if (qr) {
+      qr.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 220, height: 220 } },
+        (text) => {
+          if (scannedRef.current) return;
+          try {
+            const data = JSON.parse(decodeURIComponent(escape(atob(text))));
+            if (!data.id || !data.name) return;
+            scannedRef.current = true;
+            setScanned(data);
+            qr.stop().catch(() => {});
+          } catch {}
+        },
+        () => {}
+      ).catch(() => {});
+    }
+  };
+
+  const ev = EVENTS.find(e => e.id === selectedEventId);
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 1000,
+      background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      padding: 16,
+      fontFamily: "'Segoe UI','Hiragino Sans','Meiryo',sans-serif",
+    }}>
+      <div style={{
+        background: C.white, borderRadius: 20,
+        width: "100%", maxWidth: 420, overflow: "hidden",
+        boxShadow: "0 24px 80px rgba(0,0,0,0.5)",
+      }}>
+        {/* Header */}
+        <div style={{
+          background: `linear-gradient(90deg, ${C.teal}, ${C.tealMid})`,
+          padding: "14px 20px",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+        }}>
+          <div>
+            <div style={{ color: C.white, fontWeight: 800, fontSize: 14 }}>📷 QRコードスキャン</div>
+            <div style={{ color: "rgba(255,255,255,0.65)", fontSize: 11, marginTop: 2 }}>
+              利用者のパスポートQRを読み取ってください
+            </div>
+          </div>
+          <button onClick={onClose} style={{
+            background: "rgba(255,255,255,0.15)", border: "none",
+            color: C.white, borderRadius: 8, padding: "6px 12px",
+            cursor: "pointer", fontSize: 13, fontFamily: "inherit",
+          }}>✕ 閉じる</button>
+        </div>
+
+        <div style={{ padding: "20px" }}>
+          {error ? (
+            <div style={{
+              background: "#FEF2F2", border: "1px solid #FECACA",
+              borderRadius: 10, padding: "16px", textAlign: "center",
+              color: "#B91C1C", fontSize: 13,
+            }}>
+              📵 {error}
+            </div>
+          ) : !scanned ? (
+            <>
+              {/* Camera view */}
+              <div style={{
+                borderRadius: 12, overflow: "hidden",
+                border: `2px solid ${C.teal}`,
+                marginBottom: 12,
+                background: "#000",
+              }}>
+                <div id="qr-reader-admin" style={{ width: "100%" }} />
+              </div>
+              <div style={{
+                textAlign: "center", fontSize: 12, color: C.gray,
+                padding: "6px 0",
+              }}>
+                カメラをQRコードに向けてください
+              </div>
+            </>
+          ) : done ? (
+            <div style={{ textAlign: "center", padding: "20px 0" }}>
+              <div style={{ fontSize: 52, marginBottom: 12 }}>✅</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: C.charcoal, marginBottom: 6 }}>
+                出席を記録しました
+              </div>
+              <div style={{
+                background: C.offWhite, borderRadius: 10,
+                padding: "12px 16px", marginBottom: 16, textAlign: "left",
+              }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 4 }}>
+                  {scanned.flag} {scanned.name}
+                </div>
+                <div style={{ fontSize: 12, color: C.gray }}>{scanned.nameEn}</div>
+                <div style={{
+                  marginTop: 8, fontSize: 12, color: ev?.color, fontWeight: 700,
+                  display: "flex", alignItems: "center", gap: 6,
+                }}>
+                  <span>{ev?.emoji}</span>
+                  <span>{ev?.nameShort}</span>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 10 }}>
+                <button
+                  onClick={handleReset}
+                  style={{
+                    flex: 1, padding: "11px", borderRadius: 8,
+                    border: `1.5px solid ${C.teal}`, background: C.white,
+                    color: C.teal, fontSize: 13, fontWeight: 700,
+                    cursor: "pointer", fontFamily: "inherit",
+                  }}
+                >次の人をスキャン</button>
+                <button
+                  onClick={onClose}
+                  style={{
+                    flex: 1, padding: "11px", borderRadius: 8, border: "none",
+                    background: `linear-gradient(90deg, ${C.teal}, ${C.tealMid})`,
+                    color: C.white, fontSize: 13, fontWeight: 700,
+                    cursor: "pointer", fontFamily: "inherit",
+                  }}
+                >閉じる</button>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Scanned user info */}
+              <div style={{
+                background: `${C.teal}10`, border: `1.5px solid ${C.tealLight}`,
+                borderRadius: 12, padding: "14px 16px", marginBottom: 16,
+                display: "flex", alignItems: "center", gap: 14,
+              }}>
+                <div style={{
+                  width: 48, height: 48, borderRadius: "50%",
+                  background: C.tealPale, border: `2px solid ${C.teal}`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 24, flexShrink: 0,
+                }}>
+                  {scanned.flag}
+                </div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: C.charcoal }}>
+                    {scanned.name}
+                  </div>
+                  <div style={{ fontSize: 11, color: C.gray, marginTop: 2 }}>
+                    {scanned.nameEn}
+                  </div>
+                  <div style={{
+                    marginTop: 5, display: "inline-block",
+                    background: C.teal, color: C.white,
+                    borderRadius: 20, padding: "2px 10px",
+                    fontSize: 11, fontWeight: 700,
+                  }}>✓ QR認証済み</div>
+                </div>
+              </div>
+
+              {/* Event selector */}
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: C.charcoal, marginBottom: 8 }}>
+                  記録するイベントを選択
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {EVENTS.map(ev => (
+                    <label key={ev.id} style={{
+                      display: "flex", alignItems: "center", gap: 12,
+                      padding: "10px 14px", borderRadius: 10, cursor: "pointer",
+                      border: `2px solid ${selectedEventId === ev.id ? ev.color : C.lightGray}`,
+                      background: selectedEventId === ev.id ? `${ev.color}10` : C.white,
+                      transition: "all 0.15s",
+                    }}>
+                      <input
+                        type="radio"
+                        name="event"
+                        checked={selectedEventId === ev.id}
+                        onChange={() => setSelectedEventId(ev.id)}
+                        style={{ accentColor: ev.color }}
+                      />
+                      <span style={{ fontSize: 18 }}>{ev.emoji}</span>
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: selectedEventId === ev.id ? ev.color : C.charcoal }}>
+                          {ev.nameShort}
+                        </div>
+                        <div style={{ fontSize: 10, color: C.gray }}>{ev.fullDate}</div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <button
+                onClick={handleRecord}
+                style={{
+                  width: "100%", padding: "13px", borderRadius: 10, border: "none",
+                  background: `linear-gradient(90deg, ${C.teal}, ${C.tealMid})`,
+                  color: C.white, fontSize: 14, fontWeight: 800,
+                  cursor: "pointer", fontFamily: "inherit",
+                  boxShadow: `0 4px 16px ${C.teal}40`,
+                }}
+              >
+                ✅ 出席を記録する
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import { C, EVENTS, USERS, getLevel } from "../constants";
 
 function Stamp({ event, stamped, onClick }) {
@@ -251,6 +252,38 @@ export default function CommunityPassport({ stamps, onManualStamp, user }) {
                   <span style={{ fontSize: 10, color: C.gray }}>{lv.range}</span>
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* QR Code */}
+          <div style={{
+            margin: "0 22px 22px",
+            background: C.offWhite, border: `1px solid ${C.lightGray}`,
+            borderRadius: 12, padding: "16px 20px",
+            display: "flex", alignItems: "center", gap: 20,
+          }}>
+            <div style={{
+              background: C.white, borderRadius: 10, padding: 10,
+              boxShadow: "0 2px 8px rgba(0,0,0,0.1)", flexShrink: 0,
+            }}>
+              <QRCodeSVG
+                value={btoa(unescape(encodeURIComponent(JSON.stringify({
+                  id: ME.id, name: ME.name, nameEn: ME.nameEn, flag: ME.flag,
+                }))))}
+                size={100}
+                fgColor={C.navy}
+                level="M"
+              />
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 5 }}>
+                📱 受付用QRコード
+              </div>
+              <div style={{ fontSize: 12, color: C.gray, lineHeight: 1.6 }}>
+                イベント受付でスタッフに<br />
+                このQRコードをご提示ください。<br />
+                スキャンで出席が記録されます。
+              </div>
             </div>
           </div>
 
