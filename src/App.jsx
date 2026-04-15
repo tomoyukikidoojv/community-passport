@@ -203,23 +203,39 @@ function UserNav({ registeredUser, myStamps, unreadCount, onLogout }) {
               ⭐ {myStamps.size}/6 スタンプ
             </div>
           </div>
-          <button
-            onClick={onLogout}
-            title="ログアウト"
-            style={{
-              marginLeft: 4,
-              background: "rgba(255,255,255,0.12)",
-              border: "1px solid rgba(255,255,255,0.2)",
-              borderRadius: 6, padding: "4px 8px",
-              color: "rgba(255,255,255,0.7)", fontSize: 11,
-              cursor: "pointer", fontFamily: "inherit",
-              transition: "all 0.15s",
-            }}
-            onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.22)"}
-            onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.12)"}
-          >
-            ログアウト
-          </button>
+          <div style={{ display: "flex", flexDirection: "column", gap: 3, marginLeft: 4 }}>
+            <button
+              onClick={onLogout}
+              style={{
+                background: "rgba(255,255,255,0.12)",
+                border: "1px solid rgba(255,255,255,0.2)",
+                borderRadius: 6, padding: "3px 8px",
+                color: "rgba(255,255,255,0.7)", fontSize: 10,
+                cursor: "pointer", fontFamily: "inherit",
+                transition: "all 0.15s",
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.22)"}
+              onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.12)"}
+            >
+              ログアウト
+            </button>
+            <NavLink
+              to="/kanri-ashiya2026"
+              style={{
+                background: "rgba(255,255,255,0.08)",
+                border: "1px solid rgba(255,255,255,0.15)",
+                borderRadius: 6, padding: "3px 8px",
+                color: "rgba(255,255,255,0.45)", fontSize: 10,
+                cursor: "pointer", fontFamily: "inherit",
+                textDecoration: "none", textAlign: "center",
+                transition: "all 0.15s",
+              }}
+              onMouseEnter={e => e.currentTarget.style.color = "rgba(255,255,255,0.8)"}
+              onMouseLeave={e => e.currentTarget.style.color = "rgba(255,255,255,0.45)"}
+            >
+              管理者
+            </NavLink>
+          </div>
         </div>
       )}
     </nav>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { C, EVENTS, USERS, getLevel, NOTICE_CATS } from "../constants";
 
 const inputStyle = {
@@ -97,6 +98,7 @@ function NoticeForm({ onPost }) {
 export default function AdminDashboard({ attendance, onStamp, announcements, onPostAnnouncement, onDeleteAnnouncement }) {
   const [hoveredCell, setHoveredCell] = useState(null);
   const [flash, setFlash] = useState(null);
+  const navigate = useNavigate();
 
   const toggleAttendance = (userId, eventId) => {
     onStamp(userId, eventId);
@@ -125,6 +127,21 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
           <div style={{ fontSize: 12, opacity: 0.5, marginTop: 3 }}>
             参加者の出席状況を管理・承認
           </div>
+          <button
+            onClick={() => navigate("/passport")}
+            style={{
+              marginTop: 12,
+              background: "rgba(255,255,255,0.15)",
+              border: "1px solid rgba(255,255,255,0.3)",
+              borderRadius: 20, padding: "6px 18px",
+              color: C.white, fontSize: 12, cursor: "pointer",
+              fontFamily: "inherit", transition: "all 0.15s",
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.25)"}
+            onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.15)"}
+          >
+            👤 利用者画面を見る
+          </button>
         </div>
 
         {/* Summary cards */}
