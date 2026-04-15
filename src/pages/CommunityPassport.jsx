@@ -118,15 +118,19 @@ export default function CommunityPassport({ stamps, onManualStamp, user }) {
             padding: "16px 22px",
             display: "flex", alignItems: "center", justifyContent: "space-between",
           }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0, flex: 1 }}>
               <div style={{
                 width: 52, height: 52, borderRadius: "50%",
                 background: C.goldLight, border: `3px solid ${C.gold}`,
                 display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24,
+                flexShrink: 0,
               }}>👤</div>
-              <div>
+              <div style={{ minWidth: 0 }}>
                 <div style={{ color: C.white, fontWeight: 800, fontSize: 16 }}>{ME.name}</div>
-                <div style={{ color: "rgba(255,255,255,0.65)", fontSize: 11, marginTop: 2 }}>
+                <div style={{
+                  color: "rgba(255,255,255,0.65)", fontSize: 11, marginTop: 2,
+                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                }}>
                   {ME.nameEn}　／　{ME.flag}　／　Since {ME.since}
                 </div>
               </div>
