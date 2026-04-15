@@ -100,11 +100,19 @@ function NoticeForm({ onPost }) {
   );
 }
 
+const ADMIN_TABS = [
+  { id: "attendance",    label: "出席状況", emoji: "📊" },
+  { id: "announcements", label: "お知らせ", emoji: "📢" },
+  { id: "applications",  label: "申込管理", emoji: "📋" },
+  { id: "formbuilder",   label: "フォーム", emoji: "🛠" },
+];
+
 export default function AdminDashboard({ attendance, onStamp, announcements, onPostAnnouncement, onDeleteAnnouncement }) {
   const [hoveredCell, setHoveredCell] = useState(null);
   const [flash, setFlash] = useState(null);
   const [showQrScanner, setShowQrScanner] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  const [activeTab, setActiveTab] = useState("attendance");
   const navigate = useNavigate();
 
   const toggleAttendance = (userId, eventId) => {
@@ -135,72 +143,90 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
     }}>
       <div style={{ maxWidth: 860, margin: "0 auto" }}>
 
-        <div style={{ textAlign: "center", color: C.white, marginBottom: 22 }}>
+        {/* Header */}
+        <div style={{ textAlign: "center", color: C.white, marginBottom: 20 }}>
           <div style={{ fontSize: 11, letterSpacing: 5, opacity: 0.6, marginBottom: 4 }}>ADMIN</div>
           <div style={{ fontSize: 26, fontWeight: 800 }}>👑 管理者ダッシュボード</div>
-          <div style={{ fontSize: 12, opacity: 0.5, marginTop: 3 }}>
-            参加者の出席状況を管理・承認
+          <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 12 }}>
+            <button
+              onClick={() => navigate("/passport")}
+              style={{
+                background: "rgba(255,255,255,0.15)",
+                border: "1px solid rgba(255,255,255,0.3)",
+                borderRadius: 20, padding: "6px 18px",
+                color: C.white, fontSize: 12, cursor: "pointer",
+                fontFamily: "inherit",
+              }}
+            >👤 利用者画面を見る</button>
+            <button
+              onClick={() => setShowQrScanner(true)}
+              style={{
+                background: "rgba(255,255,255,0.15)",
+                border: "1px solid rgba(255,255,255,0.3)",
+                borderRadius: 20, padding: "6px 18px",
+                color: C.white, fontSize: 12, fontWeight: 700, cursor: "pointer",
+                fontFamily: "inherit",
+              }}
+            >📷 QRスキャン</button>
           </div>
-          <button
-            onClick={() => navigate("/passport")}
-            style={{
-              marginTop: 12,
-              background: "rgba(255,255,255,0.15)",
-              border: "1px solid rgba(255,255,255,0.3)",
-              borderRadius: 20, padding: "6px 18px",
-              color: C.white, fontSize: 12, cursor: "pointer",
-              fontFamily: "inherit", transition: "all 0.15s",
-            }}
-            onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.25)"}
-            onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.15)"}
-          >
-            👤 利用者画面を見る
-          </button>
-          <button
-            onClick={() => setShowQrScanner(true)}
-            style={{
-              padding: "9px 18px", borderRadius: 8, border: "none",
-              background: "rgba(255,255,255,0.15)", color: C.white,
-              fontSize: 13, fontWeight: 700, cursor: "pointer",
-              fontFamily: "inherit", transition: "all 0.15s",
-            }}
-            onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.25)"}
-            onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.15)"}
-          >
-            📷 QRスキャン
-          </button>
         </div>
 
-        {/* Summary cards */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
-          {[
-            { label: "参加者数",     value: USERS.length,  unit: "人", color: C.teal    },
-            { label: "イベント数",   value: EVENTS.length, unit: "回", color: C.tealMid },
-            { label: "総スタンプ数", value: grandTotal,    unit: "個", color: C.green   },
-            { label: "平均参加率",
-              value: Math.round((grandTotal / (USERS.length * EVENTS.length)) * 100),
-              unit: "%", color: C.gold },
-          ].map(stat => (
-            <div key={stat.label} style={{
-              background: C.white, borderRadius: 12, padding: "14px 16px",
-              boxShadow: "0 4px 16px rgba(0,0,0,0.15)",
-              borderTop: `4px solid ${stat.color}`,
-            }}>
-              <div style={{ fontSize: 11, color: C.gray, marginBottom: 4 }}>{stat.label}</div>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 3 }}>
-                <span style={{ fontSize: 28, fontWeight: 800, color: stat.color }}>{stat.value}</span>
-                <span style={{ fontSize: 13, color: C.gray }}>{stat.unit}</span>
-              </div>
-            </div>
+        {/* Tab navigation */}
+        <div style={{
+          display: "flex", background: "rgba(255,255,255,0.10)",
+          borderRadius: 14, padding: 4, marginBottom: 20, gap: 2,
+        }}>
+          {ADMIN_TABS.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                flex: 1, border: "none", borderRadius: 10, cursor: "pointer",
+                padding: "10px 4px", fontFamily: "inherit",
+                background: activeTab === tab.id ? C.white : "transparent",
+                color: activeTab === tab.id ? C.navy : "rgba(255,255,255,0.65)",
+                fontWeight: activeTab === tab.id ? 700 : 400,
+                fontSize: 12,
+                boxShadow: activeTab === tab.id ? "0 2px 8px rgba(0,0,0,0.15)" : "none",
+                transition: "all 0.15s",
+              }}
+            >
+              <div style={{ fontSize: 18, lineHeight: 1.2 }}>{tab.emoji}</div>
+              <div style={{ marginTop: 2 }}>{tab.label}</div>
+            </button>
           ))}
         </div>
 
-        {/* Attendance table */}
-        <div style={{
-          background: C.white, borderRadius: 16,
-          boxShadow: "0 8px 30px rgba(0,0,0,0.2)",
-          overflow: "hidden",
-        }}>
+        {/* ── Tab: 出席状況 ── */}
+        {activeTab === "attendance" && <>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
+            {[
+              { label: "参加者数",     value: USERS.length,  unit: "人", color: C.teal    },
+              { label: "イベント数",   value: EVENTS.length, unit: "回", color: C.tealMid },
+              { label: "総スタンプ数", value: grandTotal,    unit: "個", color: C.green   },
+              { label: "平均参加率",
+                value: Math.round((grandTotal / (USERS.length * EVENTS.length)) * 100),
+                unit: "%", color: C.gold },
+            ].map(stat => (
+              <div key={stat.label} style={{
+                background: C.white, borderRadius: 12, padding: "14px 16px",
+                boxShadow: "0 4px 16px rgba(0,0,0,0.15)",
+                borderTop: `4px solid ${stat.color}`,
+              }}>
+                <div style={{ fontSize: 11, color: C.gray, marginBottom: 4 }}>{stat.label}</div>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 3 }}>
+                  <span style={{ fontSize: 28, fontWeight: 800, color: stat.color }}>{stat.value}</span>
+                  <span style={{ fontSize: 13, color: C.gray }}>{stat.unit}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{
+            background: C.white, borderRadius: 16,
+            boxShadow: "0 8px 30px rgba(0,0,0,0.2)",
+            overflow: "hidden",
+          }}>
           <div style={{
             padding: "16px 20px 14px",
             borderBottom: `1px solid ${C.lightGray}`,
@@ -419,41 +445,31 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
             </span>
           </div>
         </div>
+        </>}
 
-        {/* Announcements management */}
-        <div style={{
+        {/* ── Tab: お知らせ ── */}
+        {activeTab === "announcements" && <div style={{
           background: C.white, borderRadius: 16,
           boxShadow: "0 8px 30px rgba(0,0,0,0.2)",
-          overflow: "hidden", marginTop: 20,
+          overflow: "hidden",
         }}>
           <div style={{
             padding: "16px 20px 14px",
             borderBottom: `1px solid ${C.lightGray}`,
-            display: "flex", alignItems: "center", justifyContent: "space-between",
+            display: "flex", alignItems: "center", gap: 8,
+            fontSize: 13, fontWeight: 700, color: C.charcoal,
           }}>
-            <div style={{
-              fontSize: 13, fontWeight: 700, color: C.charcoal,
-              display: "flex", alignItems: "center", gap: 8,
-            }}>
-              <span style={{
-                display: "inline-block", width: 4, height: 16,
-                background: C.gold, borderRadius: 2,
-              }} />
-              お知らせ管理
-              <span style={{
-                background: C.tealPale, color: C.teal, borderRadius: 20,
-                padding: "1px 10px", fontSize: 11, fontWeight: 700,
-              }}>{announcements.length}件</span>
-            </div>
+            <span style={{ display: "inline-block", width: 4, height: 16, background: C.gold, borderRadius: 2 }} />
+            お知らせ管理
+            <span style={{
+              background: C.tealPale, color: C.teal, borderRadius: 20,
+              padding: "1px 10px", fontSize: 11, fontWeight: 700,
+            }}>{announcements.length}件</span>
           </div>
 
           <div style={{ borderBottom: `1px solid ${C.lightGray}` }}>
-            <div style={{
-              padding: "12px 22px 8px",
-              fontSize: 12, fontWeight: 700, color: C.gray,
-              display: "flex", alignItems: "center", gap: 6,
-            }}>
-              <span>＋ 新しいお知らせを投稿</span>
+            <div style={{ padding: "12px 22px 8px", fontSize: 12, fontWeight: 700, color: C.gray }}>
+              ＋ 新しいお知らせを投稿
             </div>
             <NoticeForm onPost={onPostAnnouncement} />
           </div>
@@ -469,11 +485,8 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
                 return (
                   <div key={item.id} style={{
                     display: "flex", alignItems: "flex-start", gap: 12,
-                    padding: "10px 12px",
-                    borderRadius: 8,
-                    border: `1px solid ${C.lightGray}`,
-                    marginBottom: 8,
-                    background: C.offWhite,
+                    padding: "10px 12px", borderRadius: 8,
+                    border: `1px solid ${C.lightGray}`, marginBottom: 8, background: C.offWhite,
                   }}>
                     <span style={{
                       background: `${cat.color}18`, color: cat.color,
@@ -497,27 +510,26 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
                         background: "none", border: `1px solid ${C.lightGray}`,
                         borderRadius: 6, padding: "3px 8px",
                         color: C.gray, cursor: "pointer", fontSize: 11,
-                        fontFamily: "inherit", flexShrink: 0,
-                        transition: "all 0.15s",
+                        fontFamily: "inherit", flexShrink: 0, transition: "all 0.15s",
                       }}
                       onMouseEnter={e => { e.currentTarget.style.background = C.redPale; e.currentTarget.style.color = C.red; e.currentTarget.style.borderColor = C.red; }}
                       onMouseLeave={e => { e.currentTarget.style.background = "none"; e.currentTarget.style.color = C.gray; e.currentTarget.style.borderColor = C.lightGray; }}
-                    >
-                      削除
-                    </button>
+                    >削除</button>
                   </div>
                 );
               })
             )}
           </div>
-        </div>
+        </div>}
 
-        {/* ── Form builder ─────────────────────── */}
-        <RsvpSummaryPanel />
-        <EventFormBuilder />
+        {/* ── Tab: 申込管理 ── */}
+        {activeTab === "applications" && <>
+          <RsvpSummaryPanel />
+          <ApplicationsPanel />
+        </>}
 
-        {/* ── Applications section ─────────────── */}
-        <ApplicationsPanel />
+        {/* ── Tab: フォーム ── */}
+        {activeTab === "formbuilder" && <EventFormBuilder />}
 
       </div>
     </div>
