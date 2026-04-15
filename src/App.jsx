@@ -332,7 +332,7 @@ function AppRoutes() {
   return (
     <Routes>
       {/* Admin: separate password-protected area */}
-      <Route path="/admin" element={
+      <Route path="/kanri-ashiya2026" element={
         <AdminGate>
           <AdminDashboard
             attendance={attendance}
