@@ -990,7 +990,9 @@ function ApplicationsPanel() {
                             }}>
                               {questions.map(q => {
                                 const ans = app.answers[q.id];
-                                const display = Array.isArray(ans) ? ans.join("、") : (ans || "—");
+                                const display = q.type === "name"
+                                  ? [ans?.kanji, ans?.roman].filter(Boolean).join(" / ") || "—"
+                                  : Array.isArray(ans) ? ans.join("、") : (ans || "—");
                                 return (
                                   <div key={q.id} style={{ display: "flex", gap: 8, fontSize: 12 }}>
                                     <span style={{ color: C.gray, flexShrink: 0, minWidth: 100 }}>{q.label}</span>

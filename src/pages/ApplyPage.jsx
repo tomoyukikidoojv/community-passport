@@ -119,9 +119,10 @@ export default function ApplyPage({ user }) {
     (formConfig.questions || []).forEach(q => {
       if (!q.required) return;
       const ans = form.answers[q.id];
-      if (!ans || (Array.isArray(ans) ? ans.length === 0 : !String(ans).trim())) {
-        errs[`q_${q.id}`] = "この項目は必須です";
-      }
+      const isEmpty = q.type === "name"
+        ? !ans || !ans.kanji?.trim()
+        : !ans || (Array.isArray(ans) ? ans.length === 0 : !String(ans).trim());
+      if (isEmpty) errs[`q_${q.id}`] = "この項目は必須です";
     });
     return errs;
   };
@@ -395,6 +396,34 @@ export default function ApplyPage({ user }) {
                     {q.label || "（質問未入力）"}
                     {q.required && <span style={{ color: "#E74C3C", marginLeft: 4 }}>*</span>}
                   </label>
+
+                  {q.type === "name" && (
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                      <div>
+                        <div style={{ fontSize: 11, color: C.gray, marginBottom: 4 }}>日本語名</div>
+                        <input
+                          type="text"
+                          value={(form.answers[q.id] || {}).kanji || ""}
+                          onChange={e => setAnswer(q.id, { ...(form.answers[q.id] || {}), kanji: e.target.value })}
+                          placeholder="例：山田 花子"
+                          style={{
+                            ...inputStyle,
+                            borderColor: errors[`q_${q.id}`] ? "#E74C3C" : C.lightGray,
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 11, color: C.gray, marginBottom: 4 }}>ローマ字</div>
+                        <input
+                          type="text"
+                          value={(form.answers[q.id] || {}).roman || ""}
+                          onChange={e => setAnswer(q.id, { ...(form.answers[q.id] || {}), roman: e.target.value })}
+                          placeholder="例：Hanako Yamada"
+                          style={{ ...inputStyle }}
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   {q.type === "text" && (
                     <textarea

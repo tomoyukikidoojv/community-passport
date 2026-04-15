@@ -3,9 +3,10 @@ import { C, EVENTS } from "../../constants";
 import { loadForms, saveForm } from "../../lib/formStorage";
 
 const QUESTION_TYPES = [
-  { id: "text",     label: "テキスト入力",    icon: "📝" },
-  { id: "radio",    label: "選択肢（単一）",   icon: "🔘" },
-  { id: "checkbox", label: "チェックボックス", icon: "☑️" },
+  { id: "name",     label: "氏名入力",         icon: "👤" },
+  { id: "text",     label: "テキスト入力",      icon: "📝" },
+  { id: "radio",    label: "選択肢（単一）",    icon: "🔘" },
+  { id: "checkbox", label: "チェックボックス",  icon: "☑️" },
 ];
 
 function newQuestion(type = "text") {
@@ -14,7 +15,7 @@ function newQuestion(type = "text") {
     type,
     label: "",
     required: false,
-    options: type !== "text" ? [""] : [],
+    options: (type === "radio" || type === "checkbox") ? [""] : [],
   };
 }
 
@@ -38,7 +39,8 @@ function QuestionEditor({ q, onChange, onDelete, onMoveUp, onMoveDown, isFirst, 
           value={q.type}
           onChange={e => {
             const t = e.target.value;
-            onChange({ ...q, type: t, options: t !== "text" ? (q.options.length ? q.options : [""]) : [] });
+            const needsOptions = t === "radio" || t === "checkbox";
+            onChange({ ...q, type: t, options: needsOptions ? (q.options.length ? q.options : [""]) : [] });
           }}
           style={{
             ...inputStyle, width: "auto", cursor: "pointer",
@@ -91,8 +93,33 @@ function QuestionEditor({ q, onChange, onDelete, onMoveUp, onMoveDown, isFirst, 
         style={{ ...inputStyle, marginBottom: q.type !== "text" ? 8 : 0, fontWeight: 600 }}
       />
 
+      {/* Name type preview */}
+      {q.type === "name" && (
+        <div style={{
+          marginTop: 8, padding: "10px 12px", borderRadius: 8,
+          background: C.tealPale, border: `1px solid ${C.tealLight}`,
+          fontSize: 12, color: C.teal,
+          display: "flex", gap: 12,
+        }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700, marginBottom: 4 }}>日本語名</div>
+            <div style={{
+              background: C.white, borderRadius: 6, padding: "6px 10px",
+              border: `1px solid ${C.lightGray}`, color: C.gray, fontSize: 12,
+            }}>例：山田 花子</div>
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700, marginBottom: 4 }}>ローマ字</div>
+            <div style={{
+              background: C.white, borderRadius: 6, padding: "6px 10px",
+              border: `1px solid ${C.lightGray}`, color: C.gray, fontSize: 12,
+            }}>例：Hanako Yamada</div>
+          </div>
+        </div>
+      )}
+
       {/* Options for radio/checkbox */}
-      {q.type !== "text" && (
+      {(q.type === "radio" || q.type === "checkbox") && (
         <div style={{ marginTop: 6 }}>
           {q.options.map((opt, i) => (
             <div key={i} style={{ display: "flex", gap: 6, marginBottom: 6 }}>
