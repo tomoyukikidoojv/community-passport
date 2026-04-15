@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { C, EVENTS } from "../constants";
+import { C } from "../constants";
+import { useEvents } from "../hooks/useEvents";
 import { getForm, isFormActive } from "../lib/formStorage";
 
 const APPLY_KEY = "cp_applications";
@@ -32,7 +33,8 @@ const COUNTS = ["1人", "2人", "3人", "4人", "5人以上"];
 export default function ApplyPage({ user }) {
   const { eventId } = useParams();
   const navigate = useNavigate();
-  const event = EVENTS.find(e => e.id === Number(eventId));
+  const events = useEvents();
+  const event = events.find(e => e.id === Number(eventId));
 
   const existing = event && user ? getApplication(event.id, user.id) : null;
   const formConfig = event ? getForm(event.id) : null;

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { C, EVENTS } from "../../constants";
+import { C } from "../../constants";
+import { useEvents } from "../../hooks/useEvents";
 import { loadForms, saveForm } from "../../lib/formStorage";
 
 const QUESTION_TYPES = [
@@ -167,8 +168,9 @@ export default function EventFormBuilder() {
   const [selectedEventId, setSelectedEventId] = useState(null);
   const [forms, setForms] = useState(loadForms);
   const [saved, setSaved] = useState(false);
+  const events = useEvents();
 
-  const event = EVENTS.find(e => e.id === selectedEventId);
+  const event = events.find(e => e.id === selectedEventId);
   const form = selectedEventId ? (forms[selectedEventId] || {
     enabled: false,
     capacity: "",
@@ -251,7 +253,7 @@ export default function EventFormBuilder() {
             対象イベントを選択
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {EVENTS.map(ev => {
+            {events.map(ev => {
               const hasForm = !!forms[ev.id]?.enabled;
               return (
                 <button

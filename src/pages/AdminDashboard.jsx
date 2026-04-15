@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Html5Qrcode } from "html5-qrcode";
-import { C, EVENTS, USERS, getLevel, NOTICE_CATS } from "../constants";
+import { C, USERS, getLevel, NOTICE_CATS } from "../constants";
+import { useEvents } from "../hooks/useEvents";
+import EventsManager from "./admin/EventsManager";
 import { getApplicationsByEvent } from "./ApplyPage";
 import { getRsvpCounts } from "./CalendarPage";
 import EventFormBuilder from "./admin/EventFormBuilder";
@@ -104,6 +106,7 @@ const ADMIN_TABS = [
   { id: "attendance",    label: "出席状況", emoji: "📊" },
   { id: "announcements", label: "お知らせ", emoji: "📢" },
   { id: "applications",  label: "申込管理", emoji: "📋" },
+  { id: "events",        label: "イベント", emoji: "📅" },
   { id: "formbuilder",   label: "フォーム", emoji: "🛠" },
 ];
 
@@ -113,6 +116,7 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
   const [showQrScanner, setShowQrScanner] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [activeTab, setActiveTab] = useState("attendance");
+  const events = useEvents();
   const navigate = useNavigate();
 
   const toggleAttendance = (userId, eventId) => {
@@ -121,7 +125,7 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
     setTimeout(() => setFlash(null), 1500);
   };
 
-  const totalPerEvent = EVENTS.map(ev =>
+  const totalPerEvent = events.map(ev =>
     USERS.filter(u => attendance[u.id]?.has(ev.id)).length
   );
   const totalPerUser = USERS.map(u => attendance[u.id]?.size || 0);
@@ -202,10 +206,10 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
             {[
               { label: "参加者数",     value: USERS.length,  unit: "人", color: C.teal    },
-              { label: "イベント数",   value: EVENTS.length, unit: "回", color: C.tealMid },
+              { label: "イベント数",   value: events.length, unit: "回", color: C.tealMid },
               { label: "総スタンプ数", value: grandTotal,    unit: "個", color: C.green   },
               { label: "平均参加率",
-                value: Math.round((grandTotal / (USERS.length * EVENTS.length)) * 100),
+                value: Math.round((grandTotal / (USERS.length * (events.length || 1))) * 100),
                 unit: "%", color: C.gold },
             ].map(stat => (
               <div key={stat.label} style={{
@@ -265,7 +269,7 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
                     background: C.offWhite, borderBottom: `2px solid ${C.lightGray}`,
                     color: C.charcoal, fontWeight: 700, whiteSpace: "nowrap", minWidth: 160,
                   }}>参加者</th>
-                  {EVENTS.map(ev => (
+                  {events.map(ev => (
                     <th key={ev.id} style={{
                       padding: "8px 6px", textAlign: "center",
                       background: C.offWhite, borderBottom: `2px solid ${C.lightGray}`,
@@ -288,7 +292,7 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
                     color: C.teal, fontWeight: 700, minWidth: 80,
                   }}>
                     合計<br />
-                    <span style={{ fontSize: 10, fontWeight: 400, color: C.gray }}>/{EVENTS.length}</span>
+                    <span style={{ fontSize: 10, fontWeight: 400, color: C.gray }}>/{events.length}</span>
                   </th>
                 </tr>
               </thead>
@@ -325,7 +329,7 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
                         </div>
                       </td>
 
-                      {EVENTS.map(ev => {
+                      {events.map(ev => {
                         const attended = userStamps.has(ev.id);
                         const isHovered = hoveredCell?.userId === user.id && hoveredCell?.eventId === ev.id;
                         const isFlash = flash?.userId === user.id && flash?.eventId === ev.id;
@@ -373,14 +377,14 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
 
                       <td style={{
                         textAlign: "center",
-                        background: count >= EVENTS.length ? `${C.gold}20` : count > 0 ? C.tealPale : rowBg,
+                        background: count >= events.length ? `${C.gold}20` : count > 0 ? C.tealPale : rowBg,
                         borderBottom: `1px solid ${C.lightGray}`,
                         borderLeft: `2px solid ${C.tealLight}`,
                         fontWeight: 800, color: level.color,
                         fontSize: 16, padding: "8px",
                       }}>
                         {count}
-                        {count >= EVENTS.length && <div style={{ fontSize: 12 }}>🏆</div>}
+                        {count >= events.length && <div style={{ fontSize: 12 }}>🏆</div>}
                       </td>
                     </tr>
                   );
@@ -393,7 +397,7 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
                     borderTop: `2px solid ${C.tealLight}`,
                     fontWeight: 700, color: C.teal, fontSize: 12,
                   }}>参加者合計</td>
-                  {EVENTS.map((ev, i) => (
+                  {events.map((ev, i) => (
                     <td key={ev.id} style={{
                       textAlign: "center",
                       background: C.tealPale,
@@ -528,6 +532,9 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
           <ApplicationsPanel />
         </>}
 
+        {/* ── Tab: イベント管理 ── */}
+        {activeTab === "events" && <EventsManager />}
+
         {/* ── Tab: フォーム ── */}
         {activeTab === "formbuilder" && <EventFormBuilder />}
 
@@ -538,8 +545,9 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
 }
 
 function QrScanModal({ onStamp, onClose }) {
+  const events = useEvents();
   const [scanned, setScanned] = useState(null);
-  const [selectedEventId, setSelectedEventId] = useState(EVENTS[0].id);
+  const [selectedEventId, setSelectedEventId] = useState(events[0]?.id);
   const [done, setDone] = useState(false);
   const [error, setError] = useState(null);
   const scannerRef = useRef(null);
@@ -601,7 +609,7 @@ function QrScanModal({ onStamp, onClose }) {
     }
   };
 
-  const ev = EVENTS.find(e => e.id === selectedEventId);
+  const ev = events.find(e => e.id === selectedEventId);
 
   return (
     <div style={{
@@ -743,7 +751,7 @@ function QrScanModal({ onStamp, onClose }) {
                   記録するイベントを選択
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {EVENTS.map(ev => (
+                  {events.map(ev => (
                     <label key={ev.id} style={{
                       display: "flex", alignItems: "center", gap: 12,
                       padding: "10px 14px", borderRadius: 10, cursor: "pointer",
@@ -791,6 +799,7 @@ function QrScanModal({ onStamp, onClose }) {
 }
 
 function RsvpSummaryPanel() {
+  const events = useEvents();
   return (
     <div style={{
       background: C.white, borderRadius: 16,
@@ -812,7 +821,7 @@ function RsvpSummaryPanel() {
       </div>
 
       <div style={{ padding: "12px 16px" }}>
-        {EVENTS.map(ev => {
+        {events.map(ev => {
           const { going, notGoing } = getRsvpCounts(ev.id);
           const total = going + notGoing;
           const goingPct = total > 0 ? Math.round((going / total) * 100) : 0;
@@ -876,6 +885,7 @@ function RsvpSummaryPanel() {
 }
 
 function ApplicationsPanel() {
+  const events = useEvents();
   const [openEventId, setOpenEventId] = useState(null);
 
   return (
@@ -899,7 +909,7 @@ function ApplicationsPanel() {
       </div>
 
       <div style={{ padding: "12px 16px" }}>
-        {EVENTS.map(ev => {
+        {events.map(ev => {
           const apps = getApplicationsByEvent(ev.id);
           const formConfig = getForm(ev.id);
           const questions = formConfig?.questions || [];

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { C, EVENTS } from "../constants";
+import { C } from "../constants";
+import { useEvents } from "../hooks/useEvents";
 
 const RSVP_KEY = "cp_rsvp"; // { "userId_eventId": "going" | "not_going" }
 
@@ -51,6 +52,8 @@ export default function CalendarPage({ stamps, user }) {
   const [viewMonth, setViewMonth] = useState(today.getMonth());
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [allRsvp, setAllRsvp] = useState(loadAllRsvp);
+  const events = useEvents();
+  const [lightboxImg, setLightboxImg] = useState(null);
 
   const uid = user?.id ?? "guest";
   // Current user's RSVP: { [eventId]: status }
@@ -85,18 +88,18 @@ export default function CalendarPage({ stamps, user }) {
   };
 
   // Events in this month
-  const monthEvents = EVENTS.filter(ev => {
+  const monthEvents = events.filter(ev => {
     const d = new Date(ev.fullDate);
     return d.getFullYear() === viewYear && d.getMonth() === viewMonth;
   });
 
   // Upcoming events (from today, sorted)
-  const upcoming = [...EVENTS]
+  const upcoming = [...events]
     .filter(ev => new Date(ev.fullDate) >= new Date(today.toDateString()))
     .sort((a, b) => new Date(a.fullDate) - new Date(b.fullDate));
 
   // All events sorted for the list
-  const allSorted = [...EVENTS].sort((a, b) => new Date(a.fullDate) - new Date(b.fullDate));
+  const allSorted = [...events].sort((a, b) => new Date(a.fullDate) - new Date(b.fullDate));
 
   const cells = [];
   for (let i = 0; i < firstDay; i++) cells.push(null);
@@ -106,7 +109,7 @@ export default function CalendarPage({ stamps, user }) {
     d && d === today.getDate() && viewMonth === today.getMonth() && viewYear === today.getFullYear();
 
   const eventsOnDay = (d) =>
-    EVENTS.filter(ev => isSameDay(ev.fullDate, viewYear, viewMonth, d));
+    events.filter(ev => isSameDay(ev.fullDate, viewYear, viewMonth, d));
 
   return (
     <div style={{
@@ -334,6 +337,36 @@ export default function CalendarPage({ stamps, user }) {
                   </button>
                 )}
 
+                {/* Image gallery */}
+                {selectedEvent.images && selectedEvent.images.length > 0 && (
+                  <div style={{ marginBottom: 14 }}>
+                    <div style={{ fontSize: 11, color: C.gray, marginBottom: 8 }}>🖼 チラシ・画像</div>
+                    <div style={{
+                      display: "flex", gap: 8, overflowX: "auto",
+                      WebkitOverflowScrolling: "touch", scrollbarWidth: "none",
+                      paddingBottom: 4,
+                    }}>
+                      {selectedEvent.images.map((img, i) => (
+                        <img
+                          key={i}
+                          src={img}
+                          alt=""
+                          onClick={() => setLightboxImg(img)}
+                          style={{
+                            height: 100, borderRadius: 8,
+                            objectFit: "cover", cursor: "pointer",
+                            border: `1px solid ${C.lightGray}`,
+                            flexShrink: 0,
+                            transition: "transform 0.15s",
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.transform = "scale(1.03)"}
+                          onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <button
                   onClick={() => setSelectedEvent(null)}
                   style={{
@@ -345,6 +378,32 @@ export default function CalendarPage({ stamps, user }) {
                 >閉じる</button>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Lightbox */}
+        {lightboxImg && (
+          <div
+            onClick={() => setLightboxImg(null)}
+            style={{
+              position: "fixed", inset: 0, zIndex: 300,
+              background: "rgba(0,0,0,0.92)", backdropFilter: "blur(6px)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              padding: 16,
+            }}
+          >
+            <img
+              src={lightboxImg}
+              alt=""
+              style={{
+                maxWidth: "100%", maxHeight: "90vh",
+                borderRadius: 12, boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
+              }}
+            />
+            <div style={{
+              position: "absolute", top: 16, right: 16,
+              color: "rgba(255,255,255,0.6)", fontSize: 12,
+            }}>タップして閉じる</div>
           </div>
         )}
 

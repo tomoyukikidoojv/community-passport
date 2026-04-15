@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { C, EVENTS, USERS, getLevel } from "../constants";
+import { C, USERS, getLevel } from "../constants";
+import { useEvents } from "../hooks/useEvents";
 
 function Stamp({ event, stamped, onClick }) {
   const [hover, setHover] = useState(false);
@@ -75,6 +76,7 @@ export default function CommunityPassport({ stamps, onManualStamp, user }) {
   const [flash, setFlash] = useState(null);
   const [qrExpanded, setQrExpanded] = useState(false);
   const ME = user || USERS[0];
+  const events = useEvents();
 
   const toggle = (id) => {
     onManualStamp(ME.id, id);
@@ -84,7 +86,7 @@ export default function CommunityPassport({ stamps, onManualStamp, user }) {
 
   const count = stamps.size;
   const level = getLevel(count);
-  const pct = Math.round((count / EVENTS.length) * 100);
+  const pct = Math.round((count / events.length) * 100);
 
   const qrValue = btoa(unescape(encodeURIComponent(JSON.stringify({
     id: ME.id, name: ME.name, nameEn: ME.nameEn, flag: ME.flag,
@@ -262,7 +264,7 @@ export default function CommunityPassport({ stamps, onManualStamp, user }) {
           }}>
             <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
               <span style={{ fontSize: 30, fontWeight: 800, color: C.teal }}>{count}</span>
-              <span style={{ fontSize: 12, color: C.gray }}>/ {EVENTS.length} スタンプ</span>
+              <span style={{ fontSize: 12, color: C.gray }}>/ {events.length} スタンプ</span>
             </div>
             <div style={{ flex: 1 }}>
               <div style={{
@@ -283,9 +285,9 @@ export default function CommunityPassport({ stamps, onManualStamp, user }) {
               <div style={{ fontSize: 11, color: C.gray, marginBottom: 3 }}>次のレベルまで</div>
               <div style={{
                 fontSize: 12, fontWeight: 700,
-                color: count >= EVENTS.length ? C.gold : level.color,
+                color: count >= events.length ? C.gold : level.color,
               }}>
-                {count >= EVENTS.length
+                {count >= events.length
                   ? "🎉 コンプリート！"
                   : `あと ${level.next - count} 回 → ${getLevel(level.next).label}`}
               </div>
@@ -309,7 +311,7 @@ export default function CommunityPassport({ stamps, onManualStamp, user }) {
               </span>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
-              {EVENTS.map(ev => (
+              {events.map(ev => (
                 <Stamp
                   key={ev.id}
                   event={ev}
@@ -332,7 +334,7 @@ export default function CommunityPassport({ stamps, onManualStamp, user }) {
             }}>
               ✅ 参加が記録されました！
               <span style={{ fontWeight: 400, color: C.charcoal }}>
-                {EVENTS.find(e => e.id === flash)?.nameShort}
+                {events.find(e => e.id === flash)?.nameShort}
               </span>
             </div>
           )}
