@@ -299,11 +299,11 @@ export default function RegisterPage({ onRegistered }) {
                 maxHeight: 200, overflowY: "auto",
                 display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6,
               }}>
-                {WORLD_LANGUAGES.map(lang => {
-                  const selected = form.languages.includes(lang.code);
+                {WORLD_LANGUAGES.map(wl => {
+                  const selected = form.languages.includes(wl.code);
                   return (
                     <label
-                      key={lang.code}
+                      key={wl.code}
                       style={{
                         display: "flex", alignItems: "center", gap: 8,
                         padding: "6px 10px", borderRadius: 8, cursor: "pointer",
@@ -315,7 +315,7 @@ export default function RegisterPage({ onRegistered }) {
                       <input
                         type="checkbox"
                         checked={selected}
-                        onChange={() => toggleLang(lang.code)}
+                        onChange={() => toggleLang(wl.code)}
                         style={{ accentColor: C.teal, flexShrink: 0 }}
                       />
                       <span style={{
@@ -324,7 +324,7 @@ export default function RegisterPage({ onRegistered }) {
                         fontWeight: selected ? 700 : 400,
                         lineHeight: 1.3,
                       }}>
-                        {lang.name}
+                        {wl.name}
                       </span>
                     </label>
                   );
@@ -332,7 +332,7 @@ export default function RegisterPage({ onRegistered }) {
               </div>
               {form.languages.length > 0 && (
                 <div style={{ fontSize: 11, color: C.teal, marginTop: 5 }}>
-                  ✓ {form.languages.length} selected
+                  ✓ {t("register.selected", { n: form.languages.length })}
                 </div>
               )}
               {errors.languages && <div style={{ color: "#E74C3C", fontSize: 11, marginTop: 4 }}>{errors.languages}</div>}

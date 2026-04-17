@@ -2,8 +2,9 @@ import { useState } from "react";
 import { C, NOTICE_CATS } from "../constants";
 import { useLang } from "../i18n/LangContext";
 
-function categoryMeta(id) {
-  return NOTICE_CATS.find(c => c.id === id) || { label: id, color: C.gray };
+function categoryMeta(id, t) {
+  const cat = NOTICE_CATS.find(c => c.id === id) || { id, color: C.gray };
+  return { ...cat, label: t ? t(`ann.cat.${cat.id}`) || cat.label || id : cat.label || id };
 }
 
 function formatDate(iso) {
@@ -13,7 +14,8 @@ function formatDate(iso) {
 
 function AnnouncementCard({ item, isRead, onRead }) {
   const [expanded, setExpanded] = useState(false);
-  const cat = categoryMeta(item.category);
+  const { t } = useLang();
+  const cat = categoryMeta(item.category, t);
 
   const toggle = () => {
     setExpanded(e => !e);
@@ -166,7 +168,7 @@ export default function AnnouncementsPage({ announcements, readIds, onRead, onRe
             WebkitOverflowScrolling: "touch",
             scrollbarWidth: "none",
           }}>
-            {[{ id: "all", label: t("ann.all"), color: C.teal }, ...NOTICE_CATS.filter(c => sortedCats.includes(c.id))].map(cat => (
+            {[{ id: "all", label: t("ann.all"), color: C.teal }, ...NOTICE_CATS.filter(c => sortedCats.includes(c.id)).map(c => ({ ...c, label: t(`ann.cat.${c.id}`) || c.label }))].map(cat => (
               <button
                 key={cat.id}
                 onClick={() => setFilter(cat.id)}

@@ -116,7 +116,7 @@ export default function LoginPage({ savedUser, onLogin, onReset }) {
                   textDecoration: "underline",
                 }}
               >
-                パスワードを忘れた場合
+                {t("login.forgot")}
               </button>
             ) : (
               <div style={{
@@ -125,10 +125,10 @@ export default function LoginPage({ savedUser, onLogin, onReset }) {
                 textAlign: "left",
               }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: C.red, marginBottom: 6 }}>
-                  ⚠️ 登録を削除して最初からやり直しますか？
+                  {t("login.reset_title")}
                 </div>
                 <div style={{ fontSize: 12, color: C.charcoal, marginBottom: 12, lineHeight: 1.6 }}>
-                  スタンプの記録もすべて消えます。
+                  {t("login.reset_body")}
                 </div>
                 <div style={{ display: "flex", gap: 8 }}>
                   <button
@@ -141,7 +141,7 @@ export default function LoginPage({ savedUser, onLogin, onReset }) {
                       cursor: "pointer", fontFamily: "inherit",
                     }}
                   >
-                    削除してやり直す
+                    {t("login.reset_btn")}
                   </button>
                   <button
                     onClick={() => setShowReset(false)}
@@ -152,7 +152,7 @@ export default function LoginPage({ savedUser, onLogin, onReset }) {
                       fontSize: 12, cursor: "pointer", fontFamily: "inherit",
                     }}
                   >
-                    キャンセル
+                    {t("common.cancel")}
                   </button>
                 </div>
               </div>
