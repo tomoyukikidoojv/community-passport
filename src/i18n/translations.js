@@ -93,6 +93,10 @@ const T = {
     "calendar.place": "📍 ばしょ",
     "calendar.attended": "✓ さんかずみ",
     "calendar.past": "おわったイベント",
+    "calendar.ended": "おわり",
+    "calendar.going_short": "🙋 さんかよてい",
+    "calendar.not_going_short": "✗ さんかしない",
+    "calendar.unanswered": "みかいとう",
     "calendar.images": "🖼 チラシ・がぞう",
 
     // Passport
@@ -218,6 +222,10 @@ const T = {
     "calendar.place": "📍 Location",
     "calendar.attended": "✓ Attended",
     "calendar.past": "Past Events",
+    "calendar.ended": "Ended",
+    "calendar.going_short": "🙋 Going",
+    "calendar.not_going_short": "✗ Not going",
+    "calendar.unanswered": "No response",
     "calendar.images": "🖼 Flyers & Images",
 
     "passport.header": "ASHIYA MULTICULTURAL COMMUNITY",
@@ -340,6 +348,10 @@ const T = {
     "calendar.place": "📍 Lugar",
     "calendar.attended": "✓ Asistido",
     "calendar.past": "Eventos pasados",
+    "calendar.ended": "Terminado",
+    "calendar.going_short": "🙋 Asistiré",
+    "calendar.not_going_short": "✗ No asistiré",
+    "calendar.unanswered": "Sin responder",
     "calendar.images": "🖼 Folletos e Imágenes",
 
     "passport.header": "ASHIYA MULTICULTURAL COMMUNITY",
@@ -462,6 +474,10 @@ const T = {
     "calendar.place": "📍 Lieu",
     "calendar.attended": "✓ Participé",
     "calendar.past": "Événements passés",
+    "calendar.ended": "Terminé",
+    "calendar.going_short": "🙋 Y assiste",
+    "calendar.not_going_short": "✗ N'y assiste pas",
+    "calendar.unanswered": "Sans réponse",
     "calendar.images": "🖼 Affiches & Images",
 
     "passport.header": "ASHIYA MULTICULTURAL COMMUNITY",
@@ -584,6 +600,10 @@ const T = {
     "calendar.place": "📍 Local",
     "calendar.attended": "✓ Participou",
     "calendar.past": "Eventos passados",
+    "calendar.ended": "Encerrado",
+    "calendar.going_short": "🙋 Participarei",
+    "calendar.not_going_short": "✗ Não vou",
+    "calendar.unanswered": "Sem resposta",
     "calendar.images": "🖼 Folhetos & Imagens",
 
     "passport.header": "ASHIYA MULTICULTURAL COMMUNITY",
@@ -706,6 +726,10 @@ const T = {
     "calendar.place": "📍 장소",
     "calendar.attended": "✓ 참가 완료",
     "calendar.past": "지난 이벤트",
+    "calendar.ended": "종료",
+    "calendar.going_short": "🙋 참가 예정",
+    "calendar.not_going_short": "✗ 불참",
+    "calendar.unanswered": "미응답",
     "calendar.images": "🖼 안내지 & 이미지",
 
     "passport.header": "ASHIYA MULTICULTURAL COMMUNITY",
@@ -828,6 +852,10 @@ const T = {
     "calendar.place": "📍 地点",
     "calendar.attended": "✓ 已参加",
     "calendar.past": "已结束的活动",
+    "calendar.ended": "已结束",
+    "calendar.going_short": "🙋 将参加",
+    "calendar.not_going_short": "✗ 不参加",
+    "calendar.unanswered": "未回答",
     "calendar.images": "🖼 传单和图片",
 
     "passport.header": "ASHIYA MULTICULTURAL COMMUNITY",

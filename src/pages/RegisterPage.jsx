@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { C, USERS } from "../constants";
 import { useLang } from "../i18n/LangContext";
+import { LANGS } from "../i18n/translations";
 import COUNTRIES from "../i18n/countries";
 import WORLD_LANGUAGES from "../i18n/languages-list";
 
@@ -21,6 +22,28 @@ const selectStyle = {
   backgroundPosition: "right 12px center",
   paddingRight: 32,
 };
+
+function LangSelector() {
+  const { lang, setLang } = useLang();
+  return (
+    <div style={{ display: "flex", justifyContent: "flex-end", gap: 4, marginBottom: 12, flexWrap: "wrap" }}>
+      {LANGS.map(l => (
+        <button
+          key={l.code}
+          onClick={() => setLang(l.code)}
+          style={{
+            padding: "4px 10px", borderRadius: 20, border: "none", cursor: "pointer",
+            fontSize: 12, fontFamily: "inherit",
+            background: lang === l.code ? C.teal : "rgba(255,255,255,0.25)",
+            color: lang === l.code ? "#fff" : "rgba(255,255,255,0.85)",
+            fontWeight: lang === l.code ? 700 : 400,
+            transition: "all 0.15s",
+          }}
+        >{l.flag} {l.code.toUpperCase()}</button>
+      ))}
+    </div>
+  );
+}
 
 export default function RegisterPage({ onRegistered }) {
   const { t, lang } = useLang();
@@ -187,6 +210,8 @@ export default function RegisterPage({ onRegistered }) {
       fontFamily: "'Segoe UI','Hiragino Sans','Meiryo',sans-serif",
     }}>
       <div style={{ maxWidth: 560, margin: "0 auto" }}>
+
+        <LangSelector />
 
         <div style={{ textAlign: "center", color: C.white, marginBottom: 28 }}>
           <div style={{ fontSize: 11, letterSpacing: 5, opacity: 0.6, marginBottom: 4 }}>

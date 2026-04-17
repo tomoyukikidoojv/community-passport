@@ -476,26 +476,26 @@ export default function CalendarPage({ stamps, user }) {
                         background: C.lightGray, color: C.gray,
                         borderRadius: 20, padding: "3px 10px",
                         fontSize: 10,
-                      }}>終了</div>
+                      }}>{t("calendar.ended")}</div>
                     ) : rsvp[ev.id] === "going" ? (
                       <div style={{
                         background: ev.color, color: C.white,
                         borderRadius: 20, padding: "3px 10px",
                         fontSize: 10, fontWeight: 700,
-                      }}>🙋 参加予定</div>
+                      }}>{t("calendar.going_short")}</div>
                     ) : rsvp[ev.id] === "not_going" ? (
                       <div style={{
                         background: C.lightGray, color: C.gray,
                         borderRadius: 20, padding: "3px 10px",
                         fontSize: 10,
-                      }}>✗ 不参加</div>
+                      }}>{t("calendar.not_going_short")}</div>
                     ) : (
                       <div style={{
                         background: `${ev.color}18`, color: ev.color,
                         border: `1px solid ${ev.color}40`,
                         borderRadius: 20, padding: "3px 10px",
                         fontSize: 10, fontWeight: 700,
-                      }}>未回答</div>
+                      }}>{t("calendar.unanswered")}</div>
                     )}
                   </div>
                 </div>

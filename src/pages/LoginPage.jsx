@@ -1,6 +1,29 @@
 import { useState } from "react";
 import { C } from "../constants";
 import { useLang } from "../i18n/LangContext";
+import { LANGS } from "../i18n/translations";
+
+function LangSelector() {
+  const { lang, setLang } = useLang();
+  return (
+    <div style={{ display: "flex", justifyContent: "flex-end", gap: 4, marginBottom: 12, flexWrap: "wrap" }}>
+      {LANGS.map(l => (
+        <button
+          key={l.code}
+          onClick={() => setLang(l.code)}
+          style={{
+            padding: "4px 10px", borderRadius: 20, border: "none", cursor: "pointer",
+            fontSize: 12, fontFamily: "inherit",
+            background: lang === l.code ? C.teal : "rgba(255,255,255,0.25)",
+            color: lang === l.code ? "#fff" : "rgba(255,255,255,0.85)",
+            fontWeight: lang === l.code ? 700 : 400,
+            transition: "all 0.15s",
+          }}
+        >{l.flag} {l.code.toUpperCase()}</button>
+      ))}
+    </div>
+  );
+}
 
 export default function LoginPage({ savedUser, onLogin, onReset }) {
   const { t } = useLang();
@@ -22,10 +45,13 @@ export default function LoginPage({ savedUser, onLogin, onReset }) {
     <div style={{
       minHeight: "100vh",
       background: `linear-gradient(135deg, ${C.teal} 0%, ${C.navy} 100%)`,
-      display: "flex", alignItems: "center", justifyContent: "center",
+      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
       padding: "32px 16px",
       fontFamily: "'Segoe UI','Hiragino Sans','Meiryo',sans-serif",
     }}>
+      <div style={{ width: "100%", maxWidth: 400 }}>
+        <LangSelector />
+      </div>
       <div style={{
         background: C.white, borderRadius: 20, maxWidth: 400, width: "100%",
         boxShadow: "0 20px 60px rgba(0,0,0,0.35)", overflow: "hidden",
