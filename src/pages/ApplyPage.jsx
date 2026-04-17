@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { C } from "../constants";
 import { useEvents } from "../hooks/useEvents";
 import { getForm, isFormActive } from "../lib/formStorage";
+import { useLang } from "../i18n/LangContext";
 
 const APPLY_KEY = "cp_applications";
 
@@ -31,6 +32,7 @@ export function getApplicationsByEvent(eventId) {
 const COUNTS = ["1人", "2人", "3人", "4人", "5人以上"];
 
 export default function ApplyPage({ user }) {
+  const { t } = useLang();
   const { eventId } = useParams();
   const navigate = useNavigate();
   const events = useEvents();
@@ -86,7 +88,7 @@ export default function ApplyPage({ user }) {
     return center(<>
       <div style={{ fontSize: 36, marginBottom: 10 }}>{notYet ? "⏳" : "🔒"}</div>
       <div style={{ fontWeight: 700, color: C.charcoal, marginBottom: 6 }}>
-        {notYet ? "受付開始前です" : "受付は終了しました"}
+        {notYet ? t("apply.not_open") : t("apply.closed")}
       </div>
       {notYet && formConfig.openDate && (
         <div style={{ fontSize: 13, color: C.gray }}>
@@ -117,7 +119,7 @@ export default function ApplyPage({ user }) {
 
   const validate = () => {
     const errs = {};
-    if (!form.name.trim()) errs.name = "お名前を入力してください";
+    if (!form.name.trim()) errs.name = t("apply.err_name");
     (formConfig.questions || []).forEach(q => {
       if (!q.required) return;
       const ans = form.answers[q.id];
@@ -248,7 +250,7 @@ export default function ApplyPage({ user }) {
           <div style={{ fontSize: 11, letterSpacing: 5, opacity: 0.6, marginBottom: 4 }}>
             EVENT APPLICATION
           </div>
-          <div style={{ fontSize: 26, fontWeight: 800 }}>📝 イベント申し込み</div>
+          <div style={{ fontSize: 26, fontWeight: 800 }}>{t("apply.title")}</div>
         </div>
 
         {/* Event info card */}
@@ -316,10 +318,10 @@ export default function ApplyPage({ user }) {
               }}>📋</div>
               <div>
                 <div style={{ color: C.white, fontWeight: 700, fontSize: 13 }}>
-                  申し込みフォーム
+                  {t("apply.title")}
                 </div>
                 <div style={{ color: "rgba(255,255,255,0.65)", fontSize: 11 }}>
-                  Application form
+                  {t("apply.subtitle")}
                 </div>
               </div>
             </div>
@@ -330,7 +332,7 @@ export default function ApplyPage({ user }) {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 16 }}>
                 <div>
                   <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.charcoal, marginBottom: 5 }}>
-                    お名前 <span style={{ color: "#E74C3C" }}>*</span>
+                    {t("apply.name")} <span style={{ color: "#E74C3C" }}>*</span>
                   </label>
                   <input
                     type="text" value={form.name} onChange={set("name")}
@@ -519,7 +521,7 @@ export default function ApplyPage({ user }) {
                   boxShadow: `0 4px 16px ${event.color}40`,
                 }}
               >
-                {event.emoji} 申し込みを送信する
+                {event.emoji} {t("apply.submit")}
               </button>
 
               <button

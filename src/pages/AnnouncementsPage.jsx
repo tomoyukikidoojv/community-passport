@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { C, NOTICE_CATS } from "../constants";
+import { useLang } from "../i18n/LangContext";
 
 function categoryMeta(id) {
   return NOTICE_CATS.find(c => c.id === id) || { label: id, color: C.gray };
@@ -112,6 +113,7 @@ function AnnouncementCard({ item, isRead, onRead }) {
 }
 
 export default function AnnouncementsPage({ announcements, readIds, onRead, onReadAll }) {
+  const { t } = useLang();
   const [filter, setFilter] = useState("all");
 
   const unreadCount = announcements.filter(a => !readIds.has(a.id)).length;
@@ -136,7 +138,7 @@ export default function AnnouncementsPage({ announcements, readIds, onRead, onRe
             FROM THE SECRETARIAT
           </div>
           <div style={{ fontSize: 26, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
-            📢 事務局からのお知らせ
+            {t("ann.title")}
             {unreadCount > 0 && (
               <span style={{
                 background: "#E74C3C", color: C.white,
@@ -146,7 +148,7 @@ export default function AnnouncementsPage({ announcements, readIds, onRead, onRe
               }}>{unreadCount}</span>
             )}
           </div>
-          <div style={{ fontSize: 12, opacity: 0.5, marginTop: 3 }}>Announcements</div>
+          <div style={{ fontSize: 12, opacity: 0.5, marginTop: 3 }}>{t("ann.subtitle")}</div>
         </div>
 
         {/* Filter + actions bar */}
@@ -164,7 +166,7 @@ export default function AnnouncementsPage({ announcements, readIds, onRead, onRe
             WebkitOverflowScrolling: "touch",
             scrollbarWidth: "none",
           }}>
-            {[{ id: "all", label: "すべて", color: C.teal }, ...NOTICE_CATS.filter(c => sortedCats.includes(c.id))].map(cat => (
+            {[{ id: "all", label: t("ann.all"), color: C.teal }, ...NOTICE_CATS.filter(c => sortedCats.includes(c.id))].map(cat => (
               <button
                 key={cat.id}
                 onClick={() => setFilter(cat.id)}
@@ -196,7 +198,7 @@ export default function AnnouncementsPage({ announcements, readIds, onRead, onRe
                   cursor: "pointer", fontSize: 12, fontFamily: "inherit",
                 }}
               >
-                ✓ 全て既読にする
+                {t("ann.mark_read")}
               </button>
             </div>
           )}
@@ -210,7 +212,7 @@ export default function AnnouncementsPage({ announcements, readIds, onRead, onRe
               textAlign: "center", color: C.gray, fontSize: 14,
               boxShadow: "0 4px 16px rgba(0,0,0,0.1)",
             }}>
-              お知らせはありません
+              {t("ann.empty")}
             </div>
           ) : (
             filtered.map(item => (

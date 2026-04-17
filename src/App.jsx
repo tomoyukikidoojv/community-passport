@@ -8,6 +8,8 @@ import CalendarPage from "./pages/CalendarPage";
 import ApplyPage from "./pages/ApplyPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import { C, initialAttendance, initialAnnouncements } from "./constants";
+import { LangProvider, useLang } from "./i18n/LangContext";
+import { LANGS } from "./i18n/translations";
 
 const ADMIN_PASSWORD = "Kidodomo1551";
 const STORAGE_KEY = "cp_user";
@@ -99,10 +101,12 @@ function AdminGate({ children }) {
 
 // ── User nav ──────────────────────────────────────────
 function UserNav({ registeredUser, myStamps, unreadCount, onLogout }) {
+  const { t, lang, setLang } = useLang();
+  const [showLangMenu, setShowLangMenu] = useState(false);
   const NAV = [
-    { path: "/announcements", label: "📢 お知らせ",   labelEn: "Announcements" },
-    { path: "/calendar",      label: "📅 カレンダー", labelEn: "Calendar"      },
-    { path: "/passport",      label: "🎫 パスポート", labelEn: "My Passport"   },
+    { path: "/announcements", emoji: "📢", labelKey: "nav.announcements", labelEn: "Announcements" },
+    { path: "/calendar",      emoji: "📅", labelKey: "nav.calendar",      labelEn: "Calendar"      },
+    { path: "/passport",      emoji: "🎫", labelKey: "nav.passport",      labelEn: "Passport"      },
   ];
 
   return (
@@ -135,6 +139,50 @@ function UserNav({ registeredUser, myStamps, unreadCount, onLogout }) {
           </div>
         </div>
 
+        {/* Language selector */}
+        <div style={{ position: "relative", marginRight: 6 }}>
+          <button
+            onClick={() => setShowLangMenu(m => !m)}
+            style={{
+              background: "rgba(255,255,255,0.12)",
+              border: "1px solid rgba(255,255,255,0.2)",
+              borderRadius: 6, padding: "3px 8px",
+              color: C.white, fontSize: 11, cursor: "pointer",
+              fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4,
+            }}
+          >
+            {LANGS.find(l => l.code === lang)?.flag} {lang.toUpperCase()}
+          </button>
+          {showLangMenu && (
+            <div
+              style={{
+                position: "absolute", top: "calc(100% + 4px)", right: 0,
+                background: C.white, borderRadius: 10,
+                boxShadow: "0 8px 24px rgba(0,0,0,0.25)",
+                overflow: "hidden", zIndex: 200, minWidth: 150,
+              }}
+              onMouseLeave={() => setShowLangMenu(false)}
+            >
+              {LANGS.map(l => (
+                <button
+                  key={l.code}
+                  onClick={() => { setLang(l.code); setShowLangMenu(false); }}
+                  style={{
+                    display: "block", width: "100%", textAlign: "left",
+                    padding: "9px 14px", border: "none", cursor: "pointer",
+                    fontFamily: "inherit", fontSize: 13,
+                    background: lang === l.code ? C.tealPale : C.white,
+                    color: lang === l.code ? C.teal : C.charcoal,
+                    fontWeight: lang === l.code ? 700 : 400,
+                  }}
+                >
+                  {l.flag} {l.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* User chip + logout */}
         {registeredUser && (
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -149,7 +197,7 @@ function UserNav({ registeredUser, myStamps, unreadCount, onLogout }) {
                 {registeredUser.name}
               </div>
               <div style={{ color: C.gold, fontSize: 10 }}>
-                ⭐ {myStamps.size}/6 スタンプ
+                ⭐ {t("nav.stamps", { n: myStamps.size })}
               </div>
             </div>
             <div style={{ display: "flex", gap: 4 }}>
@@ -162,7 +210,7 @@ function UserNav({ registeredUser, myStamps, unreadCount, onLogout }) {
                   color: "rgba(255,255,255,0.7)", fontSize: 9,
                   cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
                 }}
-              >ログアウト</button>
+              >{t("nav.logout")}</button>
               <NavLink
                 to="/kanri-ashiya2026"
                 style={{
@@ -172,7 +220,7 @@ function UserNav({ registeredUser, myStamps, unreadCount, onLogout }) {
                   color: "rgba(255,255,255,0.35)", fontSize: 9,
                   textDecoration: "none", whiteSpace: "nowrap",
                 }}
-              >管理者</NavLink>
+              >{t("nav.admin")}</NavLink>
             </div>
           </div>
         )}
@@ -215,12 +263,7 @@ function UserNav({ registeredUser, myStamps, unreadCount, onLogout }) {
                     fontSize: 12,
                     color: isActive ? C.white : "rgba(255,255,255,0.55)",
                     fontWeight: isActive ? 700 : 400,
-                  }}>{item.label}</span>
-                  <span style={{
-                    fontSize: 9,
-                    color: isActive ? C.gold : "rgba(255,255,255,0.3)",
-                    letterSpacing: 0.5,
-                  }}>{item.labelEn}</span>
+                  }}>{t(item.labelKey)}</span>
                 </>
               )}
             </NavLink>
@@ -395,8 +438,10 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <AppRoutes />
-    </BrowserRouter>
+    <LangProvider>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </LangProvider>
   );
 }

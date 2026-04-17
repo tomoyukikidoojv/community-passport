@@ -2,6 +2,7 @@ import { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { C, USERS, getLevel } from "../constants";
 import { useEvents } from "../hooks/useEvents";
+import { useLang } from "../i18n/LangContext";
 
 function Stamp({ event, stamped, onClick }) {
   const [hover, setHover] = useState(false);
@@ -73,6 +74,7 @@ function Stamp({ event, stamped, onClick }) {
 }
 
 export default function CommunityPassport({ stamps, onManualStamp, user }) {
+  const { t } = useLang();
   const [flash, setFlash] = useState(null);
   const [qrExpanded, setQrExpanded] = useState(false);
   const ME = user || USERS[0];
@@ -103,10 +105,10 @@ export default function CommunityPassport({ stamps, onManualStamp, user }) {
 
         <div style={{ textAlign: "center", color: C.white, marginBottom: 22 }}>
           <div style={{ fontSize: 11, letterSpacing: 5, opacity: 0.6, marginBottom: 4 }}>
-            ASHIYA MULTICULTURAL COMMUNITY
+            {t("passport.header")}
           </div>
-          <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: 2 }}>Community Passport</div>
-          <div style={{ fontSize: 12, opacity: 0.5, marginTop: 3 }}>コミュニティパスポート</div>
+          <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: 2 }}>{t("passport.title")}</div>
+          <div style={{ fontSize: 12, opacity: 0.5, marginTop: 3 }}>{t("passport.subtitle")}</div>
         </div>
 
         {/* Card */}
@@ -196,7 +198,7 @@ export default function CommunityPassport({ stamps, onManualStamp, user }) {
                   color: "rgba(255,255,255,0.45)",
                   marginBottom: 6, textTransform: "uppercase",
                 }}>
-                  Member ID Card
+                  {t("passport.qr_label")}
                 </div>
                 <div style={{
                   fontSize: 18, fontWeight: 800, color: C.white,
@@ -216,7 +218,7 @@ export default function CommunityPassport({ stamps, onManualStamp, user }) {
                     <span style={{
                       fontSize: 9, color: "rgba(255,255,255,0.4)",
                       letterSpacing: 1, minWidth: 28,
-                    }}>NO.</span>
+                    }}>{t("passport.no")}</span>
                     <span style={{
                       fontSize: 12, fontWeight: 700,
                       color: C.gold, letterSpacing: 1,
@@ -227,7 +229,7 @@ export default function CommunityPassport({ stamps, onManualStamp, user }) {
                     <span style={{
                       fontSize: 9, color: "rgba(255,255,255,0.4)",
                       letterSpacing: 1, minWidth: 28,
-                    }}>LV.</span>
+                    }}>{t("passport.lv")}</span>
                     <span style={{
                       background: level.color,
                       color: C.white,
@@ -240,16 +242,16 @@ export default function CommunityPassport({ stamps, onManualStamp, user }) {
                 <div style={{
                   marginTop: 12,
                   fontSize: 10, color: "rgba(255,255,255,0.35)",
-                  lineHeight: 1.5,
+                  lineHeight: 1.5, whiteSpace: "pre-line",
                 }}>
-                  受付でこのQRを<br />スタッフに提示
+                  {t("passport.qr_show")}
                 </div>
                 <div style={{
                   marginTop: 8, fontSize: 9,
                   color: "rgba(255,255,255,0.25)",
                   letterSpacing: 0.5,
                 }}>
-                  タップで拡大 ↗
+                  {t("passport.qr_tap")}
                 </div>
               </div>
             </div>
@@ -264,14 +266,14 @@ export default function CommunityPassport({ stamps, onManualStamp, user }) {
           }}>
             <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
               <span style={{ fontSize: 30, fontWeight: 800, color: C.teal }}>{count}</span>
-              <span style={{ fontSize: 12, color: C.gray }}>/ {events.length} スタンプ</span>
+              <span style={{ fontSize: 12, color: C.gray }}>{t("passport.stamps_of", { n: events.length })}</span>
             </div>
             <div style={{ flex: 1 }}>
               <div style={{
                 display: "flex", justifyContent: "space-between",
                 fontSize: 11, color: C.gray, marginBottom: 4,
               }}>
-                <span>参加率</span><span>{pct}%</span>
+                <span>{t("passport.participation")}</span><span>{pct}%</span>
               </div>
               <div style={{ height: 8, background: C.lightGray, borderRadius: 8, overflow: "hidden" }}>
                 <div style={{
@@ -282,14 +284,14 @@ export default function CommunityPassport({ stamps, onManualStamp, user }) {
               </div>
             </div>
             <div style={{ minWidth: 130, textAlign: "right" }}>
-              <div style={{ fontSize: 11, color: C.gray, marginBottom: 3 }}>次のレベルまで</div>
+              <div style={{ fontSize: 11, color: C.gray, marginBottom: 3 }}>{t("passport.next_level")}</div>
               <div style={{
                 fontSize: 12, fontWeight: 700,
                 color: count >= events.length ? C.gold : level.color,
               }}>
                 {count >= events.length
-                  ? "🎉 コンプリート！"
-                  : `あと ${level.next - count} 回 → ${getLevel(level.next).label}`}
+                  ? t("passport.complete")
+                  : t("passport.more", { n: level.next - count, level: getLevel(level.next).label })}
               </div>
             </div>
           </div>
@@ -305,9 +307,9 @@ export default function CommunityPassport({ stamps, onManualStamp, user }) {
                 display: "inline-block", width: 4, height: 16,
                 background: C.teal, borderRadius: 2,
               }} />
-              イベント参加スタンプ
+              {t("passport.stamp_title")}
               <span style={{ fontSize: 11, color: C.gray, fontWeight: 400 }}>
-                — タップして記録（デモ用）
+                {t("passport.stamp_hint")}
               </span>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
@@ -346,7 +348,7 @@ export default function CommunityPassport({ stamps, onManualStamp, user }) {
             borderRadius: 10, padding: "12px 16px",
           }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: C.charcoal, marginBottom: 8 }}>
-              🎖️ レベルガイド
+              {t("passport.level_guide")}
             </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {[
@@ -378,10 +380,10 @@ export default function CommunityPassport({ stamps, onManualStamp, user }) {
             display: "flex", justifyContent: "space-between", alignItems: "center",
           }}>
             <span style={{ color: "rgba(255,255,255,0.55)", fontSize: 11 }}>
-              芦屋市多文化共生アドバイザー事業
+              {t("passport.footer_l")}
             </span>
             <span style={{ color: "rgba(255,255,255,0.55)", fontSize: 11 }}>
-              Foreign Services Consultant
+              {t("passport.footer_r")}
             </span>
           </div>
         </div>
@@ -403,7 +405,7 @@ export default function CommunityPassport({ stamps, onManualStamp, user }) {
             fontSize: 11, letterSpacing: 3,
             color: "rgba(255,255,255,0.4)", marginBottom: 4,
             textTransform: "uppercase",
-          }}>Member ID Card</div>
+          }}>{t("passport.qr_label")}</div>
           <div style={{
             background: C.white, borderRadius: 16, padding: 16,
             boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
@@ -419,7 +421,7 @@ export default function CommunityPassport({ stamps, onManualStamp, user }) {
             </div>
           </div>
           <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 12, marginTop: 8 }}>
-            タップして閉じる
+            {t("passport.qr_close")}
           </div>
         </div>
       )}

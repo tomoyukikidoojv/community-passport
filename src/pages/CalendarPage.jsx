@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { C } from "../constants";
 import { useEvents } from "../hooks/useEvents";
+import { useLang } from "../i18n/LangContext";
 
 const RSVP_KEY = "cp_rsvp"; // { "userId_eventId": "going" | "not_going" }
 
@@ -46,6 +47,7 @@ function formatFullDate(iso) {
 }
 
 export default function CalendarPage({ stamps, user }) {
+  const { t } = useLang();
   const navigate = useNavigate();
   const today = new Date();
   const [viewYear, setViewYear] = useState(today.getFullYear());
@@ -125,8 +127,8 @@ export default function CalendarPage({ stamps, user }) {
           <div style={{ fontSize: 11, letterSpacing: 5, opacity: 0.6, marginBottom: 4 }}>
             EVENT SCHEDULE
           </div>
-          <div style={{ fontSize: 26, fontWeight: 800 }}>📅 イベントカレンダー</div>
-          <div style={{ fontSize: 12, opacity: 0.5, marginTop: 3 }}>Event Calendar</div>
+          <div style={{ fontSize: 26, fontWeight: 800 }}>{`📅 ${t("calendar.title")}`}</div>
+          <div style={{ fontSize: 12, opacity: 0.5, marginTop: 3 }}>{t("calendar.subtitle")}</div>
         </div>
 
         {/* ── Monthly calendar ─────────────────────── */}
@@ -156,7 +158,7 @@ export default function CalendarPage({ stamps, user }) {
                   marginLeft: 10, background: C.gold,
                   borderRadius: 20, padding: "2px 10px",
                   fontSize: 11, fontWeight: 700,
-                }}>{monthEvents.length}件</span>
+                }}>{monthEvents.length}</span>
               )}
             </div>
             <button
@@ -270,14 +272,14 @@ export default function CalendarPage({ stamps, user }) {
                       display: "inline-block", marginTop: 6,
                       background: "rgba(255,255,255,0.25)", borderRadius: 20,
                       padding: "2px 10px", fontSize: 11, color: C.white, fontWeight: 700,
-                    }}>✓ 参加済み</div>
+                    }}>{t("calendar.attended")}</div>
                   )}
                 </div>
               </div>
               <div style={{ padding: "20px 24px" }}>
                 {[
-                  ["📅 日時", `${formatFullDate(selectedEvent.fullDate)}　${selectedEvent.time}`],
-                  ["📍 場所", selectedEvent.place],
+                  [t("calendar.date"), `${formatFullDate(selectedEvent.fullDate)}　${selectedEvent.time}`],
+                  [t("calendar.place"), selectedEvent.place],
                 ].map(([label, value]) => (
                   <div key={label} style={{ marginBottom: 14 }}>
                     <div style={{ fontSize: 11, color: C.gray, marginBottom: 3 }}>{label}</div>
@@ -288,7 +290,7 @@ export default function CalendarPage({ stamps, user }) {
                 {/* RSVP buttons (only for future events) */}
                 {new Date(selectedEvent.fullDate) >= new Date(today.toDateString()) && !stamps?.has(selectedEvent.id) && (
                   <div style={{ marginBottom: 14 }}>
-                    <div style={{ fontSize: 11, color: C.gray, marginBottom: 8 }}>参加予定</div>
+                    <div style={{ fontSize: 11, color: C.gray, marginBottom: 8 }}>{t("calendar.rsvp_label")}</div>
                     <div style={{ display: "flex", gap: 8 }}>
                       <button
                         onClick={() => handleRsvp(selectedEvent.id, "going")}
@@ -301,7 +303,7 @@ export default function CalendarPage({ stamps, user }) {
                           cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
                         }}
                       >
-                        {rsvp[selectedEvent.id] === "going" ? "✓ 参加予定" : "🙋 参加したい"}
+                        {rsvp[selectedEvent.id] === "going" ? t("calendar.going_done") : t("calendar.going")}
                       </button>
                       <button
                         onClick={() => handleRsvp(selectedEvent.id, "not_going")}
@@ -314,7 +316,7 @@ export default function CalendarPage({ stamps, user }) {
                           cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
                         }}
                       >
-                        {rsvp[selectedEvent.id] === "not_going" ? "✗ 不参加" : "不参加"}
+                        {rsvp[selectedEvent.id] === "not_going" ? t("calendar.not_going_done") : t("calendar.not_going")}
                       </button>
                     </div>
                   </div>
@@ -333,14 +335,14 @@ export default function CalendarPage({ stamps, user }) {
                       boxShadow: `0 3px 10px ${selectedEvent.color}40`,
                     }}
                   >
-                    📝 このイベントに申し込む →
+                    {t("calendar.apply_btn")}
                   </button>
                 )}
 
                 {/* Image gallery */}
                 {selectedEvent.images && selectedEvent.images.length > 0 && (
                   <div style={{ marginBottom: 14 }}>
-                    <div style={{ fontSize: 11, color: C.gray, marginBottom: 8 }}>🖼 チラシ・画像</div>
+                    <div style={{ fontSize: 11, color: C.gray, marginBottom: 8 }}>{t("calendar.images")}</div>
                     <div style={{
                       display: "flex", gap: 8, overflowX: "auto",
                       WebkitOverflowScrolling: "touch", scrollbarWidth: "none",
@@ -375,7 +377,7 @@ export default function CalendarPage({ stamps, user }) {
                     borderRadius: 8, fontSize: 13, color: C.gray,
                     cursor: "pointer", fontFamily: "inherit",
                   }}
-                >閉じる</button>
+                >{t("calendar.close")}</button>
               </div>
             </div>
           </div>
@@ -403,7 +405,7 @@ export default function CalendarPage({ stamps, user }) {
             <div style={{
               position: "absolute", top: 16, right: 16,
               color: "rgba(255,255,255,0.6)", fontSize: 12,
-            }}>タップして閉じる</div>
+            }}>{t("calendar.close")}</div>
           </div>
         )}
 
@@ -423,7 +425,7 @@ export default function CalendarPage({ stamps, user }) {
               background: C.teal, borderRadius: 2,
             }} />
             <span style={{ fontSize: 13, fontWeight: 700, color: C.charcoal }}>
-              年間イベントスケジュール
+              {t("calendar.all")}
             </span>
           </div>
 

@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { C } from "../constants";
+import { useLang } from "../i18n/LangContext";
 
 export default function LoginPage({ savedUser, onLogin, onReset }) {
+  const { t } = useLang();
   const [password, setPassword] = useState("");
   const [error, setError] = useState(false);
   const [showReset, setShowReset] = useState(false);
@@ -52,10 +54,10 @@ export default function LoginPage({ savedUser, onLogin, onReset }) {
         <div style={{ padding: "28px 28px 24px" }}>
           <div style={{ textAlign: "center", marginBottom: 20 }}>
             <div style={{ fontSize: 13, color: C.gray }}>
-              マイパスポートにログイン
+              {t("login.select")}
             </div>
             <div style={{ fontSize: 11, color: C.gray, opacity: 0.7, marginTop: 2 }}>
-              Sign in to your passport
+              {t("login.subtitle")}
             </div>
           </div>
 
@@ -65,13 +67,13 @@ export default function LoginPage({ savedUser, onLogin, onReset }) {
                 display: "block", fontSize: 13, fontWeight: 700,
                 color: C.charcoal, marginBottom: 6,
               }}>
-                パスワード
+                {t("login.password")}
               </label>
               <input
                 type="password"
                 value={password}
                 onChange={e => { setPassword(e.target.value); setError(false); }}
-                placeholder="パスワードを入力"
+                placeholder={t("login.password_placeholder")}
                 autoFocus
                 style={{
                   width: "100%", padding: "10px 14px", boxSizing: "border-box",
@@ -83,7 +85,7 @@ export default function LoginPage({ savedUser, onLogin, onReset }) {
               />
               {error && (
                 <div style={{ color: "#E74C3C", fontSize: 12, marginTop: 6 }}>
-                  パスワードが違います
+                  {t("login.error")}
                 </div>
               )}
             </div>
@@ -99,7 +101,7 @@ export default function LoginPage({ savedUser, onLogin, onReset }) {
                 boxShadow: `0 4px 16px ${C.teal}40`,
               }}
             >
-              🎫 ログイン
+              {`🎫 ${t("login.btn")}`}
             </button>
           </form>
 

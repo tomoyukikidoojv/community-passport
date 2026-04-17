@@ -1,43 +1,8 @@
 import { useState } from "react";
 import { C, USERS } from "../constants";
-
-const COUNTRIES = [
-  { flag: "🇯🇵", name: "日本",       lang: "日本語" },
-  { flag: "🇧🇷", name: "ブラジル",   lang: "ポルトガル語" },
-  { flag: "🇨🇳", name: "中国",       lang: "中国語（普通話）" },
-  { flag: "🇺🇸", name: "アメリカ",   lang: "英語" },
-  { flag: "🇪🇬", name: "エジプト",   lang: "アラビア語" },
-  { flag: "🇲🇽", name: "メキシコ",   lang: "スペイン語" },
-  { flag: "🇵🇭", name: "フィリピン", lang: "タガログ語" },
-  { flag: "🇻🇳", name: "ベトナム",   lang: "ベトナム語" },
-  { flag: "🇰🇷", name: "韓国",       lang: "韓国語" },
-  { flag: "🇮🇳", name: "インド",     lang: "ヒンディー語" },
-  { flag: "🌍", name: "その他",       lang: "その他" },
-];
-
-const YEARS = ["〜1年", "1〜3年", "3〜5年", "5〜10年", "10年以上"];
-
-function Field({ label, labelEn, required, children }) {
-  return (
-    <div style={{ marginBottom: 20 }}>
-      <label style={{
-        display: "block", marginBottom: 6,
-        fontSize: 13, fontWeight: 700, color: C.charcoal,
-      }}>
-        {label}
-        {labelEn && (
-          <span style={{ fontWeight: 400, color: C.gray, marginLeft: 8, fontSize: 11 }}>
-            {labelEn}
-          </span>
-        )}
-        {required && (
-          <span style={{ color: "#E74C3C", marginLeft: 4, fontSize: 12 }}>*</span>
-        )}
-      </label>
-      {children}
-    </div>
-  );
-}
+import { useLang } from "../i18n/LangContext";
+import COUNTRIES from "../i18n/countries";
+import WORLD_LANGUAGES from "../i18n/languages-list";
 
 const inputStyle = {
   width: "100%", padding: "10px 14px",
@@ -48,36 +13,55 @@ const inputStyle = {
   transition: "border-color 0.2s",
 };
 
+const selectStyle = {
+  ...inputStyle,
+  appearance: "none", cursor: "pointer",
+  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%237F8C8D' d='M6 8L0 0h12z'/%3E%3C/svg%3E")`,
+  backgroundRepeat: "no-repeat",
+  backgroundPosition: "right 12px center",
+  paddingRight: 32,
+};
+
 export default function RegisterPage({ onRegistered }) {
+  const { t, lang } = useLang();
   const [form, setForm] = useState({
-    nameJa: "", nameEn: "", email: "",
-    country: "", years: "", lang: "",
-    password: "", passwordConfirm: "",
+    name: "",
+    country: "",
+    languages: [],
+    password: "",
+    passwordConfirm: "",
   });
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
-  const [focusedField, setFocusedField] = useState(null);
   const [newUser, setNewUser] = useState(null);
+  const [countrySearch, setCountrySearch] = useState("");
 
-  const set = (k) => (e) => {
+  const set = k => e => {
     setForm(f => ({ ...f, [k]: e.target.value }));
     if (errors[k]) setErrors(er => ({ ...er, [k]: null }));
-
-    if (k === "country") {
-      const found = COUNTRIES.find(c => c.flag + " " + c.name === e.target.value);
-      if (found) setForm(f => ({ ...f, country: e.target.value, lang: found.lang }));
-    }
   };
+
+  const toggleLang = (code) => {
+    setForm(f => ({
+      ...f,
+      languages: f.languages.includes(code)
+        ? f.languages.filter(l => l !== code)
+        : [...f.languages, code],
+    }));
+    if (errors.languages) setErrors(er => ({ ...er, languages: null }));
+  };
+
+  const filteredCountries = COUNTRIES.filter(c =>
+    c.name.toLowerCase().includes(countrySearch.toLowerCase())
+  );
 
   const validate = () => {
     const errs = {};
-    if (!form.nameJa.trim())                   errs.nameJa         = "お名前を入力してください";
-    if (!form.nameEn.trim())                   errs.nameEn         = "Enter your name in English";
-    if (!form.email.includes("@"))             errs.email          = "有効なメールアドレスを入力してください";
-    if (!form.country)                         errs.country        = "国籍を選択してください";
-    if (!form.years)                           errs.years          = "在住歴を選択してください";
-    if (form.password.length < 4)              errs.password       = "4文字以上で設定してください";
-    if (form.password !== form.passwordConfirm) errs.passwordConfirm = "パスワードが一致しません";
+    if (!form.name.trim())          errs.name      = t("register.err_name");
+    if (!form.country)              errs.country   = t("register.err_country");
+    if (form.languages.length === 0) errs.languages = t("register.err_languages");
+    if (form.password.length < 4)  errs.password  = t("register.err_password");
+    if (form.password !== form.passwordConfirm) errs.passwordConfirm = t("register.err_password_match");
     return errs;
   };
 
@@ -86,23 +70,27 @@ export default function RegisterPage({ onRegistered }) {
     const errs = validate();
     if (Object.keys(errs).length) { setErrors(errs); return; }
 
-    const countryObj = COUNTRIES.find(c => c.flag + " " + c.name === form.country);
+    const countryObj = COUNTRIES.find(c => c.code === form.country);
+    const langLabels = form.languages.map(code =>
+      WORLD_LANGUAGES.find(l => l.code === code)?.name || code
+    );
+
     const user = {
-      id: USERS.length + 1,
-      name: form.nameJa,
-      nameEn: form.nameEn,
-      no: `2026-00${48 + USERS.length}`,
+      id: Date.now(),
+      name: form.name,
+      nameEn: form.name,
+      no: `2026-${String(Date.now()).slice(-4)}`,
       flag: countryObj?.flag || "🌍",
-      since: "2026年" + new Date().toLocaleString("ja-JP", { month: "long" }),
-      lang: form.lang,
-      years: form.years,
+      country: countryObj || { code: "XX", name: form.country, flag: "🌍" },
+      languages: langLabels,
+      since: new Date().toLocaleDateString(lang === "ja" ? "ja-JP" : "en-US", { year: "numeric", month: "long" }),
       password: form.password,
     };
     setNewUser(user);
     setSubmitted(true);
   };
 
-  // ── Success screen ────────────────────────────────────
+  // ── Success screen ─────────────────────────────────────
   if (submitted && newUser) {
     return (
       <div style={{
@@ -122,19 +110,18 @@ export default function RegisterPage({ onRegistered }) {
             padding: "28px 24px 24px",
           }}>
             <div style={{ fontSize: 52, marginBottom: 8 }}>🎉</div>
-            <div style={{ color: C.white, fontSize: 20, fontWeight: 800, letterSpacing: 1 }}>
-              登録完了！
+            <div style={{ color: C.white, fontSize: 20, fontWeight: 800 }}>
+              {t("register.success_title")}
             </div>
             <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 13, marginTop: 4 }}>
-              Registration complete
+              {t("register.success_sub")}
             </div>
           </div>
 
           <div style={{ padding: "28px 32px 24px" }}>
             <div style={{
-              border: `2px solid ${C.tealLight}`,
-              borderRadius: 14, padding: "18px 20px",
-              background: C.offWhite, marginBottom: 24,
+              border: `2px solid ${C.tealLight}`, borderRadius: 14,
+              padding: "18px 20px", background: C.offWhite, marginBottom: 24,
               textAlign: "left",
             }}>
               <div style={{ fontSize: 10, letterSpacing: 3, color: C.gray, marginBottom: 10 }}>
@@ -146,23 +133,15 @@ export default function RegisterPage({ onRegistered }) {
                   background: C.goldLight, border: `3px solid ${C.gold}`,
                   display: "flex", alignItems: "center", justifyContent: "center",
                   fontSize: 26, flexShrink: 0,
-                }}>
-                  {newUser.flag}
-                </div>
+                }}>{newUser.flag}</div>
                 <div>
-                  <div style={{ fontWeight: 800, fontSize: 18, color: C.teal }}>
-                    {newUser.name}
-                  </div>
-                  <div style={{ color: C.gray, fontSize: 12, marginTop: 2 }}>
-                    {newUser.nameEn}
-                  </div>
+                  <div style={{ fontWeight: 800, fontSize: 18, color: C.teal }}>{newUser.name}</div>
+                  <div style={{ color: C.gray, fontSize: 12, marginTop: 2 }}>{newUser.country?.name}</div>
                   <div style={{
                     display: "inline-block", marginTop: 6,
                     background: `${C.gray}15`, borderRadius: 20,
                     padding: "2px 10px", fontSize: 11, color: C.gray,
-                  }}>
-                    No. {newUser.no}
-                  </div>
+                  }}>No. {newUser.no}</div>
                 </div>
               </div>
               <div style={{
@@ -171,23 +150,17 @@ export default function RegisterPage({ onRegistered }) {
                 display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8,
               }}>
                 {[
-                  ["登録日", newUser.since],
-                  ["在住歴", newUser.years],
-                  ["母語",   newUser.lang || "—"],
-                  ["レベル", "🌱 Newcomer"],
+                  [t("register.success_since"), newUser.since],
+                  [t("register.success_languages"), newUser.languages.join(", ")],
+                  [t("register.success_level"), "🌱 Newcomer"],
                 ].map(([k, v]) => (
-                  <div key={k}>
+                  <div key={k} style={{ gridColumn: k === t("register.success_languages") ? "span 2" : "auto" }}>
                     <div style={{ fontSize: 10, color: C.gray }}>{k}</div>
                     <div style={{ fontSize: 12, fontWeight: 600, color: C.charcoal }}>{v}</div>
                   </div>
                 ))}
               </div>
             </div>
-
-            <p style={{ color: C.gray, fontSize: 13, margin: "0 0 20px" }}>
-              イベントに参加するたびにスタンプが押されます。<br />
-              まずはマイパスポートを確認してみましょう！
-            </p>
 
             <button
               onClick={() => onRegistered(newUser)}
@@ -196,18 +169,16 @@ export default function RegisterPage({ onRegistered }) {
                 background: `linear-gradient(90deg, ${C.teal}, ${C.tealMid})`,
                 color: C.white, border: "none", borderRadius: 10,
                 fontSize: 15, fontWeight: 700, cursor: "pointer",
-                fontFamily: "inherit", letterSpacing: 0.5,
+                fontFamily: "inherit",
               }}
-            >
-              🎫 マイパスポートを見る →
-            </button>
+            >{t("register.success_btn")}</button>
           </div>
         </div>
       </div>
     );
   }
 
-  // ── Form ─────────────────────────────────────────────
+  // ── Form ──────────────────────────────────────────────
   return (
     <div style={{
       minHeight: "100vh",
@@ -221,9 +192,9 @@ export default function RegisterPage({ onRegistered }) {
           <div style={{ fontSize: 11, letterSpacing: 5, opacity: 0.6, marginBottom: 4 }}>
             MEMBER REGISTRATION
           </div>
-          <div style={{ fontSize: 26, fontWeight: 800 }}>📝 参加者登録</div>
+          <div style={{ fontSize: 26, fontWeight: 800 }}>📝 {t("register.title")}</div>
           <div style={{ fontSize: 12, opacity: 0.5, marginTop: 3 }}>
-            コミュニティパスポートを発行します
+            {t("register.subtitle")}
           </div>
         </div>
 
@@ -244,185 +215,166 @@ export default function RegisterPage({ onRegistered }) {
             }}>📋</div>
             <div>
               <div style={{ color: C.white, fontWeight: 700, fontSize: 14 }}>
-                新規メンバー登録
+                {t("register.header")}
               </div>
               <div style={{ color: "rgba(255,255,255,0.65)", fontSize: 11 }}>
-                New member registration
+                {t("register.subtitle")}
               </div>
             </div>
           </div>
 
           <form onSubmit={handleSubmit} style={{ padding: "28px 28px 24px" }}>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-              <Field label="お名前" labelEn="Name" required>
-                <input
-                  type="text" value={form.nameJa} onChange={set("nameJa")}
-                  placeholder="山田 花子"
-                  onFocus={() => setFocusedField("nameJa")}
-                  onBlur={() => setFocusedField(null)}
-                  style={{
-                    ...inputStyle,
-                    borderColor: errors.nameJa ? "#E74C3C"
-                      : focusedField === "nameJa" ? C.teal : C.lightGray,
-                  }}
-                />
-                {errors.nameJa && (
-                  <div style={{ color: "#E74C3C", fontSize: 11, marginTop: 4 }}>{errors.nameJa}</div>
-                )}
-              </Field>
-              <Field label="ローマ字" labelEn="English name" required>
-                <input
-                  type="text" value={form.nameEn} onChange={set("nameEn")}
-                  placeholder="Hanako Yamada"
-                  onFocus={() => setFocusedField("nameEn")}
-                  onBlur={() => setFocusedField(null)}
-                  style={{
-                    ...inputStyle,
-                    borderColor: errors.nameEn ? "#E74C3C"
-                      : focusedField === "nameEn" ? C.teal : C.lightGray,
-                  }}
-                />
-                {errors.nameEn && (
-                  <div style={{ color: "#E74C3C", fontSize: 11, marginTop: 4 }}>{errors.nameEn}</div>
-                )}
-              </Field>
+            {/* Name */}
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 6 }}>
+                {t("register.name")} <span style={{ color: "#E74C3C" }}>*</span>
+              </label>
+              <input
+                type="text" value={form.name} onChange={set("name")}
+                placeholder={t("register.name_placeholder")}
+                style={{ ...inputStyle, borderColor: errors.name ? "#E74C3C" : C.lightGray }}
+              />
+              {errors.name && <div style={{ color: "#E74C3C", fontSize: 11, marginTop: 4 }}>{errors.name}</div>}
             </div>
 
-            <Field label="メールアドレス" labelEn="Email address" required>
+            {/* Country */}
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 6 }}>
+                {t("register.country")} <span style={{ color: "#E74C3C" }}>*</span>
+              </label>
               <input
-                type="email" value={form.email} onChange={set("email")}
-                placeholder="hanako@example.com"
-                onFocus={() => setFocusedField("email")}
-                onBlur={() => setFocusedField(null)}
-                style={{
-                  ...inputStyle,
-                  borderColor: errors.email ? "#E74C3C"
-                    : focusedField === "email" ? C.teal : C.lightGray,
-                }}
+                type="text"
+                value={countrySearch}
+                onChange={e => { setCountrySearch(e.target.value); setForm(f => ({ ...f, country: "" })); }}
+                placeholder={t("register.country_placeholder")}
+                style={{ ...inputStyle, marginBottom: 6, borderColor: errors.country ? "#E74C3C" : C.lightGray }}
               />
-              {errors.email && (
-                <div style={{ color: "#E74C3C", fontSize: 11, marginTop: 4 }}>{errors.email}</div>
+              {countrySearch && (
+                <div style={{
+                  maxHeight: 200, overflowY: "auto",
+                  border: `1.5px solid ${C.tealLight}`, borderRadius: 8,
+                  background: C.white, boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                }}>
+                  {filteredCountries.slice(0, 30).map(c => (
+                    <div
+                      key={c.code}
+                      onClick={() => {
+                        setForm(f => ({ ...f, country: c.code }));
+                        setCountrySearch(`${c.flag} ${c.name}`);
+                        setErrors(er => ({ ...er, country: null }));
+                      }}
+                      style={{
+                        padding: "8px 14px", cursor: "pointer", fontSize: 13,
+                        background: form.country === c.code ? C.tealPale : C.white,
+                        color: form.country === c.code ? C.teal : C.charcoal,
+                        fontWeight: form.country === c.code ? 700 : 400,
+                        display: "flex", alignItems: "center", gap: 8,
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.background = C.offWhite}
+                      onMouseLeave={e => e.currentTarget.style.background = form.country === c.code ? C.tealPale : C.white}
+                    >
+                      <span>{c.flag}</span> {c.name}
+                    </div>
+                  ))}
+                  {filteredCountries.length === 0 && (
+                    <div style={{ padding: "10px 14px", color: C.gray, fontSize: 13 }}>—</div>
+                  )}
+                </div>
               )}
-            </Field>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-              <Field label="国籍" labelEn="Nationality" required>
-                <select
-                  value={form.country} onChange={set("country")}
-                  onFocus={() => setFocusedField("country")}
-                  onBlur={() => setFocusedField(null)}
-                  style={{
-                    ...inputStyle,
-                    borderColor: errors.country ? "#E74C3C"
-                      : focusedField === "country" ? C.teal : C.lightGray,
-                    appearance: "none", cursor: "pointer",
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%237F8C8D' d='M6 8L0 0h12z'/%3E%3C/svg%3E")`,
-                    backgroundRepeat: "no-repeat",
-                    backgroundPosition: "right 12px center",
-                    paddingRight: 32,
-                  }}
-                >
-                  <option value="">選択してください</option>
-                  {COUNTRIES.map(c => (
-                    <option key={c.name} value={`${c.flag} ${c.name}`}>
-                      {c.flag} {c.name}
-                    </option>
-                  ))}
-                </select>
-                {errors.country && (
-                  <div style={{ color: "#E74C3C", fontSize: 11, marginTop: 4 }}>{errors.country}</div>
-                )}
-              </Field>
-              <Field label="芦屋市在住歴" labelEn="Years in Ashiya" required>
-                <select
-                  value={form.years} onChange={set("years")}
-                  onFocus={() => setFocusedField("years")}
-                  onBlur={() => setFocusedField(null)}
-                  style={{
-                    ...inputStyle,
-                    borderColor: errors.years ? "#E74C3C"
-                      : focusedField === "years" ? C.teal : C.lightGray,
-                    appearance: "none", cursor: "pointer",
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%237F8C8D' d='M6 8L0 0h12z'/%3E%3C/svg%3E")`,
-                    backgroundRepeat: "no-repeat",
-                    backgroundPosition: "right 12px center",
-                    paddingRight: 32,
-                  }}
-                >
-                  <option value="">選択してください</option>
-                  {YEARS.map(y => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
-                </select>
-                {errors.years && (
-                  <div style={{ color: "#E74C3C", fontSize: 11, marginTop: 4 }}>{errors.years}</div>
-                )}
-              </Field>
+              {errors.country && <div style={{ color: "#E74C3C", fontSize: 11, marginTop: 4 }}>{errors.country}</div>}
             </div>
 
-            <Field label="母語" labelEn="Mother tongue">
-              <input
-                type="text" value={form.lang} onChange={set("lang")}
-                placeholder="国籍を選択すると自動入力されます"
-                onFocus={() => setFocusedField("lang")}
-                onBlur={() => setFocusedField(null)}
-                style={{
-                  ...inputStyle,
-                  borderColor: focusedField === "lang" ? C.teal : C.lightGray,
-                  background: form.lang ? C.tealPale : C.white,
-                  color: form.lang ? C.teal : C.charcoal,
-                }}
-              />
-            </Field>
+            {/* Languages (multi-select) */}
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 4 }}>
+                {t("register.languages")} <span style={{ color: "#E74C3C" }}>*</span>
+                <span style={{ fontSize: 11, fontWeight: 400, color: C.gray, marginLeft: 8 }}>
+                  {t("register.languages_hint")}
+                </span>
+              </label>
+              <div style={{
+                border: `1.5px solid ${errors.languages ? "#E74C3C" : C.lightGray}`,
+                borderRadius: 8, padding: "12px",
+                maxHeight: 200, overflowY: "auto",
+                display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6,
+              }}>
+                {WORLD_LANGUAGES.map(lang => {
+                  const selected = form.languages.includes(lang.code);
+                  return (
+                    <label
+                      key={lang.code}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 8,
+                        padding: "6px 10px", borderRadius: 8, cursor: "pointer",
+                        background: selected ? C.tealPale : "transparent",
+                        border: `1px solid ${selected ? C.tealLight : "transparent"}`,
+                        transition: "all 0.12s",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selected}
+                        onChange={() => toggleLang(lang.code)}
+                        style={{ accentColor: C.teal, flexShrink: 0 }}
+                      />
+                      <span style={{
+                        fontSize: 12,
+                        color: selected ? C.teal : C.charcoal,
+                        fontWeight: selected ? 700 : 400,
+                        lineHeight: 1.3,
+                      }}>
+                        {lang.name}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+              {form.languages.length > 0 && (
+                <div style={{ fontSize: 11, color: C.teal, marginTop: 5 }}>
+                  ✓ {form.languages.length} selected
+                </div>
+              )}
+              {errors.languages && <div style={{ color: "#E74C3C", fontSize: 11, marginTop: 4 }}>{errors.languages}</div>}
+            </div>
 
             {/* Password */}
-            <div style={{ margin: "4px 0 16px", borderTop: `1px dashed ${C.lightGray}` }} />
+            <div style={{ borderTop: `1px dashed ${C.lightGray}`, margin: "4px 0 16px" }} />
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-              <Field label="パスワード" labelEn="Password" required>
+              <div>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 6 }}>
+                  {t("register.password")} <span style={{ color: "#E74C3C" }}>*</span>
+                </label>
                 <input
                   type="password" value={form.password} onChange={set("password")}
-                  placeholder="4文字以上"
-                  onFocus={() => setFocusedField("password")}
-                  onBlur={() => setFocusedField(null)}
-                  style={{
-                    ...inputStyle,
-                    borderColor: errors.password ? "#E74C3C"
-                      : focusedField === "password" ? C.teal : C.lightGray,
-                  }}
+                  placeholder={t("register.password_placeholder")}
+                  style={{ ...inputStyle, borderColor: errors.password ? "#E74C3C" : C.lightGray }}
                 />
-                {errors.password && (
-                  <div style={{ color: "#E74C3C", fontSize: 11, marginTop: 4 }}>{errors.password}</div>
-                )}
-              </Field>
-              <Field label="パスワード確認" labelEn="Confirm" required>
+                {errors.password && <div style={{ color: "#E74C3C", fontSize: 11, marginTop: 4 }}>{errors.password}</div>}
+              </div>
+              <div>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 6 }}>
+                  {t("register.password_confirm")} <span style={{ color: "#E74C3C" }}>*</span>
+                </label>
                 <input
                   type="password" value={form.passwordConfirm} onChange={set("passwordConfirm")}
-                  placeholder="もう一度入力"
-                  onFocus={() => setFocusedField("passwordConfirm")}
-                  onBlur={() => setFocusedField(null)}
-                  style={{
-                    ...inputStyle,
-                    borderColor: errors.passwordConfirm ? "#E74C3C"
-                      : focusedField === "passwordConfirm" ? C.teal : C.lightGray,
-                  }}
+                  placeholder={t("register.password_confirm_placeholder")}
+                  style={{ ...inputStyle, borderColor: errors.passwordConfirm ? "#E74C3C" : C.lightGray }}
                 />
-                {errors.passwordConfirm && (
-                  <div style={{ color: "#E74C3C", fontSize: 11, marginTop: 4 }}>{errors.passwordConfirm}</div>
-                )}
-              </Field>
+                {errors.passwordConfirm && <div style={{ color: "#E74C3C", fontSize: 11, marginTop: 4 }}>{errors.passwordConfirm}</div>}
+              </div>
             </div>
 
-            <div style={{ margin: "4px 0 20px", borderTop: `1px dashed ${C.lightGray}` }} />
+            <div style={{ borderTop: `1px dashed ${C.lightGray}`, margin: "4px 0 20px" }} />
 
             <div style={{
               background: C.goldLight, border: `1px solid ${C.gold}30`,
               borderLeft: `4px solid ${C.gold}`,
               borderRadius: 8, padding: "10px 14px", marginBottom: 22,
               fontSize: 12, color: C.charcoal, lineHeight: 1.6,
+              whiteSpace: "pre-line",
             }}>
-              📌 登録後、QRコード付きのコミュニティパスポートが発行されます。<br />
-              イベント会場でQRコードを提示するとスタンプが押されます。
+              {t("register.note")}
             </div>
 
             <button
@@ -432,18 +384,14 @@ export default function RegisterPage({ onRegistered }) {
                 background: `linear-gradient(90deg, ${C.teal}, ${C.tealMid})`,
                 color: C.white, border: "none", borderRadius: 10,
                 fontSize: 15, fontWeight: 700, cursor: "pointer",
-                fontFamily: "inherit", letterSpacing: 0.5,
-                boxShadow: `0 4px 16px ${C.teal}40`,
-                transition: "opacity 0.2s",
+                fontFamily: "inherit", boxShadow: `0 4px 16px ${C.teal}40`,
               }}
-              onMouseEnter={e => e.currentTarget.style.opacity = "0.9"}
-              onMouseLeave={e => e.currentTarget.style.opacity = "1"}
             >
-              パスポートを発行する →
+              {t("register.submit")}
             </button>
 
             <div style={{ textAlign: "center", marginTop: 12, fontSize: 11, color: C.gray }}>
-              <span style={{ color: "#E74C3C" }}>*</span> は必須項目です
+              <span style={{ color: "#E74C3C" }}>*</span> {t("register.required_note")}
             </div>
           </form>
         </div>
