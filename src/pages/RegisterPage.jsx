@@ -286,7 +286,7 @@ export default function RegisterPage({ onRegistered }) {
                 />
                 {errors.dob && <div style={{ color: "#E74C3C", fontSize: 11, marginTop: 4 }}>{errors.dob}</div>}
               </div>
-              <div>
+              <div style={{ position: "relative" }}>
                 <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 6 }}>
                   {t("register.country")} <span style={{ color: "#E74C3C" }}>*</span>
                 </label>
@@ -301,8 +301,8 @@ export default function RegisterPage({ onRegistered }) {
                   <div style={{
                     maxHeight: 180, overflowY: "auto",
                     border: `1.5px solid ${C.tealLight}`, borderRadius: 8,
-                    background: C.white, boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                    position: "absolute", zIndex: 10, width: "calc(50% - 44px)",
+                    background: C.white, boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                    position: "absolute", zIndex: 20, width: "100%", top: "100%", left: 0,
                   }}>
                     {filteredCountries.slice(0, 30).map(c => (
                       <div
