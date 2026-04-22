@@ -3,7 +3,7 @@ import { C } from "../constants";
 import { useLang } from "../i18n/LangContext";
 import LangDropdown from "../components/LangDropdown";
 import { sendPasswordResetEmail, EMAIL_CONFIGURED } from "../lib/emailService";
-import { fetchUserByCredentials } from "../lib/userService";
+import { fetchUserByCredentials, saveUserToCloud } from "../lib/userService";
 
 export default function LoginPage({ savedUser, onLogin, onReset, onShowRegister, onCloudLogin }) {
   const { t } = useLang();
@@ -25,6 +25,7 @@ export default function LoginPage({ savedUser, onLogin, onReset, onShowRegister,
     e.preventDefault();
     if (password === savedUser.password) {
       onLogin();
+      saveUserToCloud(savedUser); // 別デバイス用にクラウド同期
     } else {
       setError(true);
       setPassword("");
