@@ -6,14 +6,18 @@ import { useLang } from "../i18n/LangContext";
 
 // ── 写真トリミングモーダル ───────────────────────────────
 function PhotoCropModal({ src, onConfirm, onCancel }) {
-  const D = 260; // 表示サイズ
+  const D = 260;
   const imgRef = useRef(null);
+  const containerRef = useRef(null);
   const [imgSize, setImgSize] = useState({ w: 1, h: 1 });
   const [scale, setScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
-  const dragging = useRef(false);
-  const lastPos = useRef({ x: 0, y: 0 });
-  const lastPinchDist = useRef(null);
+
+  // confirm 用に最新の offset/scale を ref で持つ
+  const offsetRef = useRef({ x: 0, y: 0 });
+  const scaleRef = useRef(1);
+  useEffect(() => { offsetRef.current = offset; }, [offset]);
+  useEffect(() => { scaleRef.current = scale; }, [scale]);
 
   const onImgLoad = () => {
     const img = imgRef.current;
@@ -25,43 +29,65 @@ function PhotoCropModal({ src, onConfirm, onCancel }) {
     setOffset({ x: (D - w * s) / 2, y: (D - h * s) / 2 });
   };
 
-  // ドラッグ（マウス）
-  const onMouseDown = (e) => { dragging.current = true; lastPos.current = { x: e.clientX, y: e.clientY }; };
-  const onMouseMove = (e) => {
-    if (!dragging.current) return;
-    setOffset(o => ({ x: o.x + e.clientX - lastPos.current.x, y: o.y + e.clientY - lastPos.current.y }));
-    lastPos.current = { x: e.clientX, y: e.clientY };
-  };
-  const onMouseUp = () => { dragging.current = false; };
+  // ── ネイティブタッチイベント（passive:false で preventDefault が効く）──
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    let isDragging = false;
+    let lastX = 0, lastY = 0;
+    let lastPinch = null;
 
-  // ドラッグ + ピンチ（タッチ）
-  const onTouchStart = (e) => {
-    if (e.touches.length === 1) {
-      dragging.current = true;
-      lastPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-    } else if (e.touches.length === 2) {
-      dragging.current = false;
-      const dx = e.touches[0].clientX - e.touches[1].clientX;
-      const dy = e.touches[0].clientY - e.touches[1].clientY;
-      lastPinchDist.current = Math.sqrt(dx * dx + dy * dy);
-    }
+    const onTS = (e) => {
+      e.preventDefault();
+      if (e.touches.length === 1) {
+        isDragging = true;
+        lastX = e.touches[0].clientX;
+        lastY = e.touches[0].clientY;
+      } else if (e.touches.length === 2) {
+        isDragging = false;
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        lastPinch = Math.sqrt(dx * dx + dy * dy);
+      }
+    };
+    const onTM = (e) => {
+      e.preventDefault();
+      if (e.touches.length === 1 && isDragging) {
+        const dx = e.touches[0].clientX - lastX;
+        const dy = e.touches[0].clientY - lastY;
+        setOffset(o => ({ x: o.x + dx, y: o.y + dy }));
+        lastX = e.touches[0].clientX;
+        lastY = e.touches[0].clientY;
+      } else if (e.touches.length === 2 && lastPinch) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        setScale(s => Math.max(0.3, Math.min(5, s * (dist / lastPinch))));
+        lastPinch = dist;
+      }
+    };
+    const onTE = () => { isDragging = false; lastPinch = null; };
+
+    el.addEventListener("touchstart", onTS, { passive: false });
+    el.addEventListener("touchmove",  onTM, { passive: false });
+    el.addEventListener("touchend",   onTE);
+    return () => {
+      el.removeEventListener("touchstart", onTS);
+      el.removeEventListener("touchmove",  onTM);
+      el.removeEventListener("touchend",   onTE);
+    };
+  }, []);
+
+  // ── マウスドラッグ ──
+  const isDraggingMouse = useRef(false);
+  const lastMouse = useRef({ x: 0, y: 0 });
+  const onMouseDown = (e) => { isDraggingMouse.current = true; lastMouse.current = { x: e.clientX, y: e.clientY }; };
+  const onMouseMove = (e) => {
+    if (!isDraggingMouse.current) return;
+    setOffset(o => ({ x: o.x + e.clientX - lastMouse.current.x, y: o.y + e.clientY - lastMouse.current.y }));
+    lastMouse.current = { x: e.clientX, y: e.clientY };
   };
-  const onTouchMove = (e) => {
-    e.preventDefault();
-    if (e.touches.length === 1 && dragging.current) {
-      const dx = e.touches[0].clientX - lastPos.current.x;
-      const dy = e.touches[0].clientY - lastPos.current.y;
-      setOffset(o => ({ x: o.x + dx, y: o.y + dy }));
-      lastPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-    } else if (e.touches.length === 2 && lastPinchDist.current) {
-      const dx = e.touches[0].clientX - e.touches[1].clientX;
-      const dy = e.touches[0].clientY - e.touches[1].clientY;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      setScale(s => Math.max(0.3, Math.min(5, s * (dist / lastPinchDist.current))));
-      lastPinchDist.current = dist;
-    }
-  };
-  const onTouchEnd = () => { dragging.current = false; lastPinchDist.current = null; };
+  const onMouseUp = () => { isDraggingMouse.current = false; };
 
   const handleConfirm = () => {
     const OUT = 300;
@@ -71,7 +97,9 @@ function PhotoCropModal({ src, onConfirm, onCancel }) {
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, OUT, OUT);
     const r = OUT / D;
-    ctx.drawImage(imgRef.current, offset.x * r, offset.y * r, imgSize.w * scale * r, imgSize.h * scale * r);
+    const { x, y } = offsetRef.current;
+    const s = scaleRef.current;
+    ctx.drawImage(imgRef.current, x * r, y * r, imgSize.w * s * r, imgSize.h * s * r);
     onConfirm(canvas.toDataURL("image/jpeg", 0.82));
   };
 
@@ -91,6 +119,7 @@ function PhotoCropModal({ src, onConfirm, onCancel }) {
 
       {/* トリミング円 */}
       <div
+        ref={containerRef}
         style={{
           width: D, height: D, borderRadius: "50%",
           border: `3px solid ${C.gold}`,
@@ -101,7 +130,6 @@ function PhotoCropModal({ src, onConfirm, onCancel }) {
         }}
         onMouseDown={onMouseDown} onMouseMove={onMouseMove}
         onMouseUp={onMouseUp} onMouseLeave={onMouseUp}
-        onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
       >
         <img
           ref={imgRef} src={src} onLoad={onImgLoad} draggable={false}
