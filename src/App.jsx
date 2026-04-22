@@ -347,6 +347,13 @@ function AppRoutes() {
     });
   };
 
+  const handlePhotoUpdate = (dataUrl) => {
+    const updated = { ...registeredUser, photo: dataUrl };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    setRegisteredUser(updated);
+    saveUserToCloud(updated);
+  };
+
   const handleRegistered = (newUser) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newUser));
     sessionStorage.setItem("cp_loggedin", "1");
@@ -462,7 +469,7 @@ function AppRoutes() {
               <CalendarPage stamps={myStamps} user={registeredUser} />
             } />
             <Route path="/passport" element={
-              <CommunityPassport stamps={myStamps} onManualStamp={toggleStamp} user={registeredUser} />
+              <CommunityPassport stamps={myStamps} onManualStamp={toggleStamp} user={registeredUser} onPhotoUpdate={handlePhotoUpdate} />
             } />
             <Route path="/contact" element={
               <ContactPage user={registeredUser} />

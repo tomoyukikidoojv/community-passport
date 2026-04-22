@@ -1,8 +1,30 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { C, USERS, getLevel } from "../constants";
 import { useEvents } from "../hooks/useEvents";
 import { useLang } from "../i18n/LangContext";
+
+// 画像を圧縮して base64 に変換（最大300px、JPEG 0.75）
+function compressImage(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 300;
+        let w = img.width, h = img.height;
+        if (w > h) { if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; } }
+        else        { if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; } }
+        const canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", 0.75));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 function Stamp({ event, stamped, onClick }) {
   const [hover, setHover] = useState(false);
@@ -73,12 +95,24 @@ function Stamp({ event, stamped, onClick }) {
   );
 }
 
-export default function CommunityPassport({ stamps, onManualStamp, user }) {
+export default function CommunityPassport({ stamps, onManualStamp, user, onPhotoUpdate }) {
   const { t } = useLang();
   const [flash, setFlash] = useState(null);
   const [qrExpanded, setQrExpanded] = useState(false);
+  const [photoHover, setPhotoHover] = useState(false);
+  const fileInputRef = useRef(null);
   const ME = user || USERS[0];
   const events = useEvents();
+
+  const handlePhotoClick = () => fileInputRef.current?.click();
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const dataUrl = await compressImage(file);
+    onPhotoUpdate?.(dataUrl);
+    e.target.value = "";
+  };
 
   const toggle = (id) => {
     onManualStamp(ME.id, id);
@@ -122,13 +156,46 @@ export default function CommunityPassport({ stamps, onManualStamp, user }) {
             padding: "16px 22px",
             display: "flex", alignItems: "center", justifyContent: "space-between",
           }}>
+            {/* hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              style={{ display: "none" }}
+            />
+
             <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0, flex: 1 }}>
-              <div style={{
-                width: 52, height: 52, borderRadius: "50%",
-                background: C.goldLight, border: `3px solid ${C.gold}`,
-                display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24,
-                flexShrink: 0,
-              }}>👤</div>
+              {/* アバター（タップで写真変更） */}
+              <div
+                onClick={handlePhotoClick}
+                onMouseEnter={() => setPhotoHover(true)}
+                onMouseLeave={() => setPhotoHover(false)}
+                style={{
+                  width: 52, height: 52, borderRadius: "50%",
+                  background: C.goldLight, border: `3px solid ${C.gold}`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 24, flexShrink: 0,
+                  cursor: "pointer", overflow: "hidden",
+                  position: "relative",
+                  transition: "opacity 0.2s",
+                }}
+              >
+                {ME.photo
+                  ? <img src={ME.photo} alt="profile"
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  : <span>👤</span>
+                }
+                {/* カメラオーバーレイ */}
+                <div style={{
+                  position: "absolute", inset: 0,
+                  background: "rgba(0,0,0,0.4)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 18,
+                  opacity: photoHover ? 1 : 0,
+                  transition: "opacity 0.2s",
+                }}>📷</div>
+              </div>
               <div style={{ minWidth: 0 }}>
                 <div style={{ color: C.white, fontWeight: 800, fontSize: 16 }}>{ME.name}</div>
                 <div style={{
@@ -181,14 +248,26 @@ export default function CommunityPassport({ stamps, onManualStamp, user }) {
 
             <div style={{ display: "flex", alignItems: "center", gap: 20, position: "relative" }}>
               {/* QR code */}
-              <div style={{
-                background: C.white,
-                borderRadius: 12,
-                padding: 10,
-                boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
-                flexShrink: 0,
-              }}>
-                <QRCodeSVG value={qrValue} size={110} fgColor={C.navy} level="M" />
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                <div style={{
+                  background: C.white,
+                  borderRadius: 12,
+                  padding: 10,
+                  boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
+                }}>
+                  <QRCodeSVG value={qrValue} size={110} fgColor={C.navy} level="M" />
+                </div>
+                {/* 写真サムネイル */}
+                {ME.photo && (
+                  <div style={{
+                    width: 44, height: 44, borderRadius: "50%",
+                    border: `2px solid ${C.gold}`,
+                    overflow: "hidden", background: C.goldLight,
+                  }}>
+                    <img src={ME.photo} alt="profile"
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  </div>
+                )}
               </div>
 
               {/* Info */}
@@ -413,6 +492,16 @@ export default function CommunityPassport({ stamps, onManualStamp, user }) {
             <QRCodeSVG value={qrValue} size={220} fgColor={C.navy} level="M" />
           </div>
           <div style={{ textAlign: "center" }}>
+            {ME.photo && (
+              <div style={{
+                width: 64, height: 64, borderRadius: "50%",
+                border: `3px solid ${C.gold}`,
+                overflow: "hidden", margin: "0 auto 10px",
+              }}>
+                <img src={ME.photo} alt="profile"
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              </div>
+            )}
             <div style={{ color: C.white, fontWeight: 800, fontSize: 18 }}>
               {ME.flag} {ME.name}
             </div>

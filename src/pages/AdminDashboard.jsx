@@ -344,8 +344,13 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
                             width: 34, height: 34, borderRadius: "50%",
                             background: `${level.color}20`, border: `2px solid ${level.color}`,
                             display: "flex", alignItems: "center", justifyContent: "center",
-                            fontSize: 16, flexShrink: 0,
-                          }}>{user.flag}</div>
+                            fontSize: 16, flexShrink: 0, overflow: "hidden",
+                          }}>
+                            {user.photo
+                              ? <img src={user.photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                              : user.flag
+                            }
+                          </div>
                           <div>
                             <div style={{ fontWeight: 700, color: C.charcoal, fontSize: 13 }}>
                               {user.name}
