@@ -6,6 +6,13 @@ import COUNTRIES from "../i18n/countries";
 import WORLD_LANGUAGES from "../i18n/languages-list";
 import { saveUserToCloud } from "../lib/userService";
 
+// イベント種類（参加したいイベント）
+const EVENT_INTEREST_KEYS = [
+  "children", "cultural", "cooking", "arts",
+  "sports", "music", "community", "others",
+];
+
+// ボランティア活動内容
 const ACTIVITY_KEYS = [
   "event", "interpret", "children", "education",
   "cultural", "sports", "cooking", "music", "arts", "community", "others",
@@ -40,6 +47,8 @@ export default function RegisterPage({ onRegistered, onShowLogin }) {
     email: "",
     phone: "",
     languages: [],
+    eventInterests: [],
+    eventInterestsOther: "",
     volunteer: "",
     activities: [],
     password: "",
@@ -63,6 +72,15 @@ export default function RegisterPage({ onRegistered, onShowLogin }) {
         : [...f.languages, code],
     }));
     if (errors.languages) setErrors(er => ({ ...er, languages: null }));
+  };
+
+  const toggleEventInterest = (key) => {
+    setForm(f => ({
+      ...f,
+      eventInterests: f.eventInterests.includes(key)
+        ? f.eventInterests.filter(a => a !== key)
+        : [...f.eventInterests, key],
+    }));
   };
 
   const toggleActivity = (key) => {
@@ -114,6 +132,8 @@ export default function RegisterPage({ onRegistered, onShowLogin }) {
       dob: form.dob || "",
       email: form.email.trim() || "",
       phone: form.phone.trim() || "",
+      eventInterests: form.eventInterests,
+      eventInterestsOther: form.eventInterestsOther.trim(),
       volunteer: form.volunteer || "",
       activities: form.activities,
       password: form.password,
@@ -408,11 +428,63 @@ export default function RegisterPage({ onRegistered, onShowLogin }) {
               {errors.languages && <div style={{ color: "#E74C3C", fontSize: 11, marginTop: 4 }}>{errors.languages}</div>}
             </div>
 
+            {/* ── 参加したいイベント ── */}
+            <SectionHeader>🎪 Events</SectionHeader>
+            <div style={{ marginBottom: 24 }}>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 4 }}>
+                {t("register.event_interests")}
+                <span style={{ fontSize: 11, fontWeight: 400, color: C.gray, marginLeft: 8 }}>
+                  {t("register.event_interests_hint")}
+                </span>
+              </label>
+              <div style={{
+                border: `1.5px solid ${C.lightGray}`, borderRadius: 8, padding: "12px",
+                display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6,
+              }}>
+                {EVENT_INTEREST_KEYS.map(key => {
+                  const selected = form.eventInterests.includes(key);
+                  return (
+                    <label key={key} style={{
+                      display: "flex", alignItems: "center", gap: 8,
+                      padding: "7px 10px", borderRadius: 8, cursor: "pointer",
+                      background: selected ? `${C.teal}12` : "transparent",
+                      border: `1px solid ${selected ? C.teal + "50" : "transparent"}`,
+                      transition: "all 0.12s",
+                    }}>
+                      <input
+                        type="checkbox" checked={selected}
+                        onChange={() => toggleEventInterest(key)}
+                        style={{ accentColor: C.teal, flexShrink: 0 }}
+                      />
+                      <span style={{ fontSize: 12, color: selected ? C.teal : C.charcoal, fontWeight: selected ? 700 : 400, lineHeight: 1.3 }}>
+                        {t(`register.act.${key}`)}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+              {/* その他 自由記載 */}
+              {form.eventInterests.includes("others") && (
+                <input
+                  type="text"
+                  value={form.eventInterestsOther}
+                  onChange={e => setForm(f => ({ ...f, eventInterestsOther: e.target.value }))}
+                  placeholder={t("register.event_interests_other_placeholder")}
+                  style={{ ...inputStyle, marginTop: 8, fontSize: 13 }}
+                />
+              )}
+              {form.eventInterests.length > 0 && (
+                <div style={{ fontSize: 11, color: C.teal, marginTop: 5 }}>
+                  ✓ {t("register.selected", { n: form.eventInterests.length })}
+                </div>
+              )}
+            </div>
+
             {/* ── ボランティア ── */}
             <SectionHeader>🤝 Volunteer</SectionHeader>
 
             {/* Volunteer interest */}
-            <div style={{ marginBottom: 16 }}>
+            <div style={{ marginBottom: form.volunteer === "yes" ? 16 : 24 }}>
               <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 10 }}>
                 {t("register.volunteer_q")}
               </label>
@@ -444,46 +516,48 @@ export default function RegisterPage({ onRegistered, onShowLogin }) {
               {errors.volunteer && <div style={{ color: "#E74C3C", fontSize: 11, marginTop: 6 }}>{errors.volunteer}</div>}
             </div>
 
-            {/* Activities */}
-            <div style={{ marginBottom: 24 }}>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 4 }}>
-                {t("register.activities")}
-                <span style={{ fontSize: 11, fontWeight: 400, color: C.gray, marginLeft: 8 }}>
-                  {t("register.activities_hint")}
-                </span>
-              </label>
-              <div style={{
-                border: `1.5px solid ${C.lightGray}`, borderRadius: 8, padding: "12px",
-                display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6,
-              }}>
-                {ACTIVITY_KEYS.map(key => {
-                  const selected = form.activities.includes(key);
-                  return (
-                    <label key={key} style={{
-                      display: "flex", alignItems: "center", gap: 8,
-                      padding: "7px 10px", borderRadius: 8, cursor: "pointer",
-                      background: selected ? `${C.teal}12` : "transparent",
-                      border: `1px solid ${selected ? C.teal + "50" : "transparent"}`,
-                      transition: "all 0.12s",
-                    }}>
-                      <input
-                        type="checkbox" checked={selected}
-                        onChange={() => toggleActivity(key)}
-                        style={{ accentColor: C.teal, flexShrink: 0 }}
-                      />
-                      <span style={{ fontSize: 12, color: selected ? C.teal : C.charcoal, fontWeight: selected ? 700 : 400, lineHeight: 1.3 }}>
-                        {t(`register.act.${key}`)}
-                      </span>
-                    </label>
-                  );
-                })}
-              </div>
-              {form.activities.length > 0 && (
-                <div style={{ fontSize: 11, color: C.teal, marginTop: 5 }}>
-                  ✓ {form.activities.length} selected
+            {/* Activities（ボランティア「はい」の時だけ表示） */}
+            {form.volunteer === "yes" && (
+              <div style={{ marginBottom: 24 }}>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 4 }}>
+                  {t("register.activities")}
+                  <span style={{ fontSize: 11, fontWeight: 400, color: C.gray, marginLeft: 8 }}>
+                    {t("register.activities_hint")}
+                  </span>
+                </label>
+                <div style={{
+                  border: `1.5px solid ${C.lightGray}`, borderRadius: 8, padding: "12px",
+                  display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6,
+                }}>
+                  {ACTIVITY_KEYS.map(key => {
+                    const selected = form.activities.includes(key);
+                    return (
+                      <label key={key} style={{
+                        display: "flex", alignItems: "center", gap: 8,
+                        padding: "7px 10px", borderRadius: 8, cursor: "pointer",
+                        background: selected ? `${C.teal}12` : "transparent",
+                        border: `1px solid ${selected ? C.teal + "50" : "transparent"}`,
+                        transition: "all 0.12s",
+                      }}>
+                        <input
+                          type="checkbox" checked={selected}
+                          onChange={() => toggleActivity(key)}
+                          style={{ accentColor: C.teal, flexShrink: 0 }}
+                        />
+                        <span style={{ fontSize: 12, color: selected ? C.teal : C.charcoal, fontWeight: selected ? 700 : 400, lineHeight: 1.3 }}>
+                          {t(`register.act.${key}`)}
+                        </span>
+                      </label>
+                    );
+                  })}
                 </div>
-              )}
-            </div>
+                {form.activities.length > 0 && (
+                  <div style={{ fontSize: 11, color: C.teal, marginTop: 5 }}>
+                    ✓ {t("register.selected", { n: form.activities.length })}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* ── パスワード ── */}
             <SectionHeader>🔑 Password</SectionHeader>
