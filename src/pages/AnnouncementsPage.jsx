@@ -136,9 +136,6 @@ export default function AnnouncementsPage({ announcements, readIds, onRead, onRe
       <div style={{ maxWidth: 700, margin: "0 auto" }}>
 
         <div style={{ textAlign: "center", color: C.white, marginBottom: 24 }}>
-          <div style={{ fontSize: 11, letterSpacing: 5, opacity: 0.6, marginBottom: 4 }}>
-            FROM THE SECRETARIAT
-          </div>
           <div style={{ fontSize: 26, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
             {t("ann.title")}
             {unreadCount > 0 && (
