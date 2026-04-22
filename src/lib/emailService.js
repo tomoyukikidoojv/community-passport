@@ -20,7 +20,7 @@
 export const EMAILJS_CONFIG = {
   serviceId:          "service_l47l7q9",
   templateId:         "template_h9awnkn",   // パスワードリセット用
-  contactTemplateId:  "",                    // ← 問い合わせ用テンプレートIDをここに入力
+  contactTemplateId:  "template_93g6j6l",    // 問い合わせ用
   publicKey:          "gT4kz_tRktp84OT_u",
 };
 
