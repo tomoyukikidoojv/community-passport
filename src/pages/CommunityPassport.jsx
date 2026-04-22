@@ -1,32 +1,148 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { C, USERS, getLevel } from "../constants";
 import { useEvents } from "../hooks/useEvents";
 import { useLang } from "../i18n/LangContext";
 
-// 画像を圧縮して base64 に変換（最大300px、JPEG 0.75）
-function compressImage(file) {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const MAX = 300;
-        let w = img.width, h = img.height;
-        if (w > h) { if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; } }
-        else        { if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; } }
-        const canvas = document.createElement("canvas");
-        canvas.width = w; canvas.height = h;
-        const ctx = canvas.getContext("2d");
-        ctx.fillStyle = "#FFFFFF";
-        ctx.fillRect(0, 0, w, h);
-        ctx.drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL("image/jpeg", 0.75));
-      };
-      img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
-  });
+// ── 写真トリミングモーダル ───────────────────────────────
+function PhotoCropModal({ src, onConfirm, onCancel }) {
+  const D = 260; // 表示サイズ
+  const imgRef = useRef(null);
+  const [imgSize, setImgSize] = useState({ w: 1, h: 1 });
+  const [scale, setScale] = useState(1);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const dragging = useRef(false);
+  const lastPos = useRef({ x: 0, y: 0 });
+  const lastPinchDist = useRef(null);
+
+  const onImgLoad = () => {
+    const img = imgRef.current;
+    if (!img) return;
+    const { naturalWidth: w, naturalHeight: h } = img;
+    const s = Math.max(D / w, D / h);
+    setImgSize({ w, h });
+    setScale(s);
+    setOffset({ x: (D - w * s) / 2, y: (D - h * s) / 2 });
+  };
+
+  // ドラッグ（マウス）
+  const onMouseDown = (e) => { dragging.current = true; lastPos.current = { x: e.clientX, y: e.clientY }; };
+  const onMouseMove = (e) => {
+    if (!dragging.current) return;
+    setOffset(o => ({ x: o.x + e.clientX - lastPos.current.x, y: o.y + e.clientY - lastPos.current.y }));
+    lastPos.current = { x: e.clientX, y: e.clientY };
+  };
+  const onMouseUp = () => { dragging.current = false; };
+
+  // ドラッグ + ピンチ（タッチ）
+  const onTouchStart = (e) => {
+    if (e.touches.length === 1) {
+      dragging.current = true;
+      lastPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    } else if (e.touches.length === 2) {
+      dragging.current = false;
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      lastPinchDist.current = Math.sqrt(dx * dx + dy * dy);
+    }
+  };
+  const onTouchMove = (e) => {
+    e.preventDefault();
+    if (e.touches.length === 1 && dragging.current) {
+      const dx = e.touches[0].clientX - lastPos.current.x;
+      const dy = e.touches[0].clientY - lastPos.current.y;
+      setOffset(o => ({ x: o.x + dx, y: o.y + dy }));
+      lastPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    } else if (e.touches.length === 2 && lastPinchDist.current) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      setScale(s => Math.max(0.3, Math.min(5, s * (dist / lastPinchDist.current))));
+      lastPinchDist.current = dist;
+    }
+  };
+  const onTouchEnd = () => { dragging.current = false; lastPinchDist.current = null; };
+
+  const handleConfirm = () => {
+    const OUT = 300;
+    const canvas = document.createElement("canvas");
+    canvas.width = OUT; canvas.height = OUT;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, OUT, OUT);
+    const r = OUT / D;
+    ctx.drawImage(imgRef.current, offset.x * r, offset.y * r, imgSize.w * scale * r, imgSize.h * scale * r);
+    onConfirm(canvas.toDataURL("image/jpeg", 0.82));
+  };
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 300,
+      background: "rgba(0,0,0,0.88)", backdropFilter: "blur(6px)",
+      display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center",
+      padding: 24,
+      fontFamily: "'Segoe UI','Hiragino Sans','Meiryo',sans-serif",
+    }}>
+      <div style={{ color: C.white, fontSize: 15, fontWeight: 800, marginBottom: 6 }}>📷 写真を調整</div>
+      <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 11, marginBottom: 16 }}>
+        ドラッグで移動 ／ ピンチ or スライダーで拡大縮小
+      </div>
+
+      {/* トリミング円 */}
+      <div
+        style={{
+          width: D, height: D, borderRadius: "50%",
+          border: `3px solid ${C.gold}`,
+          overflow: "hidden", position: "relative",
+          background: "#fff", cursor: "grab",
+          userSelect: "none", touchAction: "none",
+          boxShadow: `0 0 0 2000px rgba(0,0,0,0.6)`,
+        }}
+        onMouseDown={onMouseDown} onMouseMove={onMouseMove}
+        onMouseUp={onMouseUp} onMouseLeave={onMouseUp}
+        onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
+      >
+        <img
+          ref={imgRef} src={src} onLoad={onImgLoad} draggable={false}
+          style={{
+            position: "absolute",
+            left: offset.x, top: offset.y,
+            width: imgSize.w * scale, height: imgSize.h * scale,
+            pointerEvents: "none", userSelect: "none",
+          }}
+        />
+      </div>
+
+      {/* ズームスライダー */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 18 }}>
+        <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 18 }}>🔍</span>
+        <input
+          type="range" min={20} max={400} step={1}
+          value={Math.round(scale * 100)}
+          onChange={e => setScale(Number(e.target.value) / 100)}
+          style={{ width: 200, accentColor: C.gold }}
+        />
+        <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 20 }}>🔍</span>
+      </div>
+
+      {/* ボタン */}
+      <div style={{ display: "flex", gap: 12, marginTop: 20 }}>
+        <button onClick={onCancel} style={{
+          padding: "10px 28px", borderRadius: 10,
+          border: "1px solid rgba(255,255,255,0.25)",
+          background: "transparent", color: C.white,
+          fontSize: 14, cursor: "pointer", fontFamily: "inherit",
+        }}>キャンセル</button>
+        <button onClick={handleConfirm} style={{
+          padding: "10px 28px", borderRadius: 10,
+          border: "none", background: C.gold,
+          color: C.white, fontSize: 14, fontWeight: 800,
+          cursor: "pointer", fontFamily: "inherit",
+        }}>✓ 確定</button>
+      </div>
+    </div>
+  );
 }
 
 function Stamp({ event, stamped, onClick }) {
@@ -103,18 +219,25 @@ export default function CommunityPassport({ stamps, onManualStamp, user, onPhoto
   const [flash, setFlash] = useState(null);
   const [qrExpanded, setQrExpanded] = useState(false);
   const [photoHover, setPhotoHover] = useState(false);
+  const [cropSrc, setCropSrc] = useState(null);
   const fileInputRef = useRef(null);
   const ME = user || USERS[0];
   const events = useEvents();
 
   const handlePhotoClick = () => fileInputRef.current?.click();
 
-  const handleFileChange = async (e) => {
+  const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const dataUrl = await compressImage(file);
-    onPhotoUpdate?.(dataUrl);
+    const reader = new FileReader();
+    reader.onload = (ev) => setCropSrc(ev.target.result);
+    reader.readAsDataURL(file);
     e.target.value = "";
+  };
+
+  const handleCropConfirm = (dataUrl) => {
+    onPhotoUpdate?.(dataUrl);
+    setCropSrc(null);
   };
 
   const toggle = (id) => {
@@ -470,6 +593,15 @@ export default function CommunityPassport({ stamps, onManualStamp, user, onPhoto
           </div>
         </div>
       </div>
+
+      {/* Photo crop modal */}
+      {cropSrc && (
+        <PhotoCropModal
+          src={cropSrc}
+          onConfirm={handleCropConfirm}
+          onCancel={() => setCropSrc(null)}
+        />
+      )}
 
       {/* QR expanded modal */}
       {qrExpanded && (
