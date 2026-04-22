@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { C, USERS } from "../constants";
 import { useLang } from "../i18n/LangContext";
-import { LANGS } from "../i18n/translations";
+import LangDropdown from "../components/LangDropdown";
 import COUNTRIES from "../i18n/countries";
 import WORLD_LANGUAGES from "../i18n/languages-list";
 
@@ -23,34 +23,14 @@ const selectStyle = {
   paddingRight: 32,
 };
 
-function LangSelector() {
-  const { lang, setLang } = useLang();
-  return (
-    <div style={{ display: "flex", justifyContent: "flex-end", gap: 4, marginBottom: 12, flexWrap: "wrap" }}>
-      {LANGS.map(l => (
-        <button
-          key={l.code}
-          onClick={() => setLang(l.code)}
-          style={{
-            padding: "4px 10px", borderRadius: 20, border: "none", cursor: "pointer",
-            fontSize: 12, fontFamily: "inherit",
-            background: lang === l.code ? C.teal : "rgba(255,255,255,0.25)",
-            color: lang === l.code ? "#fff" : "rgba(255,255,255,0.85)",
-            fontWeight: lang === l.code ? 700 : 400,
-            transition: "all 0.15s",
-          }}
-        >{l.flag} {l.code.toUpperCase()}</button>
-      ))}
-    </div>
-  );
-}
-
 export default function RegisterPage({ onRegistered }) {
   const { t, lang } = useLang();
   const [form, setForm] = useState({
     name: "",
     country: "",
     languages: [],
+    email: "",
+    phone: "",
     password: "",
     passwordConfirm: "",
   });
@@ -107,6 +87,8 @@ export default function RegisterPage({ onRegistered }) {
       country: countryObj || { code: "XX", name: form.country, flag: "🌍" },
       languages: langLabels,
       since: new Date().toLocaleDateString(lang === "ja" ? "ja-JP" : "en-US", { year: "numeric", month: "long" }),
+      email: form.email.trim() || "",
+      phone: form.phone.trim() || "",
       password: form.password,
     };
     setNewUser(user);
@@ -211,7 +193,7 @@ export default function RegisterPage({ onRegistered }) {
     }}>
       <div style={{ maxWidth: 560, margin: "0 auto" }}>
 
-        <LangSelector />
+        <LangDropdown />
 
         <div style={{ textAlign: "center", color: C.white, marginBottom: 28 }}>
           <div style={{ fontSize: 11, letterSpacing: 5, opacity: 0.6, marginBottom: 4 }}>
@@ -361,6 +343,34 @@ export default function RegisterPage({ onRegistered }) {
                 </div>
               )}
               {errors.languages && <div style={{ color: "#E74C3C", fontSize: 11, marginTop: 4 }}>{errors.languages}</div>}
+            </div>
+
+            {/* Email & Phone for password recovery */}
+            <div style={{ borderTop: `1px dashed ${C.lightGray}`, margin: "4px 0 16px" }} />
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
+              <div>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 6 }}>
+                  {t("register.email")}
+                  <span style={{ fontSize: 10, fontWeight: 400, color: C.gray, marginLeft: 6 }}>
+                    {t("register.email_hint")}
+                  </span>
+                </label>
+                <input
+                  type="email" value={form.email} onChange={set("email")}
+                  placeholder={t("register.email_placeholder")}
+                  style={{ ...inputStyle }}
+                />
+              </div>
+              <div>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 6 }}>
+                  {t("register.phone")}
+                </label>
+                <input
+                  type="tel" value={form.phone} onChange={set("phone")}
+                  placeholder={t("register.phone_placeholder")}
+                  style={{ ...inputStyle }}
+                />
+              </div>
             </div>
 
             {/* Password */}

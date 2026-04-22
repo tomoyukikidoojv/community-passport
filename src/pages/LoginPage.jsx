@@ -1,35 +1,20 @@
 import { useState } from "react";
 import { C } from "../constants";
 import { useLang } from "../i18n/LangContext";
-import { LANGS } from "../i18n/translations";
-
-function LangSelector() {
-  const { lang, setLang } = useLang();
-  return (
-    <div style={{ display: "flex", justifyContent: "flex-end", gap: 4, marginBottom: 12, flexWrap: "wrap" }}>
-      {LANGS.map(l => (
-        <button
-          key={l.code}
-          onClick={() => setLang(l.code)}
-          style={{
-            padding: "4px 10px", borderRadius: 20, border: "none", cursor: "pointer",
-            fontSize: 12, fontFamily: "inherit",
-            background: lang === l.code ? C.teal : "rgba(255,255,255,0.25)",
-            color: lang === l.code ? "#fff" : "rgba(255,255,255,0.85)",
-            fontWeight: lang === l.code ? 700 : 400,
-            transition: "all 0.15s",
-          }}
-        >{l.flag} {l.code.toUpperCase()}</button>
-      ))}
-    </div>
-  );
-}
+import LangDropdown from "../components/LangDropdown";
+import { sendPasswordResetEmail, EMAIL_CONFIGURED } from "../lib/emailService";
 
 export default function LoginPage({ savedUser, onLogin, onReset }) {
   const { t } = useLang();
   const [password, setPassword] = useState("");
   const [error, setError] = useState(false);
-  const [showReset, setShowReset] = useState(false);
+
+  // Reset flow states
+  const [resetMode, setResetMode] = useState(false);          // showing reset panel
+  const [resetMethod, setResetMethod] = useState("email");    // "email" | "phone"
+  const [resetInput, setResetInput] = useState("");
+  const [resetStatus, setResetStatus] = useState(null);       // null | "sending" | "sent" | "not_found" | "err" | "unconfigured"
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const submit = (e) => {
     e.preventDefault();
@@ -41,6 +26,39 @@ export default function LoginPage({ savedUser, onLogin, onReset }) {
     }
   };
 
+  const handleResetSend = async () => {
+    const input = resetInput.trim();
+    if (!input) return;
+
+    // Check if user has this contact info
+    const matchEmail = resetMethod === "email" && savedUser.email === input;
+    const matchPhone = resetMethod === "phone" && savedUser.phone === input;
+
+    if (!matchEmail && !matchPhone) {
+      setResetStatus("not_found");
+      return;
+    }
+
+    // Try to send via EmailJS
+    if (resetMethod === "email") {
+      setResetStatus("sending");
+      const result = await sendPasswordResetEmail(input, savedUser.name, savedUser.password);
+      if (result === "sent") setResetStatus("sent");
+      else if (result === "not_configured") setResetStatus("unconfigured");
+      else setResetStatus("err");
+    } else {
+      // SMS: not automated — show staff contact message
+      setResetStatus("unconfigured");
+    }
+  };
+
+  const statusMsg = {
+    sent: { color: "#27AE60", text: t("login.reset_sent_email") },
+    unconfigured: { color: C.teal, text: t("login.reset_sent_unconfigured") },
+    not_found: { color: "#E74C3C", text: t("login.reset_not_found") },
+    err: { color: "#E74C3C", text: t("login.reset_err") },
+  };
+
   return (
     <div style={{
       minHeight: "100vh",
@@ -50,8 +68,9 @@ export default function LoginPage({ savedUser, onLogin, onReset }) {
       fontFamily: "'Segoe UI','Hiragino Sans','Meiryo',sans-serif",
     }}>
       <div style={{ width: "100%", maxWidth: 400 }}>
-        <LangSelector />
+        <LangDropdown />
       </div>
+
       <div style={{
         background: C.white, borderRadius: 20, maxWidth: 400, width: "100%",
         boxShadow: "0 20px 60px rgba(0,0,0,0.35)", overflow: "hidden",
@@ -72,16 +91,14 @@ export default function LoginPage({ savedUser, onLogin, onReset }) {
             {savedUser.name}
           </div>
           <div style={{ color: "rgba(255,255,255,0.65)", fontSize: 12, marginTop: 4 }}>
-            {savedUser.nameEn}　／　No. {savedUser.no}
+            No. {savedUser.no}
           </div>
         </div>
 
         {/* Login form */}
         <div style={{ padding: "28px 28px 24px" }}>
           <div style={{ textAlign: "center", marginBottom: 20 }}>
-            <div style={{ fontSize: 13, color: C.gray }}>
-              {t("login.select")}
-            </div>
+            <div style={{ fontSize: 13, color: C.gray }}>{t("login.select")}</div>
             <div style={{ fontSize: 11, color: C.gray, opacity: 0.7, marginTop: 2 }}>
               {t("login.subtitle")}
             </div>
@@ -131,11 +148,11 @@ export default function LoginPage({ savedUser, onLogin, onReset }) {
             </button>
           </form>
 
-          {/* Reset */}
+          {/* Forgot password */}
           <div style={{ textAlign: "center", marginTop: 20 }}>
-            {!showReset ? (
+            {!resetMode && !showDeleteConfirm && (
               <button
-                onClick={() => setShowReset(true)}
+                onClick={() => setResetMode(true)}
                 style={{
                   background: "none", border: "none", cursor: "pointer",
                   color: C.gray, fontSize: 12, fontFamily: "inherit",
@@ -144,13 +161,113 @@ export default function LoginPage({ savedUser, onLogin, onReset }) {
               >
                 {t("login.forgot")}
               </button>
-            ) : (
+            )}
+
+            {/* Password reset panel */}
+            {resetMode && !showDeleteConfirm && (
               <div style={{
-                background: C.redPale, border: `1px solid ${C.red}30`,
-                borderRadius: 10, padding: "14px 16px",
-                textAlign: "left",
+                background: `${C.teal}08`, border: `1px solid ${C.tealLight}`,
+                borderRadius: 12, padding: "16px", textAlign: "left",
               }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: C.red, marginBottom: 6 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: C.teal, marginBottom: 12 }}>
+                  🔑 {t("login.reset_method")}
+                </div>
+
+                {/* Toggle email / phone */}
+                <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                  {["email", "phone"].map(m => (
+                    <button
+                      key={m}
+                      onClick={() => { setResetMethod(m); setResetInput(""); setResetStatus(null); }}
+                      style={{
+                        flex: 1, padding: "7px", borderRadius: 8, cursor: "pointer",
+                        border: `1.5px solid ${resetMethod === m ? C.teal : C.lightGray}`,
+                        background: resetMethod === m ? C.tealPale : C.white,
+                        color: resetMethod === m ? C.teal : C.gray,
+                        fontWeight: resetMethod === m ? 700 : 400,
+                        fontSize: 12, fontFamily: "inherit",
+                      }}
+                    >
+                      {m === "email" ? `📧 ${t("login.reset_email_label")}` : `📱 ${t("login.reset_phone_label")}`}
+                    </button>
+                  ))}
+                </div>
+
+                <input
+                  type={resetMethod === "email" ? "email" : "tel"}
+                  value={resetInput}
+                  onChange={e => { setResetInput(e.target.value); setResetStatus(null); }}
+                  placeholder={t("login.reset_input_placeholder")}
+                  style={{
+                    width: "100%", padding: "9px 12px", boxSizing: "border-box",
+                    border: `1.5px solid ${C.lightGray}`, borderRadius: 8,
+                    fontSize: 13, fontFamily: "inherit", outline: "none",
+                    marginBottom: 10,
+                  }}
+                />
+
+                {/* Status message */}
+                {resetStatus && resetStatus !== "sending" && statusMsg[resetStatus] && (
+                  <div style={{
+                    fontSize: 12, color: statusMsg[resetStatus].color,
+                    marginBottom: 10, lineHeight: 1.5,
+                    padding: "8px 10px", borderRadius: 8,
+                    background: `${statusMsg[resetStatus].color}12`,
+                  }}>
+                    {statusMsg[resetStatus].text}
+                  </div>
+                )}
+
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    onClick={handleResetSend}
+                    disabled={resetStatus === "sending" || resetStatus === "sent"}
+                    style={{
+                      flex: 1, padding: "8px",
+                      background: (resetStatus === "sending" || resetStatus === "sent") ? C.lightGray : C.teal,
+                      color: C.white, border: "none", borderRadius: 8,
+                      fontSize: 12, fontWeight: 700, cursor: "pointer",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    {resetStatus === "sending" ? "..." : t("login.reset_send")}
+                  </button>
+                  <button
+                    onClick={() => { setResetMode(false); setResetInput(""); setResetStatus(null); }}
+                    style={{
+                      flex: 1, padding: "8px",
+                      background: C.white, color: C.gray,
+                      border: `1px solid ${C.lightGray}`, borderRadius: 8,
+                      fontSize: 12, cursor: "pointer", fontFamily: "inherit",
+                    }}
+                  >
+                    {t("common.cancel")}
+                  </button>
+                </div>
+
+                {/* Delete account link */}
+                <div style={{ textAlign: "center", marginTop: 12 }}>
+                  <button
+                    onClick={() => { setResetMode(false); setShowDeleteConfirm(true); }}
+                    style={{
+                      background: "none", border: "none", cursor: "pointer",
+                      color: "#E74C3C", fontSize: 11, fontFamily: "inherit",
+                      textDecoration: "underline", opacity: 0.7,
+                    }}
+                  >
+                    {t("login.reset_title")}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Delete/reset account confirm */}
+            {showDeleteConfirm && (
+              <div style={{
+                background: "#FEF9F9", border: `1px solid #F5C6CB`,
+                borderRadius: 12, padding: "16px", textAlign: "left",
+              }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#C0392B", marginBottom: 6 }}>
                   {t("login.reset_title")}
                 </div>
                 <div style={{ fontSize: 12, color: C.charcoal, marginBottom: 12, lineHeight: 1.6 }}>
@@ -161,7 +278,7 @@ export default function LoginPage({ savedUser, onLogin, onReset }) {
                     onClick={onReset}
                     style={{
                       flex: 1, padding: "8px",
-                      background: C.red, color: C.white,
+                      background: "#E74C3C", color: C.white,
                       border: "none", borderRadius: 8,
                       fontSize: 12, fontWeight: 700,
                       cursor: "pointer", fontFamily: "inherit",
@@ -170,7 +287,7 @@ export default function LoginPage({ savedUser, onLogin, onReset }) {
                     {t("login.reset_btn")}
                   </button>
                   <button
-                    onClick={() => setShowReset(false)}
+                    onClick={() => setShowDeleteConfirm(false)}
                     style={{
                       flex: 1, padding: "8px",
                       background: C.white, color: C.gray,
