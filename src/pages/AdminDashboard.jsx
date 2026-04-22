@@ -2,6 +2,10 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Html5Qrcode } from "html5-qrcode";
 import * as XLSX from "xlsx";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, PieChart, Pie, Cell,
+} from "recharts";
 import { C, getLevel, NOTICE_CATS } from "../constants";
 import { fetchAllUsers, fetchAllAttendance } from "../lib/userService";
 import { useEvents } from "../hooks/useEvents";
@@ -105,11 +109,12 @@ function NoticeForm({ onPost }) {
 }
 
 const ADMIN_TABS = [
-  { id: "attendance",    label: "出席状況", emoji: "📊" },
-  { id: "members",       label: "会員一覧", emoji: "👥" },
-  { id: "announcements", label: "お知らせ", emoji: "📢" },
-  { id: "applications",  label: "参加者",   emoji: "📋" },
-  { id: "events",        label: "イベント", emoji: "📅" },
+  { id: "attendance",    label: "出席状況",   emoji: "📊" },
+  { id: "stats",         label: "統計",       emoji: "📈" },
+  { id: "members",       label: "会員一覧",   emoji: "👥" },
+  { id: "announcements", label: "お知らせ",   emoji: "📢" },
+  { id: "applications",  label: "参加者",     emoji: "📋" },
+  { id: "events",        label: "イベント",   emoji: "📅" },
   { id: "formbuilder",   label: "アンケート", emoji: "📝" },
 ];
 
@@ -157,12 +162,13 @@ function downloadExcel(members) {
   XLSX.writeFile(wb, `members_${date}.xlsx`);
 }
 
-export default function AdminDashboard({ attendance, onStamp, announcements, onPostAnnouncement, onDeleteAnnouncement }) {
+export default function AdminDashboard({ attendance, onStamp, announcements, onPostAnnouncement, onDeleteAnnouncement, onEditAnnouncement }) {
   const [hoveredCell, setHoveredCell] = useState(null);
   const [flash, setFlash] = useState(null);
   const [showQrScanner, setShowQrScanner] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [activeTab, setActiveTab] = useState("attendance");
+  const [editingAnnouncement, setEditingAnnouncement] = useState(null);
   const [members, setMembers] = useState([]);
   const [cloudAttendance, setCloudAttendance] = useState({});
   const [loadingMembers, setLoadingMembers] = useState(true);
@@ -535,6 +541,16 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
         </div>
         </>}
 
+        {/* ── Tab: 統計 ── */}
+        {activeTab === "stats" && (
+          <StatsPanel
+            members={members}
+            mergedAttendance={mergedAttendance}
+            events={events}
+            loading={loadingMembers}
+          />
+        )}
+
         {/* ── Tab: 会員一覧 ── */}
         {activeTab === "members" && <MembersPanel />}
 
@@ -573,6 +589,20 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
             ) : (
               announcements.map(item => {
                 const cat = NOTICE_CATS.find(c => c.id === item.category) || { label: item.category, color: C.gray };
+                const isEditing = editingAnnouncement?.id === item.id;
+                if (isEditing) {
+                  return (
+                    <AnnouncementEditForm
+                      key={item.id}
+                      item={editingAnnouncement}
+                      onSave={(updated) => {
+                        onEditAnnouncement(updated);
+                        setEditingAnnouncement(null);
+                      }}
+                      onCancel={() => setEditingAnnouncement(null)}
+                    />
+                  );
+                }
                 return (
                   <div key={item.id} style={{
                     display: "flex", alignItems: "flex-start", gap: 12,
@@ -595,6 +625,17 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
                     <div style={{ fontSize: 11, color: C.gray, whiteSpace: "nowrap", flexShrink: 0 }}>
                       {item.date}
                     </div>
+                    <button
+                      onClick={() => setEditingAnnouncement({ ...item })}
+                      style={{
+                        background: "none", border: `1px solid ${C.lightGray}`,
+                        borderRadius: 6, padding: "3px 8px",
+                        color: C.gray, cursor: "pointer", fontSize: 11,
+                        fontFamily: "inherit", flexShrink: 0, transition: "all 0.15s",
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = C.tealPale; e.currentTarget.style.color = C.teal; e.currentTarget.style.borderColor = C.teal; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = "none"; e.currentTarget.style.color = C.gray; e.currentTarget.style.borderColor = C.lightGray; }}
+                    >編集</button>
                     <button
                       onClick={() => onDeleteAnnouncement(item.id)}
                       style={{
@@ -1072,6 +1113,292 @@ function MembersPanel() {
           </table>
         )}
       </div>
+    </div>
+  );
+}
+
+// ── お知らせ編集フォーム ───────────────────────────────────
+function AnnouncementEditForm({ item, onSave, onCancel }) {
+  const [form, setForm] = useState({ category: item.category, title: item.title, body: item.body });
+  const [error, setError] = useState("");
+  const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
+  const cat = NOTICE_CATS.find(c => c.id === form.category);
+
+  const submit = e => {
+    e.preventDefault();
+    if (!form.title.trim() || !form.body.trim()) { setError("タイトルと本文を入力してください"); return; }
+    onSave({ ...item, ...form });
+  };
+
+  return (
+    <form onSubmit={submit} style={{
+      border: `2px solid ${C.teal}`, borderRadius: 10, marginBottom: 8,
+      background: C.tealPale, overflow: "hidden",
+    }}>
+      <div style={{ padding: "8px 12px 4px", fontSize: 11, fontWeight: 700, color: C.teal }}>
+        ✏️ 編集中
+      </div>
+      <div style={{ padding: "0 12px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "140px 1fr", gap: 8 }}>
+          <select value={form.category} onChange={set("category")} style={{
+            ...inputStyle,
+            appearance: "none", cursor: "pointer",
+            background: `${cat.color}12`, color: cat.color,
+            fontWeight: 700, border: `1.5px solid ${cat.color}50`,
+          }}>
+            {NOTICE_CATS.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+          </select>
+          <input type="text" value={form.title} onChange={set("title")} placeholder="タイトル" style={inputStyle} />
+        </div>
+        <textarea value={form.body} onChange={set("body")} rows={2} placeholder="本文" style={{ ...inputStyle, resize: "vertical", lineHeight: 1.6 }} />
+        {error && <div style={{ color: C.red, fontSize: 11 }}>{error}</div>}
+        <div style={{ display: "flex", gap: 8 }}>
+          <button type="submit" style={{
+            padding: "7px 18px", borderRadius: 8, border: "none",
+            background: C.teal, color: C.white, fontSize: 12, fontWeight: 700,
+            cursor: "pointer", fontFamily: "inherit",
+          }}>💾 保存</button>
+          <button type="button" onClick={onCancel} style={{
+            padding: "7px 14px", borderRadius: 8,
+            border: `1px solid ${C.lightGray}`, background: C.white,
+            color: C.gray, fontSize: 12, cursor: "pointer", fontFamily: "inherit",
+          }}>キャンセル</button>
+        </div>
+      </div>
+    </form>
+  );
+}
+
+// ── 統計パネル ────────────────────────────────────────────
+const LEVEL_COLORS_MAP = {
+  Newcomer: C.gray, Explorer: C.tealMid, Regular: C.green, Active: C.gold, Ambassador: C.navy,
+};
+const PIE_PALETTE = ["#1B4F72","#2471A3","#1A6B45","#C9A227","#8E44AD","#D35400","#C0392B","#2C3E50","#7F8C8D","#6C3483"];
+const EVT_SHORT = { children:"子供向け", cultural:"文化交流", cooking:"料理", arts:"アート", sports:"スポーツ", music:"音楽", community:"コミュニティ", others:"その他" };
+const ACT_SHORT = { event:"イベント運営", interpret:"通訳", children:"子供向け", education:"教育", cultural:"文化交流", sports:"スポーツ", cooking:"料理", music:"音楽", arts:"アート", community:"コミュニティ", others:"その他" };
+
+function StatsPanel({ members, mergedAttendance, events, loading }) {
+  if (loading) return (
+    <div style={{ background: C.white, borderRadius: 16, padding: "48px", textAlign: "center", color: C.gray, fontSize: 13, boxShadow: "0 8px 30px rgba(0,0,0,0.2)" }}>
+      読み込み中…
+    </div>
+  );
+
+  const total = members.length;
+
+  // ── データ集計 ──────────────────────────────────────
+  const volunteerCount = members.filter(m => m.volunteer === "yes").length;
+  const totalStamps = members.reduce((s, m) => s + (mergedAttendance[m.id]?.size || 0), 0);
+  const avgStamps = total > 0 ? (totalStamps / total).toFixed(1) : "0";
+
+  const countryCounts = {};
+  members.forEach(m => {
+    const cn = m.country?.name || "不明";
+    countryCounts[cn] = (countryCounts[cn] || 0) + 1;
+  });
+  const countryData = Object.entries(countryCounts)
+    .sort((a, b) => b[1] - a[1]).slice(0, 10)
+    .map(([name, value]) => ({ name, value }));
+
+  const eventData = events.map(ev => ({
+    name: ev.nameShort,
+    参加者数: members.filter(m => mergedAttendance[m.id]?.has(ev.id)).length,
+    color: ev.color,
+  }));
+
+  const levelMap = { Newcomer: 0, Explorer: 0, Regular: 0, Active: 0, Ambassador: 0 };
+  members.forEach(m => { levelMap[getLevel(mergedAttendance[m.id]?.size || 0).label]++; });
+  const levelData = Object.entries(levelMap)
+    .filter(([, v]) => v > 0)
+    .map(([name, value]) => ({ name, value }));
+
+  const evtCounts = {};
+  members.forEach(m => (m.eventInterests || []).forEach(k => { evtCounts[k] = (evtCounts[k] || 0) + 1; }));
+  const evtData = Object.entries(evtCounts).sort((a,b)=>b[1]-a[1])
+    .map(([k, value]) => ({ name: EVT_SHORT[k] || k, value }));
+
+  const actCounts = {};
+  members.forEach(m => (m.activities || []).forEach(k => { actCounts[k] = (actCounts[k] || 0) + 1; }));
+  const actData = Object.entries(actCounts).sort((a,b)=>b[1]-a[1])
+    .map(([k, value]) => ({ name: ACT_SHORT[k] || k, value }));
+
+  // ── 共通スタイル ──────────────────────────────────
+  const card = {
+    background: C.white, borderRadius: 14,
+    boxShadow: "0 4px 16px rgba(0,0,0,0.10)",
+    overflow: "hidden", marginBottom: 16,
+  };
+  const cardHeader = (color) => ({
+    padding: "12px 18px 10px", borderBottom: `1px solid ${C.lightGray}`,
+    display: "flex", alignItems: "center", gap: 8,
+    fontSize: 13, fontWeight: 700, color: C.charcoal,
+  });
+  const accent = (color) => ({
+    display: "inline-block", width: 4, height: 16,
+    background: color, borderRadius: 2,
+  });
+
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (!active || !payload?.length) return null;
+    return (
+      <div style={{ background: C.white, border: `1px solid ${C.lightGray}`, borderRadius: 8, padding: "8px 12px", fontSize: 12, boxShadow: "0 4px 12px rgba(0,0,0,0.15)" }}>
+        <div style={{ fontWeight: 700, color: C.charcoal, marginBottom: 2 }}>{label}</div>
+        {payload.map((p, i) => (
+          <div key={i} style={{ color: p.fill || C.teal }}>{p.value} 人</div>
+        ))}
+      </div>
+    );
+  };
+
+  return (
+    <div>
+      {/* サマリーカード */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 16 }}>
+        {[
+          { label: "登録者数",        value: total,                           unit: "人",   color: C.teal    },
+          { label: "ボランティア希望", value: total > 0 ? `${volunteerCount} (${Math.round(volunteerCount/total*100)}%)` : 0, unit: "", color: C.green   },
+          { label: "平均スタンプ数",  value: avgStamps,                       unit: "個",   color: C.tealMid },
+          { label: "参加国数",        value: Object.keys(countryCounts).length, unit: "カ国", color: C.gold    },
+        ].map(s => (
+          <div key={s.label} style={{ background: C.white, borderRadius: 12, padding: "14px 16px", boxShadow: "0 4px 16px rgba(0,0,0,0.15)", borderTop: `4px solid ${s.color}` }}>
+            <div style={{ fontSize: 11, color: C.gray, marginBottom: 4 }}>{s.label}</div>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 3 }}>
+              <span style={{ fontSize: 22, fontWeight: 800, color: s.color, lineHeight: 1.2 }}>{s.value}</span>
+              <span style={{ fontSize: 12, color: C.gray }}>{s.unit}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* イベント参加者数 */}
+      <div style={card}>
+        <div style={cardHeader(C.teal)}>
+          <span style={accent(C.teal)} />
+          イベント別参加者数
+        </div>
+        <div style={{ padding: "16px 18px" }}>
+          {total === 0 ? (
+            <div style={{ textAlign: "center", color: C.gray, fontSize: 12, padding: "20px 0" }}>データなし</div>
+          ) : (
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={eventData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={C.lightGray} />
+                <XAxis dataKey="name" tick={{ fontSize: 10, fill: C.gray }} />
+                <YAxis tick={{ fontSize: 10, fill: C.gray }} allowDecimals={false} />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="参加者数" radius={[4,4,0,0]}>
+                  {eventData.map((e, i) => <Cell key={i} fill={e.color} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </div>
+
+      {/* 国籍分布 + レベル分布 */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+        <div style={{ ...card, marginBottom: 0 }}>
+          <div style={cardHeader(C.gold)}>
+            <span style={accent(C.gold)} />
+            国籍分布（上位10カ国）
+          </div>
+          <div style={{ padding: "16px 18px" }}>
+            {countryData.length === 0 ? (
+              <div style={{ textAlign: "center", color: C.gray, fontSize: 12, padding: "20px 0" }}>データなし</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={countryData} layout="vertical" margin={{ top: 0, right: 24, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={C.lightGray} />
+                  <XAxis type="number" tick={{ fontSize: 10, fill: C.gray }} allowDecimals={false} />
+                  <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: C.gray }} width={72} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="value" name="人数" radius={[0,4,4,0]}>
+                    {countryData.map((_, i) => <Cell key={i} fill={PIE_PALETTE[i % PIE_PALETTE.length]} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+
+        <div style={{ ...card, marginBottom: 0 }}>
+          <div style={cardHeader(C.tealMid)}>
+            <span style={accent(C.tealMid)} />
+            レベル分布
+          </div>
+          <div style={{ padding: "16px 18px" }}>
+            {levelData.length === 0 ? (
+              <div style={{ textAlign: "center", color: C.gray, fontSize: 12, padding: "20px 0" }}>データなし</div>
+            ) : (
+              <>
+                <ResponsiveContainer width="100%" height={160}>
+                  <PieChart>
+                    <Pie data={levelData} dataKey="value" nameKey="name"
+                      cx="50%" cy="50%" outerRadius={70}
+                      label={({ name, value }) => `${name}: ${value}`}
+                      labelLine={false} fontSize={10}
+                    >
+                      {levelData.map((e, i) => <Cell key={i} fill={LEVEL_COLORS_MAP[e.name] || C.gray} />)}
+                    </Pie>
+                    <Tooltip formatter={(v) => [`${v} 人`]} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center" }}>
+                  {levelData.map(l => (
+                    <div key={l.name} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10 }}>
+                      <div style={{ width: 8, height: 8, borderRadius: "50%", background: LEVEL_COLORS_MAP[l.name] || C.gray }} />
+                      <span style={{ color: C.charcoal }}>{l.name}</span>
+                      <span style={{ color: C.gray }}>({l.value})</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* 参加希望イベントの傾向 */}
+      {evtData.length > 0 && (
+        <div style={card}>
+          <div style={cardHeader("#92400E")}>
+            <span style={accent("#F59E0B")} />
+            参加希望イベントの傾向
+          </div>
+          <div style={{ padding: "16px 18px" }}>
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart data={evtData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={C.lightGray} />
+                <XAxis dataKey="name" tick={{ fontSize: 10, fill: C.gray }} />
+                <YAxis tick={{ fontSize: 10, fill: C.gray }} allowDecimals={false} />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="value" name="人数" fill="#F59E0B" radius={[4,4,0,0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+      {/* ボランティア活動希望の傾向 */}
+      {actData.length > 0 && (
+        <div style={card}>
+          <div style={cardHeader(C.green)}>
+            <span style={accent(C.green)} />
+            ボランティア活動希望の傾向
+          </div>
+          <div style={{ padding: "16px 18px" }}>
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart data={actData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={C.lightGray} />
+                <XAxis dataKey="name" tick={{ fontSize: 10, fill: C.gray }} />
+                <YAxis tick={{ fontSize: 10, fill: C.gray }} allowDecimals={false} />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="value" name="人数" fill={C.green} radius={[4,4,0,0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

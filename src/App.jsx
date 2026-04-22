@@ -10,7 +10,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import { C, initialAttendance, initialAnnouncements } from "./constants";
 import { LangProvider, useLang } from "./i18n/LangContext";
 import { LANGS } from "./i18n/translations";
-import { saveUserToCloud, saveAttendanceToCloud } from "./lib/userService";
+import { saveUserToCloud, saveAttendanceToCloud, fetchAnnouncements, saveAnnouncementToCloud, deleteAnnouncementFromCloud } from "./lib/userService";
 
 const ADMIN_PASSWORD = "Kidodomo1551";
 const STORAGE_KEY = "cp_user";
@@ -332,6 +332,18 @@ function AppRoutes() {
   const [announcements, setAnnouncements] = useState([...initialAnnouncements]);
   const [readIds, setReadIds] = useState(new Set());
 
+  // Firestoreからお知らせを読み込む（初回のみ）
+  useEffect(() => {
+    fetchAnnouncements().then(items => {
+      if (items === null) {
+        // Firestoreが空 → initialAnnouncementsをシード
+        initialAnnouncements.forEach(a => saveAnnouncementToCloud(a));
+      } else {
+        setAnnouncements(items);
+      }
+    });
+  }, []);
+
   const toggleStamp = (userId, eventId) => {
     setAttendance(prev => {
       const userSet = new Set(prev[userId] || []);
@@ -363,11 +375,20 @@ function AppRoutes() {
     navigate("/passport");
   };
 
-  const postAnnouncement = (item) => setAnnouncements(prev => [item, ...prev]);
+  const postAnnouncement = (item) => {
+    setAnnouncements(prev => [item, ...prev]);
+    saveAnnouncementToCloud(item);
+  };
 
   const deleteAnnouncement = (id) => {
     setAnnouncements(prev => prev.filter(a => a.id !== id));
     setReadIds(prev => { const n = new Set(prev); n.delete(id); return n; });
+    deleteAnnouncementFromCloud(id);
+  };
+
+  const editAnnouncement = (updated) => {
+    setAnnouncements(prev => prev.map(a => a.id === updated.id ? updated : a));
+    saveAnnouncementToCloud(updated);
   };
 
   const markRead = (id) => setReadIds(prev => new Set([...prev, id]));
@@ -384,6 +405,7 @@ function AppRoutes() {
         announcements={announcements}
         onPostAnnouncement={postAnnouncement}
         onDeleteAnnouncement={deleteAnnouncement}
+        onEditAnnouncement={editAnnouncement}
       />
     </AdminGate>
   );

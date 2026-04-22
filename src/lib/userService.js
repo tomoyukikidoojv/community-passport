@@ -1,4 +1,4 @@
-import { doc, setDoc, getDoc, collection, getDocs } from "firebase/firestore";
+import { doc, setDoc, getDoc, collection, getDocs, deleteDoc } from "firebase/firestore";
 import { db } from "./firebase";
 
 // Sanitize email for use as Firestore document ID
@@ -55,6 +55,44 @@ export async function fetchAllUsers() {
   } catch (err) {
     console.error("fetchAllUsers error:", err);
     return [];
+  }
+}
+
+// ── Announcements Cloud Sync ──────────────────────────
+
+/** お知らせ一覧をクラウドから取得 (空ならnull) */
+export async function fetchAnnouncements() {
+  try {
+    const snap = await getDocs(collection(db, "announcements"));
+    if (snap.empty) return null;
+    return snap.docs.map(d => d.data()).sort((a, b) => (b.id || 0) - (a.id || 0));
+  } catch (err) {
+    console.error("fetchAnnouncements error:", err);
+    return null;
+  }
+}
+
+/** お知らせをクラウドに保存（新規 or 更新） */
+export async function saveAnnouncementToCloud(item) {
+  try {
+    const ref = doc(db, "announcements", String(item.id));
+    await setDoc(ref, item);
+    return true;
+  } catch (err) {
+    console.error("saveAnnouncementToCloud error:", err);
+    return false;
+  }
+}
+
+/** お知らせをクラウドから削除 */
+export async function deleteAnnouncementFromCloud(id) {
+  try {
+    const ref = doc(db, "announcements", String(id));
+    await deleteDoc(ref);
+    return true;
+  } catch (err) {
+    console.error("deleteAnnouncementFromCloud error:", err);
+    return false;
   }
 }
 
