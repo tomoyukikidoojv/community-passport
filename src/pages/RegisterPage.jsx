@@ -5,6 +5,11 @@ import LangDropdown from "../components/LangDropdown";
 import COUNTRIES from "../i18n/countries";
 import WORLD_LANGUAGES from "../i18n/languages-list";
 
+const ACTIVITY_KEYS = [
+  "event", "interpret", "children", "education",
+  "cultural", "sports", "cooking", "music", "arts", "community", "others",
+];
+
 const inputStyle = {
   width: "100%", padding: "10px 14px",
   border: `1.5px solid ${C.lightGray}`,
@@ -14,23 +19,28 @@ const inputStyle = {
   transition: "border-color 0.2s",
 };
 
-const selectStyle = {
-  ...inputStyle,
-  appearance: "none", cursor: "pointer",
-  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%237F8C8D' d='M6 8L0 0h12z'/%3E%3C/svg%3E")`,
-  backgroundRepeat: "no-repeat",
-  backgroundPosition: "right 12px center",
-  paddingRight: 32,
-};
+function SectionHeader({ children }) {
+  return (
+    <div style={{
+      fontSize: 11, fontWeight: 700, letterSpacing: 2,
+      color: C.teal, textTransform: "uppercase",
+      borderBottom: `2px solid ${C.tealLight}`,
+      paddingBottom: 6, marginBottom: 16, marginTop: 4,
+    }}>{children}</div>
+  );
+}
 
 export default function RegisterPage({ onRegistered }) {
   const { t, lang } = useLang();
   const [form, setForm] = useState({
     name: "",
+    dob: "",
     country: "",
-    languages: [],
     email: "",
     phone: "",
+    languages: [],
+    volunteer: "",
+    activities: [],
     password: "",
     passwordConfirm: "",
   });
@@ -54,16 +64,25 @@ export default function RegisterPage({ onRegistered }) {
     if (errors.languages) setErrors(er => ({ ...er, languages: null }));
   };
 
+  const toggleActivity = (key) => {
+    setForm(f => ({
+      ...f,
+      activities: f.activities.includes(key)
+        ? f.activities.filter(a => a !== key)
+        : [...f.activities, key],
+    }));
+  };
+
   const filteredCountries = COUNTRIES.filter(c =>
     c.name.toLowerCase().includes(countrySearch.toLowerCase())
   );
 
   const validate = () => {
     const errs = {};
-    if (!form.name.trim())          errs.name      = t("register.err_name");
-    if (!form.country)              errs.country   = t("register.err_country");
+    if (!form.name.trim())           errs.name      = t("register.err_name");
+    if (!form.country)               errs.country   = t("register.err_country");
     if (form.languages.length === 0) errs.languages = t("register.err_languages");
-    if (form.password.length < 4)  errs.password  = t("register.err_password");
+    if (form.password.length < 4)   errs.password  = t("register.err_password");
     if (form.password !== form.passwordConfirm) errs.passwordConfirm = t("register.err_password_match");
     return errs;
   };
@@ -87,8 +106,11 @@ export default function RegisterPage({ onRegistered }) {
       country: countryObj || { code: "XX", name: form.country, flag: "🌍" },
       languages: langLabels,
       since: new Date().toLocaleDateString(lang === "ja" ? "ja-JP" : "en-US", { year: "numeric", month: "long" }),
+      dob: form.dob || "",
       email: form.email.trim() || "",
       phone: form.phone.trim() || "",
+      volunteer: form.volunteer || "",
+      activities: form.activities,
       password: form.password,
     };
     setNewUser(user);
@@ -139,7 +161,7 @@ export default function RegisterPage({ onRegistered }) {
                   display: "flex", alignItems: "center", justifyContent: "center",
                   fontSize: 26, flexShrink: 0,
                 }}>{newUser.flag}</div>
-                <div>
+                <div style={{ minWidth: 0 }}>
                   <div style={{ fontWeight: 800, fontSize: 18, color: C.teal }}>{newUser.name}</div>
                   <div style={{ color: C.gray, fontSize: 12, marginTop: 2 }}>{newUser.country?.name}</div>
                   <div style={{
@@ -232,8 +254,11 @@ export default function RegisterPage({ onRegistered }) {
 
           <form onSubmit={handleSubmit} style={{ padding: "28px 28px 24px" }}>
 
+            {/* ── 基本情報 ── */}
+            <SectionHeader>👤 Personal Info</SectionHeader>
+
             {/* Name */}
-            <div style={{ marginBottom: 20 }}>
+            <div style={{ marginBottom: 16 }}>
               <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 6 }}>
                 {t("register.name")} <span style={{ color: "#E74C3C" }}>*</span>
               </label>
@@ -245,115 +270,66 @@ export default function RegisterPage({ onRegistered }) {
               {errors.name && <div style={{ color: "#E74C3C", fontSize: 11, marginTop: 4 }}>{errors.name}</div>}
             </div>
 
-            {/* Country */}
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 6 }}>
-                {t("register.country")} <span style={{ color: "#E74C3C" }}>*</span>
-              </label>
-              <input
-                type="text"
-                value={countrySearch}
-                onChange={e => { setCountrySearch(e.target.value); setForm(f => ({ ...f, country: "" })); }}
-                placeholder={t("register.country_placeholder")}
-                style={{ ...inputStyle, marginBottom: 6, borderColor: errors.country ? "#E74C3C" : C.lightGray }}
-              />
-              {countrySearch && (
-                <div style={{
-                  maxHeight: 200, overflowY: "auto",
-                  border: `1.5px solid ${C.tealLight}`, borderRadius: 8,
-                  background: C.white, boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                }}>
-                  {filteredCountries.slice(0, 30).map(c => (
-                    <div
-                      key={c.code}
-                      onClick={() => {
-                        setForm(f => ({ ...f, country: c.code }));
-                        setCountrySearch(`${c.flag} ${c.name}`);
-                        setErrors(er => ({ ...er, country: null }));
-                      }}
-                      style={{
-                        padding: "8px 14px", cursor: "pointer", fontSize: 13,
-                        background: form.country === c.code ? C.tealPale : C.white,
-                        color: form.country === c.code ? C.teal : C.charcoal,
-                        fontWeight: form.country === c.code ? 700 : 400,
-                        display: "flex", alignItems: "center", gap: 8,
-                      }}
-                      onMouseEnter={e => e.currentTarget.style.background = C.offWhite}
-                      onMouseLeave={e => e.currentTarget.style.background = form.country === c.code ? C.tealPale : C.white}
-                    >
-                      <span>{c.flag}</span> {c.name}
-                    </div>
-                  ))}
-                  {filteredCountries.length === 0 && (
-                    <div style={{ padding: "10px 14px", color: C.gray, fontSize: 13 }}>—</div>
-                  )}
-                </div>
-              )}
-              {errors.country && <div style={{ color: "#E74C3C", fontSize: 11, marginTop: 4 }}>{errors.country}</div>}
-            </div>
-
-            {/* Languages (multi-select) */}
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 4 }}>
-                {t("register.languages")} <span style={{ color: "#E74C3C" }}>*</span>
-                <span style={{ fontSize: 11, fontWeight: 400, color: C.gray, marginLeft: 8 }}>
-                  {t("register.languages_hint")}
-                </span>
-              </label>
-              <div style={{
-                border: `1.5px solid ${errors.languages ? "#E74C3C" : C.lightGray}`,
-                borderRadius: 8, padding: "12px",
-                maxHeight: 200, overflowY: "auto",
-                display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6,
-              }}>
-                {WORLD_LANGUAGES.map(wl => {
-                  const selected = form.languages.includes(wl.code);
-                  return (
-                    <label
-                      key={wl.code}
-                      style={{
-                        display: "flex", alignItems: "center", gap: 8,
-                        padding: "6px 10px", borderRadius: 8, cursor: "pointer",
-                        background: selected ? C.tealPale : "transparent",
-                        border: `1px solid ${selected ? C.tealLight : "transparent"}`,
-                        transition: "all 0.12s",
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selected}
-                        onChange={() => toggleLang(wl.code)}
-                        style={{ accentColor: C.teal, flexShrink: 0 }}
-                      />
-                      <span style={{
-                        fontSize: 12,
-                        color: selected ? C.teal : C.charcoal,
-                        fontWeight: selected ? 700 : 400,
-                        lineHeight: 1.3,
-                      }}>
-                        {wl.name}
-                      </span>
-                    </label>
-                  );
-                })}
+            {/* DOB + Country side by side */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+              <div>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 6 }}>
+                  {t("register.dob")}
+                </label>
+                <input
+                  type="date" value={form.dob} onChange={set("dob")}
+                  style={{ ...inputStyle }}
+                />
               </div>
-              {form.languages.length > 0 && (
-                <div style={{ fontSize: 11, color: C.teal, marginTop: 5 }}>
-                  ✓ {t("register.selected", { n: form.languages.length })}
-                </div>
-              )}
-              {errors.languages && <div style={{ color: "#E74C3C", fontSize: 11, marginTop: 4 }}>{errors.languages}</div>}
+              <div>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 6 }}>
+                  {t("register.country")} <span style={{ color: "#E74C3C" }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  value={countrySearch}
+                  onChange={e => { setCountrySearch(e.target.value); setForm(f => ({ ...f, country: "" })); }}
+                  placeholder={t("register.country_placeholder")}
+                  style={{ ...inputStyle, borderColor: errors.country ? "#E74C3C" : C.lightGray }}
+                />
+                {countrySearch && (
+                  <div style={{
+                    maxHeight: 180, overflowY: "auto",
+                    border: `1.5px solid ${C.tealLight}`, borderRadius: 8,
+                    background: C.white, boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                    position: "absolute", zIndex: 10, width: "calc(50% - 44px)",
+                  }}>
+                    {filteredCountries.slice(0, 30).map(c => (
+                      <div
+                        key={c.code}
+                        onClick={() => {
+                          setForm(f => ({ ...f, country: c.code }));
+                          setCountrySearch(`${c.flag} ${c.name}`);
+                          setErrors(er => ({ ...er, country: null }));
+                        }}
+                        style={{
+                          padding: "7px 12px", cursor: "pointer", fontSize: 13,
+                          background: form.country === c.code ? C.tealPale : C.white,
+                          display: "flex", alignItems: "center", gap: 6,
+                        }}
+                      >
+                        <span>{c.flag}</span> {c.name}
+                      </div>
+                    ))}
+                    {filteredCountries.length === 0 && (
+                      <div style={{ padding: "10px 14px", color: C.gray, fontSize: 13 }}>—</div>
+                    )}
+                  </div>
+                )}
+                {errors.country && <div style={{ color: "#E74C3C", fontSize: 11, marginTop: 4 }}>{errors.country}</div>}
+              </div>
             </div>
 
-            {/* Email & Phone for password recovery */}
-            <div style={{ borderTop: `1px dashed ${C.lightGray}`, margin: "4px 0 16px" }} />
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
+            {/* Email + Phone */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
               <div>
                 <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 6 }}>
                   {t("register.email")}
-                  <span style={{ fontSize: 10, fontWeight: 400, color: C.gray, marginLeft: 6 }}>
-                    {t("register.email_hint")}
-                  </span>
                 </label>
                 <input
                   type="email" value={form.email} onChange={set("email")}
@@ -373,8 +349,129 @@ export default function RegisterPage({ onRegistered }) {
               </div>
             </div>
 
-            {/* Password */}
-            <div style={{ borderTop: `1px dashed ${C.lightGray}`, margin: "4px 0 16px" }} />
+            {/* ── 言語 ── */}
+            <SectionHeader>🌐 Languages</SectionHeader>
+            <div style={{ marginBottom: 24 }}>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 4 }}>
+                {t("register.languages")} <span style={{ color: "#E74C3C" }}>*</span>
+                <span style={{ fontSize: 11, fontWeight: 400, color: C.gray, marginLeft: 8 }}>
+                  {t("register.languages_hint")}
+                </span>
+              </label>
+              <div style={{
+                border: `1.5px solid ${errors.languages ? "#E74C3C" : C.lightGray}`,
+                borderRadius: 8, padding: "12px",
+                maxHeight: 200, overflowY: "auto",
+                display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6,
+              }}>
+                {WORLD_LANGUAGES.map(wl => {
+                  const selected = form.languages.includes(wl.code);
+                  return (
+                    <label key={wl.code} style={{
+                      display: "flex", alignItems: "center", gap: 8,
+                      padding: "6px 10px", borderRadius: 8, cursor: "pointer",
+                      background: selected ? C.tealPale : "transparent",
+                      border: `1px solid ${selected ? C.tealLight : "transparent"}`,
+                      transition: "all 0.12s",
+                    }}>
+                      <input
+                        type="checkbox" checked={selected}
+                        onChange={() => toggleLang(wl.code)}
+                        style={{ accentColor: C.teal, flexShrink: 0 }}
+                      />
+                      <span style={{ fontSize: 12, color: selected ? C.teal : C.charcoal, fontWeight: selected ? 700 : 400 }}>
+                        {wl.name}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+              {form.languages.length > 0 && (
+                <div style={{ fontSize: 11, color: C.teal, marginTop: 5 }}>
+                  ✓ {t("register.selected", { n: form.languages.length })}
+                </div>
+              )}
+              {errors.languages && <div style={{ color: "#E74C3C", fontSize: 11, marginTop: 4 }}>{errors.languages}</div>}
+            </div>
+
+            {/* ── ボランティア ── */}
+            <SectionHeader>🤝 Volunteer</SectionHeader>
+
+            {/* Volunteer interest */}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 10 }}>
+                {t("register.volunteer_q")}
+              </label>
+              <div style={{ display: "flex", gap: 10 }}>
+                {[
+                  { val: "yes", label: t("register.volunteer_yes") },
+                  { val: "no",  label: t("register.volunteer_no") },
+                ].map(opt => (
+                  <label key={opt.val} style={{
+                    flex: 1, display: "flex", alignItems: "center", gap: 8,
+                    padding: "10px 14px", borderRadius: 10, cursor: "pointer",
+                    border: `1.5px solid ${form.volunteer === opt.val ? C.teal : C.lightGray}`,
+                    background: form.volunteer === opt.val ? C.tealPale : C.white,
+                    transition: "all 0.15s",
+                  }}>
+                    <input
+                      type="radio" name="volunteer" value={opt.val}
+                      checked={form.volunteer === opt.val}
+                      onChange={set("volunteer")}
+                      style={{ accentColor: C.teal }}
+                    />
+                    <span style={{
+                      fontSize: 13, fontWeight: form.volunteer === opt.val ? 700 : 400,
+                      color: form.volunteer === opt.val ? C.teal : C.charcoal,
+                    }}>{opt.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Activities */}
+            <div style={{ marginBottom: 24 }}>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 4 }}>
+                {t("register.activities")}
+                <span style={{ fontSize: 11, fontWeight: 400, color: C.gray, marginLeft: 8 }}>
+                  {t("register.activities_hint")}
+                </span>
+              </label>
+              <div style={{
+                border: `1.5px solid ${C.lightGray}`, borderRadius: 8, padding: "12px",
+                display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6,
+              }}>
+                {ACTIVITY_KEYS.map(key => {
+                  const selected = form.activities.includes(key);
+                  return (
+                    <label key={key} style={{
+                      display: "flex", alignItems: "center", gap: 8,
+                      padding: "7px 10px", borderRadius: 8, cursor: "pointer",
+                      background: selected ? `${C.teal}12` : "transparent",
+                      border: `1px solid ${selected ? C.teal + "50" : "transparent"}`,
+                      transition: "all 0.12s",
+                    }}>
+                      <input
+                        type="checkbox" checked={selected}
+                        onChange={() => toggleActivity(key)}
+                        style={{ accentColor: C.teal, flexShrink: 0 }}
+                      />
+                      <span style={{ fontSize: 12, color: selected ? C.teal : C.charcoal, fontWeight: selected ? 700 : 400, lineHeight: 1.3 }}>
+                        {t(`register.act.${key}`)}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+              {form.activities.length > 0 && (
+                <div style={{ fontSize: 11, color: C.teal, marginTop: 5 }}>
+                  ✓ {form.activities.length} selected
+                </div>
+              )}
+            </div>
+
+            {/* ── パスワード ── */}
+            <SectionHeader>🔑 Password</SectionHeader>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
               <div>
                 <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 6 }}>
@@ -400,7 +497,7 @@ export default function RegisterPage({ onRegistered }) {
               </div>
             </div>
 
-            <div style={{ borderTop: `1px dashed ${C.lightGray}`, margin: "4px 0 20px" }} />
+            <div style={{ borderTop: `1px dashed ${C.lightGray}`, margin: "20px 0" }} />
 
             <div style={{
               background: C.goldLight, border: `1px solid ${C.gold}30`,
