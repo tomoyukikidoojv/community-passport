@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Html5Qrcode } from "html5-qrcode";
+import * as XLSX from "xlsx";
 import { C, getLevel, NOTICE_CATS } from "../constants";
 import { fetchAllUsers, fetchAllAttendance } from "../lib/userService";
 import { useEvents } from "../hooks/useEvents";
@@ -105,11 +106,56 @@ function NoticeForm({ onPost }) {
 
 const ADMIN_TABS = [
   { id: "attendance",    label: "出席状況", emoji: "📊" },
+  { id: "members",       label: "会員一覧", emoji: "👥" },
   { id: "announcements", label: "お知らせ", emoji: "📢" },
   { id: "applications",  label: "参加者",   emoji: "📋" },
   { id: "events",        label: "イベント", emoji: "📅" },
   { id: "formbuilder",   label: "アンケート", emoji: "📝" },
 ];
+
+// ── ラベルマップ ──────────────────────────────────────────
+const ACT_LABELS = {
+  event: "イベント運営", interpret: "通訳・翻訳", children: "子供向け活動",
+  education: "教育・言語サポート", cultural: "文化交流",
+  sports: "スポーツ・レクリエーション", cooking: "料理・フードイベント",
+  music: "音楽・パフォーマンス", arts: "アート・クラフト",
+  community: "地域交流・コミュニティ活動", others: "その他",
+};
+const EVT_LABELS = {
+  children: "子供向け活動", cultural: "文化交流", cooking: "料理・フードイベント",
+  arts: "アート・クラフト", sports: "スポーツ・レクリエーション",
+  music: "音楽・パフォーマンス", community: "地域交流・コミュニティ活動", others: "その他",
+};
+const labelize = (keys = [], map) => keys.map(k => map[k] || k).join(" / ");
+
+// ── Excel ダウンロード ────────────────────────────────────
+function downloadExcel(members) {
+  const rows = members.map(m => ({
+    "会員番号":           m.no || "",
+    "名前":               m.name || "",
+    "国":                 m.country?.name || "",
+    "国旗":               m.flag || "",
+    "メールアドレス":     m.email || "",
+    "電話番号":           m.phone || "",
+    "生年月日":           m.dob || "",
+    "登録日":             m.since || "",
+    "話せる言語":         (m.languages || []).join(" / "),
+    "参加希望イベント":   labelize(m.eventInterests, EVT_LABELS) +
+                          (m.eventInterestsOther ? ` / ${m.eventInterestsOther}` : ""),
+    "ボランティア":       m.volunteer === "yes" ? "はい" : m.volunteer === "no" ? "いいえ" : "",
+    "希望活動内容":       labelize(m.activities, ACT_LABELS),
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+  // 列幅を自動調整
+  ws["!cols"] = Object.keys(rows[0] || {}).map(k => ({
+    wch: Math.max(k.length * 2, 12),
+  }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "会員一覧");
+  const date = new Date().toISOString().slice(0, 10);
+  XLSX.writeFile(wb, `members_${date}.xlsx`);
+}
 
 export default function AdminDashboard({ attendance, onStamp, announcements, onPostAnnouncement, onDeleteAnnouncement }) {
   const [hoveredCell, setHoveredCell] = useState(null);
@@ -489,6 +535,9 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
         </div>
         </>}
 
+        {/* ── Tab: 会員一覧 ── */}
+        {activeTab === "members" && <MembersPanel />}
+
         {/* ── Tab: お知らせ ── */}
         {activeTab === "announcements" && <div style={{
           background: C.white, borderRadius: 16,
@@ -831,6 +880,158 @@ function QrScanModal({ onStamp, onClose }) {
             </>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ── 会員一覧パネル ────────────────────────────────────────
+function MembersPanel() {
+  const [members, setMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    fetchAllUsers().then(users => {
+      setMembers(users.sort((a, b) => (a.no || "").localeCompare(b.no || "")));
+      setLoading(false);
+    });
+  }, []);
+
+  const filtered = members.filter(m =>
+    !search ||
+    m.name?.includes(search) ||
+    m.email?.includes(search) ||
+    m.no?.includes(search) ||
+    m.country?.name?.includes(search)
+  );
+
+  const thStyle = {
+    padding: "10px 12px", background: C.offWhite,
+    borderBottom: `2px solid ${C.lightGray}`,
+    fontSize: 11, fontWeight: 700, color: C.charcoal,
+    textAlign: "left", whiteSpace: "nowrap",
+  };
+  const tdStyle = (i) => ({
+    padding: "10px 12px",
+    borderBottom: `1px solid ${C.lightGray}`,
+    fontSize: 12, color: C.charcoal, verticalAlign: "top",
+    background: i % 2 === 0 ? C.white : C.offWhite,
+  });
+
+  return (
+    <div style={{ background: C.white, borderRadius: 16, boxShadow: "0 8px 30px rgba(0,0,0,0.2)", overflow: "hidden" }}>
+      {/* ヘッダー */}
+      <div style={{
+        padding: "16px 20px", borderBottom: `1px solid ${C.lightGray}`,
+        display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10,
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ display: "inline-block", width: 4, height: 16, background: C.teal, borderRadius: 2 }} />
+          <span style={{ fontSize: 13, fontWeight: 700, color: C.charcoal }}>会員一覧</span>
+          <span style={{ background: C.tealPale, color: C.teal, borderRadius: 20, padding: "1px 10px", fontSize: 11, fontWeight: 700 }}>
+            {members.length}人
+          </span>
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <input
+            type="text" placeholder="名前・メール・国で検索"
+            value={search} onChange={e => setSearch(e.target.value)}
+            style={{
+              padding: "6px 12px", borderRadius: 8, border: `1.5px solid ${C.lightGray}`,
+              fontSize: 12, fontFamily: "inherit", outline: "none", color: C.charcoal,
+              width: 200,
+            }}
+          />
+          <button
+            onClick={() => downloadExcel(filtered)}
+            disabled={filtered.length === 0}
+            style={{
+              padding: "7px 16px", borderRadius: 8, border: "none",
+              background: filtered.length > 0 ? "#1D6F42" : C.lightGray,
+              color: C.white, fontSize: 12, fontWeight: 700,
+              cursor: filtered.length > 0 ? "pointer" : "default",
+              fontFamily: "inherit", whiteSpace: "nowrap",
+            }}
+          >
+            📥 Excelダウンロード
+          </button>
+        </div>
+      </div>
+
+      {/* テーブル */}
+      <div style={{ overflowX: "auto" }}>
+        {loading ? (
+          <div style={{ padding: "32px", textAlign: "center", color: C.gray, fontSize: 13 }}>読み込み中…</div>
+        ) : filtered.length === 0 ? (
+          <div style={{ padding: "32px", textAlign: "center", color: C.gray, fontSize: 13 }}>
+            {search ? "該当する会員が見つかりません" : "登録された会員はまだいません"}
+          </div>
+        ) : (
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontFamily: "inherit" }}>
+            <thead>
+              <tr>
+                {["会員番号", "名前", "国", "メール", "電話", "生年月日", "登録日", "言語", "参加希望イベント", "ボランティア", "希望活動内容"].map(h => (
+                  <th key={h} style={thStyle}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((m, i) => (
+                <tr key={m.id || i}>
+                  <td style={tdStyle(i)}>
+                    <span style={{ fontFamily: "monospace", color: C.teal, fontWeight: 700 }}>{m.no}</span>
+                  </td>
+                  <td style={tdStyle(i)}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      {m.photo
+                        ? <img src={m.photo} alt="" style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+                        : <span style={{ fontSize: 18 }}>{m.flag}</span>
+                      }
+                      <span style={{ fontWeight: 700 }}>{m.name}</span>
+                    </div>
+                  </td>
+                  <td style={tdStyle(i)}>{m.country?.name || "—"}</td>
+                  <td style={tdStyle(i)}><a href={`mailto:${m.email}`} style={{ color: C.teal, textDecoration: "none" }}>{m.email || "—"}</a></td>
+                  <td style={tdStyle(i)} >{m.phone || "—"}</td>
+                  <td style={tdStyle(i)}>{m.dob || "—"}</td>
+                  <td style={tdStyle(i)}>{m.since || "—"}</td>
+                  <td style={tdStyle(i)}>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 3, maxWidth: 160 }}>
+                      {(m.languages || []).map(l => (
+                        <span key={l} style={{ background: C.tealPale, color: C.teal, borderRadius: 10, padding: "1px 7px", fontSize: 10, whiteSpace: "nowrap" }}>{l}</span>
+                      ))}
+                    </div>
+                  </td>
+                  <td style={tdStyle(i)}>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 3, maxWidth: 180 }}>
+                      {(m.eventInterests || []).map(k => (
+                        <span key={k} style={{ background: "#FEF3C7", color: "#92400E", borderRadius: 10, padding: "1px 7px", fontSize: 10, whiteSpace: "nowrap" }}>{EVT_LABELS[k] || k}</span>
+                      ))}
+                      {m.eventInterestsOther && (
+                        <span style={{ background: "#FEF3C7", color: "#92400E", borderRadius: 10, padding: "1px 7px", fontSize: 10 }}>{m.eventInterestsOther}</span>
+                      )}
+                    </div>
+                  </td>
+                  <td style={{ ...tdStyle(i), textAlign: "center" }}>
+                    {m.volunteer === "yes"
+                      ? <span style={{ color: "#1A6B45", fontWeight: 700 }}>✓ はい</span>
+                      : m.volunteer === "no"
+                      ? <span style={{ color: C.gray }}>いいえ</span>
+                      : "—"}
+                  </td>
+                  <td style={tdStyle(i)}>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 3, maxWidth: 180 }}>
+                      {(m.activities || []).map(k => (
+                        <span key={k} style={{ background: "#F0FDF4", color: "#166534", borderRadius: 10, padding: "1px 7px", fontSize: 10, whiteSpace: "nowrap" }}>{ACT_LABELS[k] || k}</span>
+                      ))}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );
