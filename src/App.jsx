@@ -424,6 +424,8 @@ function AppRoutes() {
             savedUser={registeredUser}
             onLogin={handleLogin}
             onReset={handleReset}
+            onShowRegister={handleReset}
+            onCloudLogin={handleCloudLogin}
           />
         } />
       </Routes>
