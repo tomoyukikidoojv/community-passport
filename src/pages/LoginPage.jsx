@@ -4,7 +4,7 @@ import { useLang } from "../i18n/LangContext";
 import LangDropdown from "../components/LangDropdown";
 import { sendPasswordResetEmail, EMAIL_CONFIGURED } from "../lib/emailService";
 
-export default function LoginPage({ savedUser, onLogin, onReset }) {
+export default function LoginPage({ savedUser, onLogin, onReset, onShowRegister }) {
   const { t } = useLang();
   const [password, setPassword] = useState("");
   const [error, setError] = useState(false);
@@ -47,6 +47,60 @@ export default function LoginPage({ savedUser, onLogin, onReset }) {
     not_found: { color: "#E74C3C", text: t("login.reset_not_found") },
     err: { color: "#E74C3C", text: t("login.reset_err") },
   };
+
+  // No local data (different device) — show guidance screen
+  if (!savedUser) {
+    return (
+      <div style={{
+        minHeight: "100vh",
+        background: `linear-gradient(135deg, ${C.teal} 0%, ${C.navy} 100%)`,
+        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+        padding: "32px 16px",
+        fontFamily: "'Segoe UI','Hiragino Sans','Meiryo',sans-serif",
+      }}>
+        <div style={{ width: "100%", maxWidth: 400, marginBottom: 12 }}>
+          <LangDropdown />
+        </div>
+        <div style={{
+          background: C.white, borderRadius: 20, maxWidth: 400, width: "100%",
+          boxShadow: "0 20px 60px rgba(0,0,0,0.35)", overflow: "hidden",
+          textAlign: "center",
+        }}>
+          <div style={{
+            background: `linear-gradient(90deg, ${C.teal}, ${C.tealMid})`,
+            padding: "28px 24px",
+          }}>
+            <div style={{ fontSize: 40, marginBottom: 8 }}>📱</div>
+            <div style={{ color: C.white, fontSize: 18, fontWeight: 800 }}>
+              {t("login.title")}
+            </div>
+          </div>
+          <div style={{ padding: "28px 28px 24px" }}>
+            <div style={{
+              fontSize: 14, color: C.charcoal, lineHeight: 1.8,
+              marginBottom: 24,
+            }}>
+              {t("login.no_data_desc")}
+            </div>
+            {onShowRegister && (
+              <button
+                onClick={onShowRegister}
+                style={{
+                  width: "100%", padding: "13px",
+                  background: `linear-gradient(90deg, ${C.teal}, ${C.tealMid})`,
+                  color: C.white, border: "none", borderRadius: 10,
+                  fontSize: 15, fontWeight: 700, cursor: "pointer",
+                  fontFamily: "inherit",
+                }}
+              >
+                📝 {t("register.title")}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{

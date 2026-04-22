@@ -370,12 +370,26 @@ function AppRoutes() {
   );
 
   // Admin route is always accessible regardless of user login state
-  // Not registered yet → registration (except admin)
+  const [showLoginForNewDevice, setShowLoginForNewDevice] = useState(false);
+
+  // Not registered yet → registration or login screen (except admin)
   if (!registeredUser) {
     return (
       <Routes>
         <Route path="/kanri-ashiya2026" element={adminElement} />
-        <Route path="*" element={<RegisterPage onRegistered={handleRegistered} />} />
+        <Route path="*" element={
+          showLoginForNewDevice
+            ? <LoginPage
+                savedUser={null}
+                onLogin={handleLogin}
+                onReset={handleReset}
+                onShowRegister={() => setShowLoginForNewDevice(false)}
+              />
+            : <RegisterPage
+                onRegistered={handleRegistered}
+                onShowLogin={() => setShowLoginForNewDevice(true)}
+              />
+        } />
       </Routes>
     );
   }

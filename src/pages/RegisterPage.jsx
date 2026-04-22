@@ -30,7 +30,7 @@ function SectionHeader({ children }) {
   );
 }
 
-export default function RegisterPage({ onRegistered }) {
+export default function RegisterPage({ onRegistered, onShowLogin }) {
   const { t, lang } = useLang();
   const [form, setForm] = useState({
     name: "",
@@ -538,6 +538,29 @@ export default function RegisterPage({ onRegistered }) {
               <span style={{ color: "#E74C3C" }}>*</span> {t("register.required_note")}
             </div>
           </form>
+
+          {/* Login link */}
+          {onShowLogin && (
+            <div style={{
+              borderTop: `1px solid ${C.lightGray}`,
+              padding: "16px 28px",
+              textAlign: "center",
+            }}>
+              <span style={{ fontSize: 13, color: C.gray }}>
+                {t("register.have_account")}{" "}
+              </span>
+              <button
+                onClick={onShowLogin}
+                style={{
+                  background: "none", border: "none", cursor: "pointer",
+                  color: C.teal, fontSize: 13, fontWeight: 700,
+                  fontFamily: "inherit", textDecoration: "underline",
+                }}
+              >
+                {t("register.login_here")}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
