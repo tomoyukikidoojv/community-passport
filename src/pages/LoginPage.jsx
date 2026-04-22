@@ -380,7 +380,7 @@ export default function LoginPage({ savedUser, onLogin, onReset, onShowRegister,
                 <div style={{ fontSize: 13, fontWeight: 700, color: "#C0392B", marginBottom: 6 }}>
                   {t("login.reset_title")}
                 </div>
-                <div style={{ fontSize: 12, color: C.charcoal, marginBottom: 12, lineHeight: 1.6 }}>
+                <div style={{ fontSize: 12, color: C.charcoal, marginBottom: 12, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
                   {t("login.reset_body")}
                 </div>
                 <div style={{ display: "flex", gap: 8 }}>
