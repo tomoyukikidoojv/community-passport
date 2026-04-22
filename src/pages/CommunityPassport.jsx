@@ -17,7 +17,10 @@ function compressImage(file) {
         else        { if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; } }
         const canvas = document.createElement("canvas");
         canvas.width = w; canvas.height = h;
-        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
         resolve(canvas.toDataURL("image/jpeg", 0.75));
       };
       img.src = e.target.result;
