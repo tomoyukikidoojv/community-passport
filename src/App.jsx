@@ -10,6 +10,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import { C, initialAttendance, initialAnnouncements } from "./constants";
 import { LangProvider, useLang } from "./i18n/LangContext";
 import { LANGS } from "./i18n/translations";
+import { saveUserToCloud } from "./lib/userService";
 
 const ADMIN_PASSWORD = "Kidodomo1551";
 const STORAGE_KEY = "cp_user";
@@ -279,11 +280,13 @@ function UserNav({ registeredUser, myStamps, unreadCount, onLogout }) {
 function AppRoutes() {
   const navigate = useNavigate();
 
-  // Load user from localStorage
+  // Load user from localStorage (+ sync to Firestore on every app load)
   const [registeredUser, setRegisteredUser] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      return saved ? JSON.parse(saved) : null;
+      const user = saved ? JSON.parse(saved) : null;
+      if (user?.email) saveUserToCloud(user); // クラウド同期
+      return user;
     } catch {
       return null;
     }
