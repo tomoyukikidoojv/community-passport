@@ -21,9 +21,9 @@
  */
 
 export const EMAILJS_CONFIG = {
-  serviceId:  "",   // 例: "service_xxxxxxx"
-  templateId: "",   // 例: "template_xxxxxxx"
-  publicKey:  "",   // 例: "xxxxxxxxxxxxxxxxxxxx"
+  serviceId:  "service_l47l7q9",
+  templateId: "template_h9awnkn",
+  publicKey:  "gT4kz_tRktp84OT_u",
 };
 
 export const EMAIL_CONFIGURED =
