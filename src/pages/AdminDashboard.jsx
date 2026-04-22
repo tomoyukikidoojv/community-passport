@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Html5Qrcode } from "html5-qrcode";
-import { C, USERS, getLevel, NOTICE_CATS } from "../constants";
+import { C, getLevel, NOTICE_CATS } from "../constants";
+import { fetchAllUsers, fetchAllAttendance } from "../lib/userService";
 import { useEvents } from "../hooks/useEvents";
 import EventsManager from "./admin/EventsManager";
 import { getApplicationsByEvent } from "./ApplyPage";
@@ -116,8 +117,29 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
   const [showQrScanner, setShowQrScanner] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [activeTab, setActiveTab] = useState("attendance");
+  const [members, setMembers] = useState([]);
+  const [cloudAttendance, setCloudAttendance] = useState({});
+  const [loadingMembers, setLoadingMembers] = useState(true);
   const events = useEvents();
   const navigate = useNavigate();
+
+  // Firebase から登録ユーザーとスタンプを取得
+  useEffect(() => {
+    Promise.all([fetchAllUsers(), fetchAllAttendance()]).then(([users, stamps]) => {
+      const sorted = [...users].sort((a, b) => (b.id || 0) - (a.id || 0));
+      setMembers(sorted);
+      setCloudAttendance(stamps);
+      setLoadingMembers(false);
+    });
+  }, []);
+
+  // Firebase のスタンプ + ローカルのスタンプをマージして使う
+  const mergedAttendance = { ...attendance };
+  Object.entries(cloudAttendance).forEach(([uid, set]) => {
+    const id = Number(uid);
+    const local = attendance[id] || new Set();
+    mergedAttendance[id] = new Set([...local, ...set]);
+  });
 
   const toggleAttendance = (userId, eventId) => {
     onStamp(userId, eventId);
@@ -126,9 +148,9 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
   };
 
   const totalPerEvent = events.map(ev =>
-    USERS.filter(u => attendance[u.id]?.has(ev.id)).length
+    members.filter(u => mergedAttendance[u.id]?.has(ev.id)).length
   );
-  const totalPerUser = USERS.map(u => attendance[u.id]?.size || 0);
+  const totalPerUser = members.map(u => mergedAttendance[u.id]?.size || 0);
   const grandTotal = totalPerUser.reduce((a, b) => a + b, 0);
 
   return (
@@ -205,11 +227,13 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
         {activeTab === "attendance" && <>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
             {[
-              { label: "参加者数",     value: USERS.length,  unit: "人", color: C.teal    },
-              { label: "イベント数",   value: events.length, unit: "回", color: C.tealMid },
-              { label: "総スタンプ数", value: grandTotal,    unit: "個", color: C.green   },
+              { label: "登録者数",     value: members.length,  unit: "人", color: C.teal    },
+              { label: "イベント数",   value: events.length,   unit: "回", color: C.tealMid },
+              { label: "総スタンプ数", value: grandTotal,      unit: "個", color: C.green   },
               { label: "平均参加率",
-                value: Math.round((grandTotal / (USERS.length * (events.length || 1))) * 100),
+                value: members.length > 0 && events.length > 0
+                  ? Math.round((grandTotal / (members.length * events.length)) * 100)
+                  : 0,
                 unit: "%", color: C.gold },
             ].map(stat => (
               <div key={stat.label} style={{
@@ -297,8 +321,17 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
                 </tr>
               </thead>
               <tbody>
-                {USERS.map((user, ui) => {
-                  const userStamps = attendance[user.id] || new Set();
+                {loadingMembers ? (
+                  <tr><td colSpan={events.length + 2} style={{ padding: "24px", textAlign: "center", color: C.gray, fontSize: 13 }}>
+                    読み込み中…
+                  </td></tr>
+                ) : members.length === 0 ? (
+                  <tr><td colSpan={events.length + 2} style={{ padding: "24px", textAlign: "center", color: C.gray, fontSize: 13 }}>
+                    登録されたユーザーはまだいません
+                  </td></tr>
+                ) : null}
+                {members.map((user, ui) => {
+                  const userStamps = mergedAttendance[user.id] || new Set();
                   const count = userStamps.size;
                   const level = getLevel(count);
                   const rowBg = ui % 2 === 0 ? C.white : C.offWhite;
@@ -407,7 +440,7 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
                     }}>
                       {totalPerEvent[i]}
                       <div style={{ fontSize: 9, color: C.gray, fontWeight: 400 }}>
-                        {Math.round((totalPerEvent[i] / USERS.length) * 100)}%
+                        {members.length > 0 ? Math.round((totalPerEvent[i] / members.length) * 100) : 0}%
                       </div>
                     </td>
                   ))}

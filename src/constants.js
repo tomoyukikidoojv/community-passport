@@ -29,23 +29,12 @@ export const EVENTS = [
   { id: 6, emoji: "🚨", name: "防災講座",                       nameShort: "防災講座",           date: "10月", fullDate: "2026-10-17", time: "10:00〜12:00", place: "芦屋市消防署",                color: "#C0392B", applyUrl: "" },
 ];
 
-// ── Users (mock) ───────────────────────────
-export const USERS = [
-  { id: 1, name: "山田 花子",     nameEn: "Hanako Yamada",  no: "2026-0042", flag: "🇯🇵", since: "2026年4月" },
-  { id: 2, name: "マリア ロペス", nameEn: "Maria Lopez",    no: "2026-0043", flag: "🇧🇷", since: "2026年4月" },
-  { id: 3, name: "チェン ウェイ", nameEn: "Wei Chen",       no: "2026-0044", flag: "🇨🇳", since: "2026年5月" },
-  { id: 4, name: "サラ ジョーンズ", nameEn: "Sara Jones",   no: "2026-0045", flag: "🇺🇸", since: "2026年4月" },
-  { id: 5, name: "カリム アリ",   nameEn: "Karim Ali",      no: "2026-0046", flag: "🇪🇬", since: "2026年6月" },
-];
+// ── Users ─────────────────────────────────
+// 管理者画面では Firebase から動的に取得するため、ここは空
+export const USERS = [];
 
 // ── Initial attendance ─────────────────────
-export const initialAttendance = {
-  1: new Set([1, 2]),
-  2: new Set([1, 6]),
-  3: new Set([1, 2, 3, 4, 5, 6]),
-  4: new Set([1]),
-  5: new Set([1, 2]),
-};
+export const initialAttendance = {};
 
 // ── Announcement categories ────────────────
 export const NOTICE_CATS = [

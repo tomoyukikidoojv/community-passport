@@ -10,7 +10,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import { C, initialAttendance, initialAnnouncements } from "./constants";
 import { LangProvider, useLang } from "./i18n/LangContext";
 import { LANGS } from "./i18n/translations";
-import { saveUserToCloud } from "./lib/userService";
+import { saveUserToCloud, saveAttendanceToCloud } from "./lib/userService";
 
 const ADMIN_PASSWORD = "Kidodomo1551";
 const STORAGE_KEY = "cp_user";
@@ -341,6 +341,8 @@ function AppRoutes() {
       localStorage.setItem(ATTENDANCE_KEY, JSON.stringify(
         Object.fromEntries(Object.entries(next).map(([k, v]) => [k, [...v]]))
       ));
+      // Firebase にも同期
+      saveAttendanceToCloud(userId, userSet);
       return next;
     });
   };

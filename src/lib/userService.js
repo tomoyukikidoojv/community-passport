@@ -1,4 +1,4 @@
-import { doc, setDoc, getDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc, collection, getDocs } from "firebase/firestore";
 import { db } from "./firebase";
 
 // Sanitize email for use as Firestore document ID
@@ -14,6 +14,47 @@ export async function saveUserToCloud(user) {
   } catch (err) {
     console.error("saveUserToCloud error:", err);
     return false;
+  }
+}
+
+// ── Attendance (スタンプ) Cloud Sync ──────────────────────────
+
+/** スタンプをクラウドに保存 */
+export async function saveAttendanceToCloud(userId, stamps) {
+  if (!userId) return false;
+  try {
+    const ref = doc(db, "attendance", String(userId));
+    await setDoc(ref, { stamps: [...stamps] });
+    return true;
+  } catch (err) {
+    console.error("saveAttendanceToCloud error:", err);
+    return false;
+  }
+}
+
+/** 管理者用: 全ユーザーのスタンプを取得 */
+export async function fetchAllAttendance() {
+  try {
+    const snap = await getDocs(collection(db, "attendance"));
+    const result = {};
+    snap.docs.forEach(d => {
+      result[Number(d.id)] = new Set(d.data().stamps || []);
+    });
+    return result;
+  } catch (err) {
+    console.error("fetchAllAttendance error:", err);
+    return {};
+  }
+}
+
+/** 管理者用: Firebase の全ユーザーを取得 */
+export async function fetchAllUsers() {
+  try {
+    const snap = await getDocs(collection(db, "users"));
+    return snap.docs.map(d => d.data());
+  } catch (err) {
+    console.error("fetchAllUsers error:", err);
+    return [];
   }
 }
 
