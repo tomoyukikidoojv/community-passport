@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, NavLink, useNavigate, Navigate } from "react-router-dom";
 import RegisterPage from "./pages/RegisterPage";
 import LoginPage from "./pages/LoginPage";
@@ -280,17 +280,24 @@ function UserNav({ registeredUser, myStamps, unreadCount, onLogout }) {
 function AppRoutes() {
   const navigate = useNavigate();
 
-  // Load user from localStorage (+ sync to Firestore on every app load)
+  // Load user from localStorage
   const [registeredUser, setRegisteredUser] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      const user = saved ? JSON.parse(saved) : null;
-      if (user?.email) saveUserToCloud(user); // クラウド同期
-      return user;
+      return saved ? JSON.parse(saved) : null;
     } catch {
       return null;
     }
   });
+
+  // Sync to Firestore after mount (useEffect = 確実に非同期で実行)
+  useEffect(() => {
+    if (registeredUser?.email) {
+      saveUserToCloud(registeredUser)
+        .then(ok => console.log("[Firebase] sync:", ok ? "OK" : "FAIL"))
+        .catch(err => console.error("[Firebase] sync error:", err));
+    }
+  }, []);
 
   // Login state: stored in sessionStorage (resets when browser closes)
   const [loggedIn, setLoggedIn] = useState(
