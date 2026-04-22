@@ -10,10 +10,9 @@ export default function LoginPage({ savedUser, onLogin, onReset }) {
   const [error, setError] = useState(false);
 
   // Reset flow states
-  const [resetMode, setResetMode] = useState(false);          // showing reset panel
-  const [resetMethod, setResetMethod] = useState("email");    // "email" | "phone"
+  const [resetMode, setResetMode] = useState(false);
   const [resetInput, setResetInput] = useState("");
-  const [resetStatus, setResetStatus] = useState(null);       // null | "sending" | "sent" | "not_found" | "err" | "unconfigured"
+  const [resetStatus, setResetStatus] = useState(null); // null | "sending" | "sent" | "not_found" | "err" | "unconfigured"
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const submit = (e) => {
@@ -30,26 +29,16 @@ export default function LoginPage({ savedUser, onLogin, onReset }) {
     const input = resetInput.trim();
     if (!input) return;
 
-    // Check if user has this contact info
-    const matchEmail = resetMethod === "email" && savedUser.email === input;
-    const matchPhone = resetMethod === "phone" && savedUser.phone === input;
-
-    if (!matchEmail && !matchPhone) {
+    if (savedUser.email !== input) {
       setResetStatus("not_found");
       return;
     }
 
-    // Try to send via EmailJS
-    if (resetMethod === "email") {
-      setResetStatus("sending");
-      const result = await sendPasswordResetEmail(input, savedUser.name, savedUser.password);
-      if (result === "sent") setResetStatus("sent");
-      else if (result === "not_configured") setResetStatus("unconfigured");
-      else setResetStatus("err");
-    } else {
-      // SMS: not automated — show staff contact message
-      setResetStatus("unconfigured");
-    }
+    setResetStatus("sending");
+    const result = await sendPasswordResetEmail(input, savedUser.name, savedUser.password);
+    if (result === "sent") setResetStatus("sent");
+    else if (result === "not_configured") setResetStatus("unconfigured");
+    else setResetStatus("err");
   };
 
   const statusMsg = {
@@ -170,34 +159,14 @@ export default function LoginPage({ savedUser, onLogin, onReset }) {
                 borderRadius: 12, padding: "16px", textAlign: "left",
               }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: C.teal, marginBottom: 12 }}>
-                  🔑 {t("login.reset_method")}
-                </div>
-
-                {/* Toggle email / phone */}
-                <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-                  {["email", "phone"].map(m => (
-                    <button
-                      key={m}
-                      onClick={() => { setResetMethod(m); setResetInput(""); setResetStatus(null); }}
-                      style={{
-                        flex: 1, padding: "7px", borderRadius: 8, cursor: "pointer",
-                        border: `1.5px solid ${resetMethod === m ? C.teal : C.lightGray}`,
-                        background: resetMethod === m ? C.tealPale : C.white,
-                        color: resetMethod === m ? C.teal : C.gray,
-                        fontWeight: resetMethod === m ? 700 : 400,
-                        fontSize: 12, fontFamily: "inherit",
-                      }}
-                    >
-                      {m === "email" ? `📧 ${t("login.reset_email_label")}` : `📱 ${t("login.reset_phone_label")}`}
-                    </button>
-                  ))}
+                  🔑 {t("login.reset_email_label")}
                 </div>
 
                 <input
-                  type={resetMethod === "email" ? "email" : "tel"}
+                  type="email"
                   value={resetInput}
                   onChange={e => { setResetInput(e.target.value); setResetStatus(null); }}
-                  placeholder={t("login.reset_input_placeholder")}
+                  placeholder="example@email.com"
                   style={{
                     width: "100%", padding: "9px 12px", boxSizing: "border-box",
                     border: `1.5px solid ${C.lightGray}`, borderRadius: 8,
