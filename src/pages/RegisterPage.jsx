@@ -80,8 +80,12 @@ export default function RegisterPage({ onRegistered }) {
   const validate = () => {
     const errs = {};
     if (!form.name.trim())           errs.name      = t("register.err_name");
+    if (!form.dob)                   errs.dob       = t("register.err_required");
     if (!form.country)               errs.country   = t("register.err_country");
+    if (!form.email.trim())          errs.email     = t("register.err_required");
+    if (!form.phone.trim())          errs.phone     = t("register.err_required");
     if (form.languages.length === 0) errs.languages = t("register.err_languages");
+    if (!form.volunteer)             errs.volunteer = t("register.err_required");
     if (form.password.length < 4)   errs.password  = t("register.err_password");
     if (form.password !== form.passwordConfirm) errs.passwordConfirm = t("register.err_password_match");
     return errs;
@@ -274,12 +278,13 @@ export default function RegisterPage({ onRegistered }) {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
               <div>
                 <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 6 }}>
-                  {t("register.dob")}
+                  {t("register.dob")} <span style={{ color: "#E74C3C" }}>*</span>
                 </label>
                 <input
                   type="date" value={form.dob} onChange={set("dob")}
-                  style={{ ...inputStyle }}
+                  style={{ ...inputStyle, borderColor: errors.dob ? "#E74C3C" : C.lightGray }}
                 />
+                {errors.dob && <div style={{ color: "#E74C3C", fontSize: 11, marginTop: 4 }}>{errors.dob}</div>}
               </div>
               <div>
                 <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 6 }}>
@@ -329,23 +334,29 @@ export default function RegisterPage({ onRegistered }) {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
               <div>
                 <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 6 }}>
-                  {t("register.email")}
+                  {t("register.email")} <span style={{ color: "#E74C3C" }}>*</span>
                 </label>
                 <input
                   type="email" value={form.email} onChange={set("email")}
                   placeholder={t("register.email_placeholder")}
-                  style={{ ...inputStyle }}
+                  style={{ ...inputStyle, borderColor: errors.email ? "#E74C3C" : C.lightGray }}
                 />
+                {errors.email && <div style={{ color: "#E74C3C", fontSize: 11, marginTop: 4 }}>{errors.email}</div>}
               </div>
               <div>
                 <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 6 }}>
-                  {t("register.phone")}
+                  {t("register.phone")} <span style={{ color: "#E74C3C" }}>*</span>
                 </label>
                 <input
-                  type="tel" value={form.phone} onChange={set("phone")}
-                  placeholder={t("register.phone_placeholder")}
-                  style={{ ...inputStyle }}
+                  type="tel" value={form.phone} onChange={e => {
+                    // ハイフンなし・数字のみ
+                    set("phone")({ target: { value: e.target.value.replace(/[^\d+]/g, "") } });
+                  }}
+                  placeholder="09012345678"
+                  maxLength={15}
+                  style={{ ...inputStyle, borderColor: errors.phone ? "#E74C3C" : C.lightGray }}
                 />
+                {errors.phone && <div style={{ color: "#E74C3C", fontSize: 11, marginTop: 4 }}>{errors.phone}</div>}
               </div>
             </div>
 
@@ -410,14 +421,14 @@ export default function RegisterPage({ onRegistered }) {
                   <label key={opt.val} style={{
                     flex: 1, display: "flex", alignItems: "center", gap: 8,
                     padding: "10px 14px", borderRadius: 10, cursor: "pointer",
-                    border: `1.5px solid ${form.volunteer === opt.val ? C.teal : C.lightGray}`,
+                    border: `1.5px solid ${form.volunteer === opt.val ? C.teal : errors.volunteer ? "#E74C3C" : C.lightGray}`,
                     background: form.volunteer === opt.val ? C.tealPale : C.white,
                     transition: "all 0.15s",
                   }}>
                     <input
                       type="radio" name="volunteer" value={opt.val}
                       checked={form.volunteer === opt.val}
-                      onChange={set("volunteer")}
+                      onChange={e => { set("volunteer")(e); setErrors(er => ({ ...er, volunteer: null })); }}
                       style={{ accentColor: C.teal }}
                     />
                     <span style={{
@@ -427,6 +438,7 @@ export default function RegisterPage({ onRegistered }) {
                   </label>
                 ))}
               </div>
+              {errors.volunteer && <div style={{ color: "#E74C3C", fontSize: 11, marginTop: 6 }}>{errors.volunteer}</div>}
             </div>
 
             {/* Activities */}
