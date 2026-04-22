@@ -886,10 +886,23 @@ function QrScanModal({ onStamp, onClose }) {
 }
 
 // ── 会員一覧パネル ────────────────────────────────────────
+const EVT_OPTIONS = [
+  { key: "children", label: "子供向け活動" },
+  { key: "cultural", label: "文化交流" },
+  { key: "cooking",  label: "料理・フードイベント" },
+  { key: "arts",     label: "アート・クラフト" },
+  { key: "sports",   label: "スポーツ・レクリエーション" },
+  { key: "music",    label: "音楽・パフォーマンス" },
+  { key: "community",label: "地域交流・コミュニティ活動" },
+  { key: "others",   label: "その他" },
+];
+
 function MembersPanel() {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [filterVolunteer, setFilterVolunteer] = useState(""); // "" | "yes" | "no"
+  const [filterEvent, setFilterEvent] = useState("");         // "" | event key
 
   useEffect(() => {
     fetchAllUsers().then(users => {
@@ -898,13 +911,22 @@ function MembersPanel() {
     });
   }, []);
 
-  const filtered = members.filter(m =>
-    !search ||
-    m.name?.includes(search) ||
-    m.email?.includes(search) ||
-    m.no?.includes(search) ||
-    m.country?.name?.includes(search)
-  );
+  const filtered = members.filter(m => {
+    if (search && !m.name?.includes(search) && !m.email?.includes(search) &&
+        !m.no?.includes(search) && !m.country?.name?.includes(search)) return false;
+    if (filterVolunteer && m.volunteer !== filterVolunteer) return false;
+    if (filterEvent && !(m.eventInterests || []).includes(filterEvent)) return false;
+    return true;
+  });
+
+  const hasFilter = search || filterVolunteer || filterEvent;
+  const clearAll = () => { setSearch(""); setFilterVolunteer(""); setFilterEvent(""); };
+
+  const selectStyle = {
+    padding: "6px 10px", borderRadius: 8, border: `1.5px solid ${C.lightGray}`,
+    fontSize: 12, fontFamily: "inherit", outline: "none",
+    color: C.charcoal, background: C.white, cursor: "pointer",
+  };
 
   const thStyle = {
     padding: "10px 12px", background: C.offWhite,
@@ -922,27 +944,16 @@ function MembersPanel() {
   return (
     <div style={{ background: C.white, borderRadius: 16, boxShadow: "0 8px 30px rgba(0,0,0,0.2)", overflow: "hidden" }}>
       {/* ヘッダー */}
-      <div style={{
-        padding: "16px 20px", borderBottom: `1px solid ${C.lightGray}`,
-        display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10,
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ display: "inline-block", width: 4, height: 16, background: C.teal, borderRadius: 2 }} />
-          <span style={{ fontSize: 13, fontWeight: 700, color: C.charcoal }}>会員一覧</span>
-          <span style={{ background: C.tealPale, color: C.teal, borderRadius: 20, padding: "1px 10px", fontSize: 11, fontWeight: 700 }}>
-            {members.length}人
-          </span>
-        </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <input
-            type="text" placeholder="名前・メール・国で検索"
-            value={search} onChange={e => setSearch(e.target.value)}
-            style={{
-              padding: "6px 12px", borderRadius: 8, border: `1.5px solid ${C.lightGray}`,
-              fontSize: 12, fontFamily: "inherit", outline: "none", color: C.charcoal,
-              width: 200,
-            }}
-          />
+      <div style={{ padding: "16px 20px", borderBottom: `1px solid ${C.lightGray}` }}>
+        {/* 上段：タイトル + ダウンロード */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10, marginBottom: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ display: "inline-block", width: 4, height: 16, background: C.teal, borderRadius: 2 }} />
+            <span style={{ fontSize: 13, fontWeight: 700, color: C.charcoal }}>会員一覧</span>
+            <span style={{ background: C.tealPale, color: C.teal, borderRadius: 20, padding: "1px 10px", fontSize: 11, fontWeight: 700 }}>
+              {filtered.length} / {members.length}人
+            </span>
+          </div>
           <button
             onClick={() => downloadExcel(filtered)}
             disabled={filtered.length === 0}
@@ -956,6 +967,34 @@ function MembersPanel() {
           >
             📥 Excelダウンロード
           </button>
+        </div>
+
+        {/* 下段：検索・フィルター */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+          <input
+            type="text" placeholder="🔍 名前・メール・国で検索"
+            value={search} onChange={e => setSearch(e.target.value)}
+            style={{ ...selectStyle, width: 200 }}
+          />
+          <select value={filterVolunteer} onChange={e => setFilterVolunteer(e.target.value)} style={selectStyle}>
+            <option value="">ボランティア：すべて</option>
+            <option value="yes">✓ はい</option>
+            <option value="no">いいえ</option>
+          </select>
+          <select value={filterEvent} onChange={e => setFilterEvent(e.target.value)} style={selectStyle}>
+            <option value="">参加希望イベント：すべて</option>
+            {EVT_OPTIONS.map(o => (
+              <option key={o.key} value={o.key}>{o.label}</option>
+            ))}
+          </select>
+          {hasFilter && (
+            <button onClick={clearAll} style={{
+              padding: "6px 12px", borderRadius: 8,
+              border: `1.5px solid ${C.lightGray}`,
+              background: C.white, color: C.gray,
+              fontSize: 12, cursor: "pointer", fontFamily: "inherit",
+            }}>✕ クリア</button>
+          )}
         </div>
       </div>
 
