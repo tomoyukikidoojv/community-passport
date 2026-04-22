@@ -266,19 +266,31 @@ export default function LoginPage({ savedUser, onLogin, onReset, onShowRegister,
             </button>
           </form>
 
-          {/* Forgot password */}
+          {/* Forgot password / New registration */}
           <div style={{ textAlign: "center", marginTop: 20 }}>
             {!resetMode && !showDeleteConfirm && (
-              <button
-                onClick={() => setResetMode(true)}
-                style={{
-                  background: "none", border: "none", cursor: "pointer",
-                  color: C.gray, fontSize: 12, fontFamily: "inherit",
-                  textDecoration: "underline",
-                }}
-              >
-                {t("login.forgot")}
-              </button>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "center" }}>
+                <button
+                  onClick={() => setResetMode(true)}
+                  style={{
+                    background: "none", border: "none", cursor: "pointer",
+                    color: C.gray, fontSize: 12, fontFamily: "inherit",
+                    textDecoration: "underline",
+                  }}
+                >
+                  {t("login.forgot")}
+                </button>
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  style={{
+                    background: "none", border: "none", cursor: "pointer",
+                    color: C.teal, fontSize: 12, fontFamily: "inherit",
+                    textDecoration: "underline",
+                  }}
+                >
+                  📝 {t("login.new_register")}
+                </button>
+              </div>
             )}
 
             {/* Password reset panel */}
