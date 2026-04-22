@@ -5,7 +5,7 @@ import LoginPage from "./pages/LoginPage";
 import CommunityPassport from "./pages/CommunityPassport";
 import AnnouncementsPage from "./pages/AnnouncementsPage";
 import CalendarPage from "./pages/CalendarPage";
-import ApplyPage from "./pages/ApplyPage";
+import ContactPage from "./pages/ContactPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import { C, initialAttendance, initialAnnouncements } from "./constants";
 import { LangProvider, useLang } from "./i18n/LangContext";
@@ -107,6 +107,7 @@ function UserNav({ registeredUser, myStamps, unreadCount, onLogout }) {
     { path: "/announcements", emoji: "📢", labelKey: "nav.announcements", labelEn: "Announcements" },
     { path: "/calendar",      emoji: "📅", labelKey: "nav.calendar",      labelEn: "Calendar"      },
     { path: "/passport",      emoji: "🎫", labelKey: "nav.passport",      labelEn: "Passport"      },
+    { path: "/contact",       emoji: "💬", labelKey: "nav.contact",       labelEn: "Contact"       },
   ];
 
   return (
@@ -422,11 +423,11 @@ function AppRoutes() {
             <Route path="/calendar" element={
               <CalendarPage stamps={myStamps} user={registeredUser} />
             } />
-            <Route path="/apply/:eventId" element={
-              <ApplyPage user={registeredUser} />
-            } />
             <Route path="/passport" element={
               <CommunityPassport stamps={myStamps} onManualStamp={toggleStamp} user={registeredUser} />
+            } />
+            <Route path="/contact" element={
+              <ContactPage user={registeredUser} />
             } />
             <Route path="*" element={<Navigate to="/announcements" replace />} />
           </Routes>

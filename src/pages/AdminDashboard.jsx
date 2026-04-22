@@ -105,9 +105,9 @@ function NoticeForm({ onPost }) {
 const ADMIN_TABS = [
   { id: "attendance",    label: "出席状況", emoji: "📊" },
   { id: "announcements", label: "お知らせ", emoji: "📢" },
-  { id: "applications",  label: "申込管理", emoji: "📋" },
+  { id: "applications",  label: "参加者",   emoji: "📋" },
   { id: "events",        label: "イベント", emoji: "📅" },
-  { id: "formbuilder",   label: "フォーム", emoji: "🛠" },
+  { id: "formbuilder",   label: "アンケート", emoji: "📝" },
 ];
 
 export default function AdminDashboard({ attendance, onStamp, announcements, onPostAnnouncement, onDeleteAnnouncement }) {

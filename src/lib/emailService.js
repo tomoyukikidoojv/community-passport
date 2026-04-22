@@ -1,44 +1,38 @@
 /**
- * EmailJS password reset service
+ * EmailJS service — password reset + contact form
  *
- * ── セットアップ手順 ─────────────────────────────────────
- * 1. https://www.emailjs.com/ でアカウント作成（無料）
- * 2. Email Services → "Add New Service" → Gmail などを連携
- * 3. Email Templates → "Create New Template" → 下記内容で作成:
+ * ── 問い合わせテンプレートの作成手順 ──────────────────────
+ * EmailJS → Email Templates → Create New Template
  *
- *    Subject: コミュニティパスポート - パスワードのご確認
- *    Body:
- *      {{name}} さん、こんにちは。
+ *   Subject: 【問い合わせ】{{from_name}} さんより
+ *   To Email: (管理者のGmailアドレスを直接入力)
+ *   Body:
+ *     差出人: {{from_name}}
+ *     メール: {{from_email}}
  *
- *      パスワード再設定のリクエストがありました。
- *      あなたのパスワードは: {{password}}
+ *     【内容】
+ *     {{message}}
  *
- *      ご不明な点はスタッフまでお問い合わせください。
- *
- * 4. Account → General → Public Key をコピー
- * 5. 下記の3つの値を入力してください:
+ * → Template ID を CONTACT_TEMPLATE_ID に入力してください
  * ────────────────────────────────────────────────────────
  */
 
 export const EMAILJS_CONFIG = {
-  serviceId:  "service_l47l7q9",
-  templateId: "template_h9awnkn",
-  publicKey:  "gT4kz_tRktp84OT_u",
+  serviceId:          "service_l47l7q9",
+  templateId:         "template_h9awnkn",   // パスワードリセット用
+  contactTemplateId:  "",                    // ← 問い合わせ用テンプレートIDをここに入力
+  publicKey:          "gT4kz_tRktp84OT_u",
 };
 
 export const EMAIL_CONFIGURED =
   EMAILJS_CONFIG.serviceId && EMAILJS_CONFIG.templateId && EMAILJS_CONFIG.publicKey;
 
-/**
- * パスワードリセットメールを送信する
- * @param {string} toEmail  - 送信先メールアドレス
- * @param {string} name     - ユーザー名
- * @param {string} password - 現在のパスワード
- * @returns {Promise<"sent"|"not_configured"|"error">}
- */
+export const CONTACT_CONFIGURED =
+  EMAILJS_CONFIG.serviceId && EMAILJS_CONFIG.contactTemplateId && EMAILJS_CONFIG.publicKey;
+
+/** パスワードリセットメール送信 */
 export async function sendPasswordResetEmail(toEmail, name, password) {
   if (!EMAIL_CONFIGURED) return "not_configured";
-
   try {
     const emailjs = await import("@emailjs/browser");
     await emailjs.send(
@@ -49,7 +43,25 @@ export async function sendPasswordResetEmail(toEmail, name, password) {
     );
     return "sent";
   } catch (err) {
-    console.error("EmailJS error:", err);
+    console.error("EmailJS reset error:", err);
+    return "error";
+  }
+}
+
+/** 問い合わせフォーム送信（管理者へ） */
+export async function sendContactEmail(fromName, fromEmail, message) {
+  if (!CONTACT_CONFIGURED) return "not_configured";
+  try {
+    const emailjs = await import("@emailjs/browser");
+    await emailjs.send(
+      EMAILJS_CONFIG.serviceId,
+      EMAILJS_CONFIG.contactTemplateId,
+      { from_name: fromName, from_email: fromEmail, message },
+      { publicKey: EMAILJS_CONFIG.publicKey }
+    );
+    return "sent";
+  } catch (err) {
+    console.error("EmailJS contact error:", err);
     return "error";
   }
 }

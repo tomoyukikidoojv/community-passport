@@ -322,22 +322,6 @@ export default function CalendarPage({ stamps, user }) {
                   </div>
                 )}
 
-                {/* Apply button */}
-                {new Date(selectedEvent.fullDate) >= new Date(today.toDateString()) && !stamps?.has(selectedEvent.id) && (
-                  <button
-                    onClick={() => { setSelectedEvent(null); navigate(`/apply/${selectedEvent.id}`); }}
-                    style={{
-                      width: "100%", padding: "11px", marginBottom: 8,
-                      background: `linear-gradient(90deg, ${selectedEvent.color}, ${selectedEvent.color}cc)`,
-                      color: C.white, border: "none", borderRadius: 8,
-                      fontSize: 13, fontWeight: 700,
-                      cursor: "pointer", fontFamily: "inherit",
-                      boxShadow: `0 3px 10px ${selectedEvent.color}40`,
-                    }}
-                  >
-                    {t("calendar.apply_btn")}
-                  </button>
-                )}
 
                 {/* Image gallery */}
                 {selectedEvent.images && selectedEvent.images.length > 0 && (
