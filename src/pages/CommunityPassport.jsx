@@ -12,12 +12,10 @@ function PhotoCropModal({ src, onConfirm, onCancel }) {
   const [imgSize, setImgSize] = useState({ w: 1, h: 1 });
   const [scale, setScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
-
-  // confirm 用に最新の offset/scale を ref で持つ
   const offsetRef = useRef({ x: 0, y: 0 });
-  const scaleRef = useRef(1);
+  const scaleRef  = useRef(1);
   useEffect(() => { offsetRef.current = offset; }, [offset]);
-  useEffect(() => { scaleRef.current = scale; }, [scale]);
+  useEffect(() => { scaleRef.current  = scale;  }, [scale]);
 
   const onImgLoad = () => {
     const img = imgRef.current;
@@ -29,65 +27,54 @@ function PhotoCropModal({ src, onConfirm, onCancel }) {
     setOffset({ x: (D - w * s) / 2, y: (D - h * s) / 2 });
   };
 
-  // ── ネイティブタッチイベント（passive:false で preventDefault が効く）──
+  // ── Pointer Events で統一（mouse / touch どちらも動く）──
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    let isDragging = false;
-    let lastX = 0, lastY = 0;
-    let lastPinch = null;
+    const ptrs = new Map(); // pointerId → {x, y}
 
-    const onTS = (e) => {
+    const onDown = (e) => {
       e.preventDefault();
-      if (e.touches.length === 1) {
-        isDragging = true;
-        lastX = e.touches[0].clientX;
-        lastY = e.touches[0].clientY;
-      } else if (e.touches.length === 2) {
-        isDragging = false;
-        const dx = e.touches[0].clientX - e.touches[1].clientX;
-        const dy = e.touches[0].clientY - e.touches[1].clientY;
-        lastPinch = Math.sqrt(dx * dx + dy * dy);
-      }
+      el.setPointerCapture(e.pointerId);
+      ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
     };
-    const onTM = (e) => {
+
+    const onMove = (e) => {
       e.preventDefault();
-      if (e.touches.length === 1 && isDragging) {
-        const dx = e.touches[0].clientX - lastX;
-        const dy = e.touches[0].clientY - lastY;
+      if (!ptrs.has(e.pointerId)) return;
+
+      if (ptrs.size === 1) {
+        // 1本指：ドラッグ移動
+        const prev = ptrs.get(e.pointerId);
+        const dx = e.clientX - prev.x;
+        const dy = e.clientY - prev.y;
         setOffset(o => ({ x: o.x + dx, y: o.y + dy }));
-        lastX = e.touches[0].clientX;
-        lastY = e.touches[0].clientY;
-      } else if (e.touches.length === 2 && lastPinch) {
-        const dx = e.touches[0].clientX - e.touches[1].clientX;
-        const dy = e.touches[0].clientY - e.touches[1].clientY;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        setScale(s => Math.max(0.3, Math.min(5, s * (dist / lastPinch))));
-        lastPinch = dist;
+      } else if (ptrs.size === 2) {
+        // 2本指：ピンチズーム
+        const [idA, idB] = [...ptrs.keys()];
+        const pA = idA === e.pointerId ? { x: e.clientX, y: e.clientY } : ptrs.get(idA);
+        const pB = idB === e.pointerId ? { x: e.clientX, y: e.clientY } : ptrs.get(idB);
+        const oldA = ptrs.get(idA), oldB = ptrs.get(idB);
+        const prevDist = Math.hypot(oldA.x - oldB.x, oldA.y - oldB.y);
+        const newDist  = Math.hypot(pA.x  - pB.x,  pA.y  - pB.y);
+        if (prevDist > 0) setScale(s => Math.max(0.3, Math.min(5, s * newDist / prevDist)));
       }
+      ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
     };
-    const onTE = () => { isDragging = false; lastPinch = null; };
 
-    el.addEventListener("touchstart", onTS, { passive: false });
-    el.addEventListener("touchmove",  onTM, { passive: false });
-    el.addEventListener("touchend",   onTE);
+    const onUp = (e) => { ptrs.delete(e.pointerId); };
+
+    el.addEventListener("pointerdown",   onDown);
+    el.addEventListener("pointermove",   onMove);
+    el.addEventListener("pointerup",     onUp);
+    el.addEventListener("pointercancel", onUp);
     return () => {
-      el.removeEventListener("touchstart", onTS);
-      el.removeEventListener("touchmove",  onTM);
-      el.removeEventListener("touchend",   onTE);
+      el.removeEventListener("pointerdown",   onDown);
+      el.removeEventListener("pointermove",   onMove);
+      el.removeEventListener("pointerup",     onUp);
+      el.removeEventListener("pointercancel", onUp);
     };
   }, []);
-
-  // ── マウスドラッグ ──
-  const isDraggingMouse = useRef(false);
-  const lastMouse = useRef({ x: 0, y: 0 });
-  const onMouseDown = (e) => { isDraggingMouse.current = true; lastMouse.current = { x: e.clientX, y: e.clientY }; };
-  const onMouseMove = (e) => {
-    if (!isDraggingMouse.current) return;
-    setOffset(o => ({ x: o.x + e.clientX - lastMouse.current.x, y: o.y + e.clientY - lastMouse.current.y }));
-    lastMouse.current = { x: e.clientX, y: e.clientY };
-  };
-  const onMouseUp = () => { isDraggingMouse.current = false; };
 
   const handleConfirm = () => {
     const OUT = 300;
@@ -128,8 +115,6 @@ function PhotoCropModal({ src, onConfirm, onCancel }) {
           userSelect: "none", touchAction: "none",
           boxShadow: `0 0 0 2000px rgba(0,0,0,0.6)`,
         }}
-        onMouseDown={onMouseDown} onMouseMove={onMouseMove}
-        onMouseUp={onMouseUp} onMouseLeave={onMouseUp}
       >
         <img
           ref={imgRef} src={src} onLoad={onImgLoad} draggable={false}
