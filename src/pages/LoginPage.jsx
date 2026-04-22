@@ -3,11 +3,17 @@ import { C } from "../constants";
 import { useLang } from "../i18n/LangContext";
 import LangDropdown from "../components/LangDropdown";
 import { sendPasswordResetEmail, EMAIL_CONFIGURED } from "../lib/emailService";
+import { fetchUserByCredentials } from "../lib/userService";
 
-export default function LoginPage({ savedUser, onLogin, onReset, onShowRegister }) {
+export default function LoginPage({ savedUser, onLogin, onReset, onShowRegister, onCloudLogin }) {
   const { t } = useLang();
   const [password, setPassword] = useState("");
   const [error, setError] = useState(false);
+
+  // Cross-device login state
+  const [crossEmail, setCrossEmail] = useState("");
+  const [crossPassword, setCrossPassword] = useState("");
+  const [crossStatus, setCrossStatus] = useState(null); // null | "loading" | "not_found" | "wrong" | "error"
 
   // Reset flow states
   const [resetMode, setResetMode] = useState(false);
@@ -48,8 +54,29 @@ export default function LoginPage({ savedUser, onLogin, onReset, onShowRegister 
     err: { color: "#E74C3C", text: t("login.reset_err") },
   };
 
-  // No local data (different device) — show guidance screen
+  // No local data (different device) — cross-device login form
   if (!savedUser) {
+    const handleCrossLogin = async () => {
+      if (!crossEmail.trim() || !crossPassword.trim()) return;
+      setCrossStatus("loading");
+      const result = await fetchUserByCredentials(crossEmail.trim(), crossPassword);
+      if (result === "not_found" || result === "wrong_password") {
+        setCrossStatus("wrong");
+      } else if (result === "error") {
+        setCrossStatus("error");
+      } else {
+        // 成功: クラウドからデータ取得
+        onCloudLogin(result);
+      }
+    };
+
+    const inputStyle = {
+      width: "100%", padding: "10px 14px", boxSizing: "border-box",
+      border: `1.5px solid ${C.lightGray}`, borderRadius: 8,
+      fontSize: 14, fontFamily: "inherit", outline: "none", color: C.charcoal,
+      marginBottom: 12,
+    };
+
     return (
       <div style={{
         minHeight: "100vh",
@@ -64,38 +91,85 @@ export default function LoginPage({ savedUser, onLogin, onReset, onShowRegister 
         <div style={{
           background: C.white, borderRadius: 20, maxWidth: 400, width: "100%",
           boxShadow: "0 20px 60px rgba(0,0,0,0.35)", overflow: "hidden",
-          textAlign: "center",
         }}>
           <div style={{
             background: `linear-gradient(90deg, ${C.teal}, ${C.tealMid})`,
-            padding: "28px 24px",
+            padding: "24px", textAlign: "center",
           }}>
-            <div style={{ fontSize: 40, marginBottom: 8 }}>📱</div>
+            <div style={{ fontSize: 36, marginBottom: 8 }}>📱</div>
             <div style={{ color: C.white, fontSize: 18, fontWeight: 800 }}>
-              {t("login.title")}
+              {t("login.other_device_title")}
+            </div>
+            <div style={{ color: "rgba(255,255,255,0.65)", fontSize: 12, marginTop: 4 }}>
+              {t("login.other_device_desc")}
             </div>
           </div>
-          <div style={{ padding: "28px 28px 24px" }}>
-            <div style={{
-              fontSize: 14, color: C.charcoal, lineHeight: 1.8,
-              marginBottom: 24,
-            }}>
-              {t("login.no_data_desc")}
+
+          <div style={{ padding: "24px 28px 28px" }}>
+            <div style={{ marginBottom: 6 }}>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 6 }}>
+                {t("register.email")}
+              </label>
+              <input
+                type="email"
+                value={crossEmail}
+                onChange={e => { setCrossEmail(e.target.value); setCrossStatus(null); }}
+                placeholder="email@example.com"
+                style={inputStyle}
+              />
             </div>
-            {onShowRegister && (
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 6 }}>
+                {t("login.password")}
+              </label>
+              <input
+                type="password"
+                value={crossPassword}
+                onChange={e => { setCrossPassword(e.target.value); setCrossStatus(null); }}
+                placeholder={t("login.password_placeholder")}
+                style={{ ...inputStyle, marginBottom: 0 }}
+              />
+            </div>
+
+            {crossStatus === "wrong" && (
+              <div style={{ color: "#E74C3C", fontSize: 12, marginBottom: 12 }}>
+                {t("login.cross_err")}
+              </div>
+            )}
+            {crossStatus === "error" && (
+              <div style={{ color: "#E74C3C", fontSize: 12, marginBottom: 12 }}>
+                {t("login.reset_err")}
+              </div>
+            )}
+
+            <button
+              onClick={handleCrossLogin}
+              disabled={crossStatus === "loading"}
+              style={{
+                width: "100%", padding: "13px",
+                background: crossStatus === "loading" ? C.lightGray : `linear-gradient(90deg, ${C.teal}, ${C.tealMid})`,
+                color: C.white, border: "none", borderRadius: 10,
+                fontSize: 15, fontWeight: 700,
+                cursor: crossStatus === "loading" ? "default" : "pointer",
+                fontFamily: "inherit", marginBottom: 16,
+              }}
+            >
+              {crossStatus === "loading" ? "..." : `🎫 ${t("login.btn")}`}
+            </button>
+
+            <div style={{ textAlign: "center", fontSize: 13, color: C.gray }}>
+              {t("register.have_account_no")}{" "}
               <button
                 onClick={onShowRegister}
                 style={{
-                  width: "100%", padding: "13px",
-                  background: `linear-gradient(90deg, ${C.teal}, ${C.tealMid})`,
-                  color: C.white, border: "none", borderRadius: 10,
-                  fontSize: 15, fontWeight: 700, cursor: "pointer",
-                  fontFamily: "inherit",
+                  background: "none", border: "none", cursor: "pointer",
+                  color: C.teal, fontSize: 13, fontWeight: 700,
+                  fontFamily: "inherit", textDecoration: "underline",
                 }}
               >
-                📝 {t("register.title")}
+                {t("register.title")} →
               </button>
-            )}
+            </div>
           </div>
         </div>
       </div>

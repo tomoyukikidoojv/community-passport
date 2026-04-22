@@ -372,6 +372,15 @@ function AppRoutes() {
   // Admin route is always accessible regardless of user login state
   const [showLoginForNewDevice, setShowLoginForNewDevice] = useState(false);
 
+  const handleCloudLogin = (user) => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+    sessionStorage.setItem("cp_loggedin", "1");
+    setRegisteredUser(user);
+    setLoggedIn(true);
+    setAttendance(prev => ({ ...prev, [user.id]: prev[user.id] || new Set() }));
+    navigate("/passport");
+  };
+
   // Not registered yet → registration or login screen (except admin)
   if (!registeredUser) {
     return (
@@ -384,6 +393,7 @@ function AppRoutes() {
                 onLogin={handleLogin}
                 onReset={handleReset}
                 onShowRegister={() => setShowLoginForNewDevice(false)}
+                onCloudLogin={handleCloudLogin}
               />
             : <RegisterPage
                 onRegistered={handleRegistered}

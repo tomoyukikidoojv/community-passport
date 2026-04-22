@@ -4,6 +4,7 @@ import { useLang } from "../i18n/LangContext";
 import LangDropdown from "../components/LangDropdown";
 import COUNTRIES from "../i18n/countries";
 import WORLD_LANGUAGES from "../i18n/languages-list";
+import { saveUserToCloud } from "../lib/userService";
 
 const ACTIVITY_KEYS = [
   "event", "interpret", "children", "education",
@@ -119,6 +120,8 @@ export default function RegisterPage({ onRegistered, onShowLogin }) {
     };
     setNewUser(user);
     setSubmitted(true);
+    // クラウドにも保存（別デバイスからのログイン用）
+    saveUserToCloud(user);
   };
 
   // ── Success screen ─────────────────────────────────────
