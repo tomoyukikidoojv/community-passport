@@ -45,7 +45,7 @@ const T = {
     "login.forgot": "パスワードをわすれた",
     "login.new_register": "あたらしいアカウントをつくる",
     "login.reset_title": "⚠️ とうろくをけしますか？",
-    "login.reset_body": "このデバイスのデータをけします。\n\n💡 メールアドレスとパスワードをおぼえていれば、あとからこのアカウントにもどれます。",
+    "login.reset_body": "スタンプのきろくもぜんぶけされます。",
     "login.reset_btn": "けしてやりなおす",
 
     // Register
@@ -240,7 +240,7 @@ const T = {
     "login.forgot": "Forgot password",
     "login.new_register": "Create a new account",
     "login.reset_title": "⚠️ Delete your account?",
-    "login.reset_body": "Your data on this device will be cleared.\n\n💡 If you remember your email and password, you can log back into this account anytime.",
+    "login.reset_body": "All your stamps will also be deleted.",
     "login.reset_btn": "Delete and restart",
 
     "register.title": "Register",
@@ -429,7 +429,7 @@ const T = {
     "login.forgot": "Olvidé mi contraseña",
     "login.new_register": "Crear una nueva cuenta",
     "login.reset_title": "⚠️ ¿Eliminar tu cuenta?",
-    "login.reset_body": "Se eliminarán los datos de este dispositivo.\n\n💡 Si recuerdas tu correo y contraseña, puedes volver a iniciar sesión en esta cuenta cuando quieras.",
+    "login.reset_body": "Todos tus sellos también serán eliminados.",
     "login.reset_btn": "Eliminar y empezar de nuevo",
 
     "register.title": "Registro",
@@ -618,7 +618,7 @@ const T = {
     "login.forgot": "Mot de passe oublié",
     "login.new_register": "Créer un nouveau compte",
     "login.reset_title": "⚠️ Supprimer votre compte ?",
-    "login.reset_body": "Les données de cet appareil seront supprimées.\n\n💡 Si vous vous souvenez de votre e-mail et mot de passe, vous pouvez vous reconnecter à ce compte à tout moment.",
+    "login.reset_body": "Tous vos tampons seront également supprimés.",
     "login.reset_btn": "Supprimer et recommencer",
 
     "register.title": "Inscription",
@@ -807,7 +807,7 @@ const T = {
     "login.forgot": "Esqueci minha senha",
     "login.new_register": "Criar uma nova conta",
     "login.reset_title": "⚠️ Excluir sua conta?",
-    "login.reset_body": "Os dados deste dispositivo serão apagados.\n\n💡 Se lembrar do seu e-mail e senha, poderá fazer login nesta conta novamente a qualquer momento.",
+    "login.reset_body": "Todos os seus carimbos também serão excluídos.",
     "login.reset_btn": "Excluir e recomeçar",
 
     "register.title": "Cadastro",
@@ -996,7 +996,7 @@ const T = {
     "login.forgot": "비밀번호를 잊었습니다",
     "login.new_register": "새 계정 만들기",
     "login.reset_title": "⚠️ 계정을 삭제하시겠습니까?",
-    "login.reset_body": "이 기기의 데이터가 삭제됩니다.\n\n💡 이메일과 비밀번호를 기억하고 있다면 언제든지 이 계정으로 다시 로그인할 수 있습니다.",
+    "login.reset_body": "모든 스탬프 기록도 삭제됩니다.",
     "login.reset_btn": "삭제하고 다시 시작",
 
     "register.title": "등록",
@@ -1185,7 +1185,7 @@ const T = {
     "login.forgot": "忘记密码",
     "login.new_register": "创建新账户",
     "login.reset_title": "⚠️ 删除您的账户？",
-    "login.reset_body": "此设备上的数据将被清除。\n\n💡 如果您记得邮箱和密码，随时可以重新登录此账户。",
+    "login.reset_body": "所有印章记录也将被删除。",
     "login.reset_btn": "删除并重新开始",
 
     "register.title": "注册",
