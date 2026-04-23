@@ -193,63 +193,58 @@ export async function fetchAllApplicationsFromCloud() {
 }
 
 // ── RSVP Cloud Sync ──────────────────────────────
+// 構造: rsvp/{userId} → { entries: { eventId: "going"|"not_going" } }
+// ユーザーごと1文書 = 読み取り1回で済む（コレクション全スキャン不要）
 
-/** RSVPをFirebaseに保存 */
-export async function saveRsvpToCloud(userId, eventId, status) {
+/** 利用者自身のRSVPをFirebaseに保存（ユーザー単位で1文書） */
+export async function saveUserRsvpToCloud(userId, rsvpEntries) {
+  // rsvpEntries: { [eventId]: "going" | "not_going" }
+  if (!userId) return false;
   try {
-    const key = `${userId}_${eventId}`;
-    const ref = doc(db, "rsvp", key);
-    await setDoc(ref, { userId, eventId, status });
+    const ref = doc(db, "rsvp", String(userId));
+    await setDoc(ref, { entries: rsvpEntries });
     return true;
   } catch (err) {
-    console.error("saveRsvpToCloud error:", err);
+    console.error("saveUserRsvpToCloud error:", err);
     return false;
   }
 }
 
-/** RSVPを削除（参加意向を取り消した場合） */
-export async function deleteRsvpFromCloud(userId, eventId) {
+/** 利用者自身のRSVPをFirebaseから取得（1文書読み取り） */
+export async function fetchUserRsvpFromCloud(userId) {
+  if (!userId) return {};
   try {
-    const key = `${userId}_${eventId}`;
-    const ref = doc(db, "rsvp", key);
-    await deleteDoc(ref);
-    return true;
+    const ref = doc(db, "rsvp", String(userId));
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return {};
+    const entries = snap.data().entries || {};
+    // CalendarPageが使う形式 { "userId_eventId": status } に変換
+    const result = {};
+    Object.entries(entries).forEach(([eventId, status]) => {
+      result[`${userId}_${eventId}`] = status;
+    });
+    return result;
   } catch (err) {
-    console.error("deleteRsvpFromCloud error:", err);
-    return false;
+    console.error("fetchUserRsvpFromCloud error:", err);
+    return {};
   }
 }
 
-/** 全RSVPデータをFirebaseから取得 */
+/** 管理者用: 全ユーザーのRSVPを取得（ユーザー数分の読み取り） */
 export async function fetchAllRsvpFromCloud() {
   try {
     const snap = await getDocs(collection(db, "rsvp"));
     const result = {};
     snap.docs.forEach(d => {
-      const { userId, eventId, status } = d.data();
-      result[`${userId}_${eventId}`] = status;
+      const userId = d.id;
+      const entries = d.data().entries || {};
+      Object.entries(entries).forEach(([eventId, status]) => {
+        result[`${userId}_${eventId}`] = status;
+      });
     });
     return result;
   } catch (err) {
     console.error("fetchAllRsvpFromCloud error:", err);
-    return {};
-  }
-}
-
-/** 利用者自身のRSVPをFirebaseから取得 */
-export async function fetchUserRsvpFromCloud(userId) {
-  try {
-    const snap = await getDocs(collection(db, "rsvp"));
-    const result = {};
-    snap.docs.forEach(d => {
-      const data = d.data();
-      if (String(data.userId) === String(userId)) {
-        result[`${data.userId}_${data.eventId}`] = data.status;
-      }
-    });
-    return result;
-  } catch (err) {
-    console.error("fetchUserRsvpFromCloud error:", err);
     return {};
   }
 }

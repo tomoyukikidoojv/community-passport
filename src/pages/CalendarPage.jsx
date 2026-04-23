@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { C } from "../constants";
 import { useEvents } from "../hooks/useEvents";
 import { useLang } from "../i18n/LangContext";
-import { saveRsvpToCloud, deleteRsvpFromCloud, fetchUserRsvpFromCloud } from "../lib/userService";
+import { saveUserRsvpToCloud, fetchUserRsvpFromCloud } from "../lib/userService";
 
 const RSVP_KEY = "cp_rsvp"; // { "userId_eventId": "going" | "not_going" }
 
@@ -85,13 +85,17 @@ export default function CalendarPage({ stamps, user }) {
     const updated = { ...allRsvp };
     if (updated[key] === status) {
       delete updated[key]; // toggle off
-      deleteRsvpFromCloud(uid, eventId);
     } else {
       updated[key] = status;
-      saveRsvpToCloud(uid, eventId, status); // Firestoreにも保存
     }
     setAllRsvp(updated);
     saveAllRsvp(updated);
+    // ユーザー単位で1文書としてFirestoreに保存（1回の書き込みで全RSVP更新）
+    const entries = {};
+    Object.entries(updated)
+      .filter(([k]) => k.startsWith(`${uid}_`))
+      .forEach(([k, v]) => { entries[k.slice(`${uid}_`.length)] = v; });
+    saveUserRsvpToCloud(uid, entries);
   };
 
   const daysInMonth = getDaysInMonth(viewYear, viewMonth);
