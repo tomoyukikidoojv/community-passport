@@ -32,6 +32,20 @@ export async function saveAttendanceToCloud(userId, stamps) {
   }
 }
 
+/** 利用者用: 自分のスタンプをFirebaseから取得 */
+export async function fetchUserAttendance(userId) {
+  if (!userId) return null;
+  try {
+    const ref = doc(db, "attendance", String(userId));
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return null;
+    return new Set(snap.data().stamps || []);
+  } catch (err) {
+    console.error("fetchUserAttendance error:", err);
+    return null;
+  }
+}
+
 /** 管理者用: 全ユーザーのスタンプを取得 */
 export async function fetchAllAttendance() {
   try {

@@ -10,7 +10,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import { C, initialAttendance, initialAnnouncements } from "./constants";
 import { LangProvider, useLang } from "./i18n/LangContext";
 import { LANGS } from "./i18n/translations";
-import { saveUserToCloud, saveAttendanceToCloud, fetchAnnouncements, saveAnnouncementToCloud, deleteAnnouncementFromCloud } from "./lib/userService";
+import { saveUserToCloud, saveAttendanceToCloud, fetchUserAttendance, fetchAnnouncements, saveAnnouncementToCloud, deleteAnnouncementFromCloud } from "./lib/userService";
 
 const ADMIN_PASSWORD = "Kidodomo1551";
 const STORAGE_KEY = "cp_user";
@@ -290,14 +290,33 @@ function AppRoutes() {
     }
   });
 
-  // Sync to Firestore after mount (useEffect = 確実に非同期で実行)
+  // Sync to Firestore after mount
   useEffect(() => {
     if (registeredUser?.email) {
       saveUserToCloud(registeredUser)
-        .then(ok => console.log("[Firebase] sync:", ok ? "OK" : "FAIL"))
+        .then(ok => console.log("[Firebase] user sync:", ok ? "OK" : "FAIL"))
         .catch(err => console.error("[Firebase] sync error:", err));
     }
   }, []);
+
+  // 利用者ログイン時: Firebaseからスタンプを取得してlocalStorageと同期
+  useEffect(() => {
+    if (!registeredUser?.id) return;
+    fetchUserAttendance(registeredUser.id).then(cloudStamps => {
+      if (!cloudStamps || cloudStamps.size === 0) return;
+      setAttendance(prev => {
+        const local = prev[registeredUser.id] || new Set();
+        const merged = new Set([...local, ...cloudStamps]);
+        // ローカルと差分がなければ更新不要
+        if (merged.size === local.size) return prev;
+        const next = { ...prev, [registeredUser.id]: merged };
+        localStorage.setItem(ATTENDANCE_KEY, JSON.stringify(
+          Object.fromEntries(Object.entries(next).map(([k, v]) => [k, [...v]]))
+        ));
+        return next;
+      });
+    });
+  }, [registeredUser?.id]);
 
   // Login state: stored in sessionStorage (resets when browser closes)
   const [loggedIn, setLoggedIn] = useState(
@@ -344,6 +363,7 @@ function AppRoutes() {
     });
   }, []);
 
+  // 利用者自身がスタンプを押す（localStorageとFirebaseを両方更新）
   const toggleStamp = (userId, eventId) => {
     setAttendance(prev => {
       const userSet = new Set(prev[userId] || []);
@@ -353,10 +373,21 @@ function AppRoutes() {
       localStorage.setItem(ATTENDANCE_KEY, JSON.stringify(
         Object.fromEntries(Object.entries(next).map(([k, v]) => [k, [...v]]))
       ));
-      // Firebase にも同期
       saveAttendanceToCloud(userId, userSet);
       return next;
     });
+  };
+
+  // 管理者がスタンプを操作（Firebaseのみ更新・利用者のlocalStorageを汚さない）
+  const adminToggleStamp = async (userId, eventId) => {
+    // Firebaseの最新データを取得してから toggle
+    const current = await fetchUserAttendance(userId) || new Set();
+    const updated = new Set(current);
+    if (updated.has(eventId)) updated.delete(eventId);
+    else updated.add(eventId);
+    await saveAttendanceToCloud(userId, updated);
+    // 管理者画面の表示を即時更新するためにローカルstateも更新
+    setAttendance(prev => ({ ...prev, [userId]: updated }));
   };
 
   const handlePhotoUpdate = (dataUrl) => {
@@ -401,7 +432,7 @@ function AppRoutes() {
     <AdminGate>
       <AdminDashboard
         attendance={attendance}
-        onStamp={toggleStamp}
+        onStamp={adminToggleStamp}
         announcements={announcements}
         onPostAnnouncement={postAnnouncement}
         onDeleteAnnouncement={deleteAnnouncement}
