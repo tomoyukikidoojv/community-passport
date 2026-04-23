@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { C } from "../constants";
 import { useEvents } from "../hooks/useEvents";
 import { useLang } from "../i18n/LangContext";
+import { saveRsvpToCloud, deleteRsvpFromCloud, fetchUserRsvpFromCloud } from "../lib/userService";
 
 const RSVP_KEY = "cp_rsvp"; // { "userId_eventId": "going" | "not_going" }
 
@@ -58,6 +59,20 @@ export default function CalendarPage({ stamps, user }) {
   const [lightboxImg, setLightboxImg] = useState(null);
 
   const uid = user?.id ?? "guest";
+
+  // 起動時にFirestoreから自分のRSVPを取得してlocalStorageと同期
+  useEffect(() => {
+    if (!user?.id) return;
+    fetchUserRsvpFromCloud(user.id).then(cloudRsvp => {
+      if (Object.keys(cloudRsvp).length === 0) return;
+      setAllRsvp(prev => {
+        const merged = { ...prev, ...cloudRsvp };
+        saveAllRsvp(merged);
+        return merged;
+      });
+    });
+  }, [user?.id]);
+
   // Current user's RSVP: { [eventId]: status }
   const rsvp = Object.fromEntries(
     Object.entries(allRsvp)
@@ -70,8 +85,10 @@ export default function CalendarPage({ stamps, user }) {
     const updated = { ...allRsvp };
     if (updated[key] === status) {
       delete updated[key]; // toggle off
+      deleteRsvpFromCloud(uid, eventId);
     } else {
       updated[key] = status;
+      saveRsvpToCloud(uid, eventId, status); // Firestoreにも保存
     }
     setAllRsvp(updated);
     saveAllRsvp(updated);

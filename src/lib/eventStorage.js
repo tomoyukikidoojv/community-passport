@@ -1,4 +1,5 @@
 import { EVENTS as DEFAULT_EVENTS } from '../constants';
+import { saveEventsToCloud } from './userService';
 
 const EVENTS_KEY = "cp_events";
 export const EVENTS_CHANGED = "cp_events_changed";
@@ -14,4 +15,5 @@ export function loadEvents() {
 export function saveEvents(events) {
   localStorage.setItem(EVENTS_KEY, JSON.stringify(events));
   window.dispatchEvent(new CustomEvent(EVENTS_CHANGED));
+  saveEventsToCloud(events); // Firestoreにも保存
 }

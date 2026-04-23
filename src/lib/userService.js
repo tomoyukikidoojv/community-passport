@@ -110,6 +110,150 @@ export async function deleteAnnouncementFromCloud(id) {
   }
 }
 
+// ── Events Cloud Sync ──────────────────────────────────
+
+/** イベント一覧をFirebaseから取得（なければnull） */
+export async function fetchEventsFromCloud() {
+  try {
+    const ref = doc(db, "config", "events");
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return null;
+    const data = snap.data().events;
+    if (!data || data.length === 0) return null;
+    return data;
+  } catch (err) {
+    console.error("fetchEventsFromCloud error:", err);
+    return null;
+  }
+}
+
+/** イベント一覧をFirebaseに保存 */
+export async function saveEventsToCloud(events) {
+  try {
+    const ref = doc(db, "config", "events");
+    await setDoc(ref, { events });
+    return true;
+  } catch (err) {
+    console.error("saveEventsToCloud error:", err);
+    return false;
+  }
+}
+
+// ── Forms Cloud Sync ─────────────────────────────────
+
+/** アンケートフォーム設定をFirebaseから取得 */
+export async function fetchFormsFromCloud() {
+  try {
+    const ref = doc(db, "config", "forms");
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return null;
+    return snap.data().forms || null;
+  } catch (err) {
+    console.error("fetchFormsFromCloud error:", err);
+    return null;
+  }
+}
+
+/** アンケートフォーム設定をFirebaseに保存 */
+export async function saveFormsToCloud(forms) {
+  try {
+    const ref = doc(db, "config", "forms");
+    await setDoc(ref, { forms });
+    return true;
+  } catch (err) {
+    console.error("saveFormsToCloud error:", err);
+    return false;
+  }
+}
+
+// ── Applications Cloud Sync ────────────────────────
+
+/** 申し込みデータをFirebaseに保存 */
+export async function saveApplicationToCloud(app) {
+  try {
+    const key = `${app.eventId}_${app.userId}`;
+    const ref = doc(db, "applications", key);
+    await setDoc(ref, app);
+    return true;
+  } catch (err) {
+    console.error("saveApplicationToCloud error:", err);
+    return false;
+  }
+}
+
+/** 全申し込みデータをFirebaseから取得 */
+export async function fetchAllApplicationsFromCloud() {
+  try {
+    const snap = await getDocs(collection(db, "applications"));
+    return snap.docs.map(d => d.data());
+  } catch (err) {
+    console.error("fetchAllApplicationsFromCloud error:", err);
+    return [];
+  }
+}
+
+// ── RSVP Cloud Sync ──────────────────────────────
+
+/** RSVPをFirebaseに保存 */
+export async function saveRsvpToCloud(userId, eventId, status) {
+  try {
+    const key = `${userId}_${eventId}`;
+    const ref = doc(db, "rsvp", key);
+    await setDoc(ref, { userId, eventId, status });
+    return true;
+  } catch (err) {
+    console.error("saveRsvpToCloud error:", err);
+    return false;
+  }
+}
+
+/** RSVPを削除（参加意向を取り消した場合） */
+export async function deleteRsvpFromCloud(userId, eventId) {
+  try {
+    const key = `${userId}_${eventId}`;
+    const ref = doc(db, "rsvp", key);
+    await deleteDoc(ref);
+    return true;
+  } catch (err) {
+    console.error("deleteRsvpFromCloud error:", err);
+    return false;
+  }
+}
+
+/** 全RSVPデータをFirebaseから取得 */
+export async function fetchAllRsvpFromCloud() {
+  try {
+    const snap = await getDocs(collection(db, "rsvp"));
+    const result = {};
+    snap.docs.forEach(d => {
+      const { userId, eventId, status } = d.data();
+      result[`${userId}_${eventId}`] = status;
+    });
+    return result;
+  } catch (err) {
+    console.error("fetchAllRsvpFromCloud error:", err);
+    return {};
+  }
+}
+
+/** 利用者自身のRSVPをFirebaseから取得 */
+export async function fetchUserRsvpFromCloud(userId) {
+  try {
+    const snap = await getDocs(collection(db, "rsvp"));
+    const result = {};
+    snap.docs.forEach(d => {
+      const data = d.data();
+      if (String(data.userId) === String(userId)) {
+        result[`${data.userId}_${data.eventId}`] = data.status;
+      }
+    });
+    return result;
+  } catch (err) {
+    console.error("fetchUserRsvpFromCloud error:", err);
+    return {};
+  }
+}
+
 /** 別デバイスからのログイン: メール＋パスワードでユーザーを取得 */
 export async function fetchUserByCredentials(email, password) {
   if (!email || !password) return "not_found";

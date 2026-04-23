@@ -7,7 +7,7 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell,
 } from "recharts";
 import { C, getLevel, NOTICE_CATS } from "../constants";
-import { fetchAllUsers, fetchAllAttendance } from "../lib/userService";
+import { fetchAllUsers, fetchAllAttendance, fetchAllApplicationsFromCloud, fetchAllRsvpFromCloud } from "../lib/userService";
 import { useEvents } from "../hooks/useEvents";
 import EventsManager from "./admin/EventsManager";
 import { getApplicationsByEvent } from "./ApplyPage";
@@ -1405,6 +1405,27 @@ function StatsPanel({ members, mergedAttendance, events, loading }) {
 
 function RsvpSummaryPanel() {
   const events = useEvents();
+  const [allRsvp, setAllRsvp] = useState({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchAllRsvpFromCloud().then(data => {
+      setAllRsvp(data);
+      setLoading(false);
+    });
+  }, []);
+
+  const getRsvpCounts = (eventId) => {
+    let going = 0, notGoing = 0;
+    Object.entries(allRsvp).forEach(([key, status]) => {
+      if (key.endsWith(`_${eventId}`)) {
+        if (status === "going") going++;
+        else if (status === "not_going") notGoing++;
+      }
+    });
+    return { going, notGoing };
+  };
+
   return (
     <div style={{
       background: C.white, borderRadius: 16,
@@ -1425,66 +1446,68 @@ function RsvpSummaryPanel() {
         </span>
       </div>
 
-      <div style={{ padding: "12px 16px" }}>
-        {events.map(ev => {
-          const { going, notGoing } = getRsvpCounts(ev.id);
-          const total = going + notGoing;
-          const goingPct = total > 0 ? Math.round((going / total) * 100) : 0;
-          return (
-            <div key={ev.id} style={{
-              display: "flex", alignItems: "center", gap: 12,
-              padding: "10px 12px", marginBottom: 6,
-              borderRadius: 10, border: `1px solid ${C.lightGray}`,
-              background: C.offWhite,
-            }}>
-              <span style={{ fontSize: 20, flexShrink: 0 }}>{ev.emoji}</span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: C.charcoal, marginBottom: 5 }}>
-                  {ev.nameShort}
-                </div>
-                {total > 0 ? (
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <div style={{
-                      flex: 1, height: 8, borderRadius: 4,
-                      background: C.lightGray, overflow: "hidden",
-                    }}>
-                      <div style={{
-                        width: `${goingPct}%`, height: "100%",
-                        background: `linear-gradient(90deg, ${ev.color}, ${ev.color}bb)`,
-                        borderRadius: 4, transition: "width 0.3s",
-                      }} />
-                    </div>
-                    <span style={{ fontSize: 11, color: ev.color, fontWeight: 700, flexShrink: 0 }}>
-                      {goingPct}%
-                    </span>
+      {loading ? (
+        <div style={{ padding: "24px", textAlign: "center", color: C.gray, fontSize: 13 }}>読み込み中…</div>
+      ) : (
+        <div style={{ padding: "12px 16px" }}>
+          {events.map(ev => {
+            const { going, notGoing } = getRsvpCounts(ev.id);
+            const total = going + notGoing;
+            const goingPct = total > 0 ? Math.round((going / total) * 100) : 0;
+            return (
+              <div key={ev.id} style={{
+                display: "flex", alignItems: "center", gap: 12,
+                padding: "10px 12px", marginBottom: 6,
+                borderRadius: 10, border: `1px solid ${C.lightGray}`,
+                background: C.offWhite,
+              }}>
+                <span style={{ fontSize: 20, flexShrink: 0 }}>{ev.emoji}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: C.charcoal, marginBottom: 5 }}>
+                    {ev.nameShort}
                   </div>
-                ) : (
-                  <div style={{ height: 8, borderRadius: 4, background: C.lightGray }} />
-                )}
-              </div>
-              <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-                <div style={{ textAlign: "center" }}>
-                  <div style={{
-                    fontSize: 16, fontWeight: 800, color: going > 0 ? ev.color : C.lightGray,
-                    lineHeight: 1,
-                  }}>{going}</div>
-                  <div style={{ fontSize: 10, color: C.gray, marginTop: 2 }}>参加したい</div>
+                  {total > 0 ? (
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <div style={{
+                        flex: 1, height: 8, borderRadius: 4,
+                        background: C.lightGray, overflow: "hidden",
+                      }}>
+                        <div style={{
+                          width: `${goingPct}%`, height: "100%",
+                          background: `linear-gradient(90deg, ${ev.color}, ${ev.color}bb)`,
+                          borderRadius: 4, transition: "width 0.3s",
+                        }} />
+                      </div>
+                      <span style={{ fontSize: 11, color: ev.color, fontWeight: 700, flexShrink: 0 }}>
+                        {goingPct}%
+                      </span>
+                    </div>
+                  ) : (
+                    <div style={{ height: 8, borderRadius: 4, background: C.lightGray }} />
+                  )}
                 </div>
-                <div style={{
-                  width: 1, background: C.lightGray, alignSelf: "stretch",
-                }} />
-                <div style={{ textAlign: "center" }}>
-                  <div style={{
-                    fontSize: 16, fontWeight: 800, color: notGoing > 0 ? C.gray : C.lightGray,
-                    lineHeight: 1,
-                  }}>{notGoing}</div>
-                  <div style={{ fontSize: 10, color: C.gray, marginTop: 2 }}>不参加</div>
+                <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{
+                      fontSize: 16, fontWeight: 800, color: going > 0 ? ev.color : C.lightGray,
+                      lineHeight: 1,
+                    }}>{going}</div>
+                    <div style={{ fontSize: 10, color: C.gray, marginTop: 2 }}>参加したい</div>
+                  </div>
+                  <div style={{ width: 1, background: C.lightGray, alignSelf: "stretch" }} />
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{
+                      fontSize: 16, fontWeight: 800, color: notGoing > 0 ? C.gray : C.lightGray,
+                      lineHeight: 1,
+                    }}>{notGoing}</div>
+                    <div style={{ fontSize: 10, color: C.gray, marginTop: 2 }}>不参加</div>
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -1492,6 +1515,17 @@ function RsvpSummaryPanel() {
 function ApplicationsPanel() {
   const events = useEvents();
   const [openEventId, setOpenEventId] = useState(null);
+  const [allApps, setAllApps] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchAllApplicationsFromCloud().then(apps => {
+      setAllApps(apps);
+      setLoading(false);
+    });
+  }, []);
+
+  const getApps = (eventId) => allApps.filter(a => a.eventId === eventId);
 
   return (
     <div style={{
@@ -1513,9 +1547,12 @@ function ApplicationsPanel() {
         </span>
       </div>
 
+      {loading ? (
+        <div style={{ padding: "24px", textAlign: "center", color: C.gray, fontSize: 13 }}>読み込み中…</div>
+      ) : null}
       <div style={{ padding: "12px 16px" }}>
         {events.map(ev => {
-          const apps = getApplicationsByEvent(ev.id);
+          const apps = getApps(ev.id);
           const formConfig = getForm(ev.id);
           const questions = formConfig?.questions || [];
           const isOpen = openEventId === ev.id;

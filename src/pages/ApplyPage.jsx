@@ -4,6 +4,7 @@ import { C } from "../constants";
 import { useEvents } from "../hooks/useEvents";
 import { getForm, isFormActive } from "../lib/formStorage";
 import { useLang } from "../i18n/LangContext";
+import { saveApplicationToCloud } from "../lib/userService";
 
 const APPLY_KEY = "cp_applications";
 
@@ -148,6 +149,7 @@ export default function ApplyPage({ user }) {
       appliedAt: new Date().toISOString(),
     };
     saveApplication(app);
+    saveApplicationToCloud(app); // Firestoreにも保存
     setSubmitted(true);
   };
 

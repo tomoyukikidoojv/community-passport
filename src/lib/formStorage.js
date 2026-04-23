@@ -1,3 +1,5 @@
+import { saveFormsToCloud } from './userService';
+
 const FORMS_KEY = "cp_event_forms";
 
 export function loadForms() {
@@ -9,6 +11,7 @@ export function saveForm(eventId, config) {
   const all = loadForms();
   all[eventId] = config;
   localStorage.setItem(FORMS_KEY, JSON.stringify(all));
+  saveFormsToCloud(all); // Firestoreにも保存
 }
 
 export function getForm(eventId) {

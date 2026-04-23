@@ -10,7 +10,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import { C, initialAttendance, initialAnnouncements } from "./constants";
 import { LangProvider, useLang } from "./i18n/LangContext";
 import { LANGS } from "./i18n/translations";
-import { saveUserToCloud, saveAttendanceToCloud, fetchUserAttendance, fetchAnnouncements, saveAnnouncementToCloud, deleteAnnouncementFromCloud } from "./lib/userService";
+import { saveUserToCloud, saveAttendanceToCloud, fetchUserAttendance, fetchAnnouncements, saveAnnouncementToCloud, deleteAnnouncementFromCloud, fetchFormsFromCloud } from "./lib/userService";
 
 const ADMIN_PASSWORD = "Kidodomo1551";
 const STORAGE_KEY = "cp_user";
@@ -350,6 +350,15 @@ function AppRoutes() {
 
   const [announcements, setAnnouncements] = useState([...initialAnnouncements]);
   const [readIds, setReadIds] = useState(new Set());
+
+  // 起動時にアンケートフォーム設定をFirestoreから同期（利用者が最新フォームを見られるよう）
+  useEffect(() => {
+    fetchFormsFromCloud().then(cloudForms => {
+      if (cloudForms) {
+        localStorage.setItem("cp_event_forms", JSON.stringify(cloudForms));
+      }
+    });
+  }, []);
 
   // Firestoreからお知らせを読み込む（初回のみ）
   useEffect(() => {
