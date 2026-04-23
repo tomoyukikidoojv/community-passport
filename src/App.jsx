@@ -202,28 +202,16 @@ function UserNav({ registeredUser, myStamps, unreadCount, onLogout }) {
                 ⭐ {t("nav.stamps", { n: myStamps.size })}
               </div>
             </div>
-            <div style={{ display: "flex", gap: 4 }}>
-              <button
-                onClick={onLogout}
-                style={{
-                  background: "rgba(255,255,255,0.12)",
-                  border: "1px solid rgba(255,255,255,0.2)",
-                  borderRadius: 4, padding: "2px 6px",
-                  color: "rgba(255,255,255,0.7)", fontSize: 9,
-                  cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
-                }}
-              >{t("nav.logout")}</button>
-              <NavLink
-                to="/kanri-ashiya2026"
-                style={{
-                  background: "rgba(255,255,255,0.06)",
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  borderRadius: 4, padding: "2px 6px",
-                  color: "rgba(255,255,255,0.35)", fontSize: 9,
-                  textDecoration: "none", whiteSpace: "nowrap",
-                }}
-              >{t("nav.admin")}</NavLink>
-            </div>
+            <button
+              onClick={onLogout}
+              style={{
+                background: "rgba(255,255,255,0.12)",
+                border: "1px solid rgba(255,255,255,0.2)",
+                borderRadius: 4, padding: "2px 6px",
+                color: "rgba(255,255,255,0.7)", fontSize: 9,
+                cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
+              }}
+            >{t("nav.logout")}</button>
           </div>
         )}
       </div>

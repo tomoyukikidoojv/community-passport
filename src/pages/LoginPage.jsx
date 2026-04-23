@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { C } from "../constants";
 import { useLang } from "../i18n/LangContext";
 import LangDropdown from "../components/LangDropdown";
@@ -6,6 +7,7 @@ import { sendPasswordResetEmail, EMAIL_CONFIGURED } from "../lib/emailService";
 import { fetchUserByCredentials, saveUserToCloud } from "../lib/userService";
 
 export default function LoginPage({ savedUser, onLogin, onReset, onShowRegister, onCloudLogin }) {
+  const navigate = useNavigate();
   const { t } = useLang();
   const [password, setPassword] = useState("");
   const [error, setError] = useState(false);
@@ -85,7 +87,25 @@ export default function LoginPage({ savedUser, onLogin, onReset, onShowRegister,
         display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
         padding: "32px 16px",
         fontFamily: "'Segoe UI','Hiragino Sans','Meiryo',sans-serif",
+        position: "relative",
       }}>
+        {/* 管理者ログインボタン */}
+        <button
+          onClick={() => navigate("/kanri-ashiya2026")}
+          style={{
+            position: "absolute", top: 16, right: 16,
+            background: "rgba(255,255,255,0.10)",
+            border: "1px solid rgba(255,255,255,0.20)",
+            borderRadius: 20, padding: "5px 14px",
+            color: "rgba(255,255,255,0.45)", fontSize: 11,
+            cursor: "pointer", fontFamily: "inherit",
+            transition: "all 0.2s",
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.20)"; e.currentTarget.style.color = "rgba(255,255,255,0.8)"; }}
+          onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.10)"; e.currentTarget.style.color = "rgba(255,255,255,0.45)"; }}
+        >
+          👑 管理者
+        </button>
         <div style={{ width: "100%", maxWidth: 400, marginBottom: 12 }}>
           <LangDropdown />
         </div>
@@ -184,7 +204,25 @@ export default function LoginPage({ savedUser, onLogin, onReset, onShowRegister,
       display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
       padding: "32px 16px",
       fontFamily: "'Segoe UI','Hiragino Sans','Meiryo',sans-serif",
+      position: "relative",
     }}>
+      {/* 管理者ログインボタン */}
+      <button
+        onClick={() => navigate("/kanri-ashiya2026")}
+        style={{
+          position: "absolute", top: 16, right: 16,
+          background: "rgba(255,255,255,0.10)",
+          border: "1px solid rgba(255,255,255,0.20)",
+          borderRadius: 20, padding: "5px 14px",
+          color: "rgba(255,255,255,0.45)", fontSize: 11,
+          cursor: "pointer", fontFamily: "inherit",
+          transition: "all 0.2s",
+        }}
+        onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.20)"; e.currentTarget.style.color = "rgba(255,255,255,0.8)"; }}
+        onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.10)"; e.currentTarget.style.color = "rgba(255,255,255,0.45)"; }}
+      >
+        👑 管理者
+      </button>
       <div style={{ width: "100%", maxWidth: 400 }}>
         <LangDropdown />
       </div>
