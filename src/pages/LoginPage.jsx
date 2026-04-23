@@ -4,13 +4,40 @@ import { C } from "../constants";
 import { useLang } from "../i18n/LangContext";
 import LangDropdown from "../components/LangDropdown";
 import { sendPasswordResetEmail, EMAIL_CONFIGURED } from "../lib/emailService";
-import { fetchUserByCredentials, saveUserToCloud } from "../lib/userService";
+import { fetchUserByCredentials, saveUserToCloud, hashPassword } from "../lib/userService";
+
+const USER_LOCK_KEY = "cp_user_lock";
+const USER_MAX_FAILS = 5;
+const USER_LOCK_MINS = 10;
 
 export default function LoginPage({ savedUser, onLogin, onReset, onShowRegister, onCloudLogin }) {
   const navigate = useNavigate();
   const { t } = useLang();
   const [password, setPassword] = useState("");
   const [error, setError] = useState(false);
+  const [userFails, setUserFails] = useState(() => {
+    try {
+      const lock = JSON.parse(localStorage.getItem(USER_LOCK_KEY));
+      return (lock && new Date(lock.until) > new Date()) ? lock.fails : 0;
+    } catch { return 0; }
+  });
+  const [userLockedUntil, setUserLockedUntil] = useState(() => {
+    try {
+      const lock = JSON.parse(localStorage.getItem(USER_LOCK_KEY));
+      if (lock && new Date(lock.until) > new Date()) return new Date(lock.until);
+      localStorage.removeItem(USER_LOCK_KEY);
+    } catch {}
+    return null;
+  });
+  const [now, setNow] = useState(new Date());
+
+  useState(() => {
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
+  });
+
+  const isUserLocked = userLockedUntil && userLockedUntil > now;
+  const userLockSecs = isUserLocked ? Math.ceil((userLockedUntil - now) / 1000) : 0;
 
   // Cross-device login state
   const [crossEmail, setCrossEmail] = useState("");
@@ -23,12 +50,26 @@ export default function LoginPage({ savedUser, onLogin, onReset, onShowRegister,
   const [resetStatus, setResetStatus] = useState(null); // null | "sending" | "sent" | "not_found" | "err" | "unconfigured"
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
-    if (password === savedUser.password) {
+    if (isUserLocked) return;
+    const hashed = await hashPassword(password);
+    // ハッシュ比較（新形式）または平文比較（旧形式の後方互換）
+    const match = savedUser.password === hashed || savedUser.password === password;
+    if (match) {
+      localStorage.removeItem(USER_LOCK_KEY);
+      setUserFails(0);
+      setUserLockedUntil(null);
       onLogin();
-      saveUserToCloud(savedUser); // 別デバイス用にクラウド同期
+      saveUserToCloud(savedUser);
     } else {
+      const newFails = userFails + 1;
+      setUserFails(newFails);
+      if (newFails >= USER_MAX_FAILS) {
+        const until = new Date(Date.now() + USER_LOCK_MINS * 60 * 1000);
+        localStorage.setItem(USER_LOCK_KEY, JSON.stringify({ until: until.toISOString(), fails: newFails }));
+        setUserLockedUntil(until);
+      }
       setError(true);
       setPassword("");
     }
@@ -260,6 +301,20 @@ export default function LoginPage({ savedUser, onLogin, onReset, onShowRegister,
             </div>
           </div>
 
+          {isUserLocked ? (
+            <div style={{ textAlign: "center", padding: "16px 0 8px" }}>
+              <div style={{ fontSize: 36, marginBottom: 8 }}>🔒</div>
+              <div style={{ fontWeight: 700, color: "#C0392B", marginBottom: 6, fontSize: 14 }}>
+                一時的にブロック中
+              </div>
+              <div style={{ fontSize: 28, fontWeight: 800, fontFamily: "monospace", color: C.charcoal }}>
+                {Math.floor(userLockSecs / 60)}:{String(userLockSecs % 60).padStart(2, "0")}
+              </div>
+              <div style={{ fontSize: 11, color: C.gray, marginTop: 4 }}>
+                {USER_MAX_FAILS}回失敗しました。しばらく待ってから再試行してください
+              </div>
+            </div>
+          ) : (
           <form onSubmit={submit}>
             <div style={{ marginBottom: 16 }}>
               <label style={{
@@ -285,6 +340,9 @@ export default function LoginPage({ savedUser, onLogin, onReset, onShowRegister,
               {error && (
                 <div style={{ color: "#E74C3C", fontSize: 12, marginTop: 6 }}>
                   {t("login.error")}
+                  {userFails > 0 && userFails < USER_MAX_FAILS && (
+                    <span style={{ color: "#E67E22" }}>（残り{USER_MAX_FAILS - userFails}回）</span>
+                  )}
                 </div>
               )}
             </div>
@@ -303,6 +361,7 @@ export default function LoginPage({ savedUser, onLogin, onReset, onShowRegister,
               {`🎫 ${t("login.btn")}`}
             </button>
           </form>
+          )}
 
           {/* Forgot password / New registration */}
           <div style={{ textAlign: "center", marginTop: 20 }}>

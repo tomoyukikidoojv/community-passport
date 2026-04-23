@@ -4,7 +4,7 @@ import { useLang } from "../i18n/LangContext";
 import LangDropdown from "../components/LangDropdown";
 import COUNTRIES from "../i18n/countries";
 import WORLD_LANGUAGES from "../i18n/languages-list";
-import { saveUserToCloud } from "../lib/userService";
+import { saveUserToCloud, hashPassword } from "../lib/userService";
 
 // イベント種類（参加したいイベント）
 const EVENT_INTEREST_KEYS = [
@@ -110,7 +110,7 @@ export default function RegisterPage({ onRegistered, onShowLogin }) {
     return errs;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length) { setErrors(errs); return; }
@@ -119,6 +119,9 @@ export default function RegisterPage({ onRegistered, onShowLogin }) {
     const langLabels = form.languages.map(code =>
       WORLD_LANGUAGES.find(l => l.code === code)?.name || code
     );
+
+    // パスワードをSHA-256でハッシュ化してから保存（平文保存しない）
+    const hashedPw = await hashPassword(form.password);
 
     const user = {
       id: Date.now(),
@@ -136,11 +139,10 @@ export default function RegisterPage({ onRegistered, onShowLogin }) {
       eventInterestsOther: form.eventInterestsOther.trim(),
       volunteer: form.volunteer || "",
       activities: form.activities,
-      password: form.password,
+      password: hashedPw, // ハッシュ済みパスワードのみ保存
     };
     setNewUser(user);
     setSubmitted(true);
-    // クラウドにも保存（別デバイスからのログイン用）
     saveUserToCloud(user);
   };
 

@@ -162,7 +162,7 @@ function downloadExcel(members) {
   XLSX.writeFile(wb, `members_${date}.xlsx`);
 }
 
-export default function AdminDashboard({ attendance, onStamp, announcements, onPostAnnouncement, onDeleteAnnouncement, onEditAnnouncement }) {
+export default function AdminDashboard({ attendance, onStamp, announcements, onPostAnnouncement, onDeleteAnnouncement, onEditAnnouncement, onSignOut }) {
   const [hoveredCell, setHoveredCell] = useState(null);
   const [flash, setFlash] = useState(null);
   const [showQrScanner, setShowQrScanner] = useState(false);
@@ -225,7 +225,7 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
         <div style={{ textAlign: "center", color: C.white, marginBottom: 20 }}>
           <div style={{ fontSize: 11, letterSpacing: 5, opacity: 0.6, marginBottom: 4 }}>ADMIN</div>
           <div style={{ fontSize: 26, fontWeight: 800 }}>👑 管理者ダッシュボード</div>
-          <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 12 }}>
+          <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
             <button
               onClick={() => navigate("/passport")}
               style={{
@@ -246,6 +246,18 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
                 fontFamily: "inherit",
               }}
             >📷 QRスキャン</button>
+            {onSignOut && (
+              <button
+                onClick={onSignOut}
+                style={{
+                  background: "rgba(231,76,60,0.25)",
+                  border: "1px solid rgba(231,76,60,0.5)",
+                  borderRadius: 20, padding: "6px 18px",
+                  color: C.white, fontSize: 12, cursor: "pointer",
+                  fontFamily: "inherit",
+                }}
+              >🚪 ログアウト</button>
+            )}
           </div>
         </div>
 

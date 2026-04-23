@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, NavLink, useNavigate, Navigate } from "react-router-dom";
+import { signInWithEmailAndPassword, onAuthStateChanged, setPersistence, browserSessionPersistence, signOut } from "firebase/auth";
 import RegisterPage from "./pages/RegisterPage";
 import LoginPage from "./pages/LoginPage";
 import CommunityPassport from "./pages/CommunityPassport";
@@ -11,30 +12,102 @@ import { C, initialAttendance, initialAnnouncements } from "./constants";
 import { LangProvider, useLang } from "./i18n/LangContext";
 import { LANGS } from "./i18n/translations";
 import { saveUserToCloud, saveAttendanceToCloud, fetchUserAttendance, fetchAnnouncements, saveAnnouncementToCloud, deleteAnnouncementFromCloud, fetchFormsFromCloud } from "./lib/userService";
+import { auth } from "./lib/firebase";
 
-const ADMIN_PASSWORD = "Kidodomo1551";
 const STORAGE_KEY = "cp_user";
 const ATTENDANCE_KEY = "cp_attendance";
 
-// ── Admin login gate ───────────────────────────────────
-function AdminGate({ children }) {
-  const [input, setInput] = useState("");
-  const [authed, setAuthed] = useState(() => sessionStorage.getItem("cp_admin") === "1");
-  const [error, setError] = useState(false);
+// ── Admin rate-limit constants ─────────────────────────
+const ADMIN_LOCK_KEY  = "cp_admin_lock";
+const ADMIN_MAX_FAILS = 5;
+const ADMIN_LOCK_MINS = 15;
 
-  const submit = (e) => {
+// ── Admin login gate (Firebase Auth) ──────────────────
+function AdminGate({ children }) {
+  const [email,      setEmail]      = useState("");
+  const [password,   setPassword]   = useState("");
+  const [authed,     setAuthed]     = useState(false);
+  const [loading,    setLoading]    = useState(true);   // waiting for onAuthStateChanged
+  const [error,      setError]      = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  // Restore rate-limit state from localStorage
+  const [fails, setFails] = useState(() => {
+    try { return Number(JSON.parse(localStorage.getItem(ADMIN_LOCK_KEY))?.fails || 0); } catch { return 0; }
+  });
+  const [lockedUntil, setLockedUntil] = useState(() => {
+    try { return Number(JSON.parse(localStorage.getItem(ADMIN_LOCK_KEY))?.until || 0); } catch { return 0; }
+  });
+  const [now, setNow] = useState(Date.now());
+
+  // Tick every second for countdown
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Subscribe to Firebase Auth state
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, user => {
+      setAuthed(!!user);
+      setLoading(false);
+    });
+    return unsub;
+  }, []);
+
+  const isLocked  = lockedUntil > now;
+  const remaining = Math.max(0, lockedUntil - now);
+  const remMin    = String(Math.floor(remaining / 60000)).padStart(2, "0");
+  const remSec    = String(Math.floor((remaining % 60000) / 1000)).padStart(2, "0");
+
+  const submit = async (e) => {
     e.preventDefault();
-    if (input === ADMIN_PASSWORD) {
-      sessionStorage.setItem("cp_admin", "1");
-      setAuthed(true);
-    } else {
-      setError(true);
-      setInput("");
+    if (isLocked || submitting) return;
+    setSubmitting(true);
+    setError("");
+    try {
+      await setPersistence(auth, browserSessionPersistence);
+      await signInWithEmailAndPassword(auth, email.trim(), password);
+      // onAuthStateChanged will flip authed → true; reset fail counter
+      localStorage.removeItem(ADMIN_LOCK_KEY);
+      setFails(0);
+      setLockedUntil(0);
+    } catch {
+      const newFails = fails + 1;
+      if (newFails >= ADMIN_MAX_FAILS) {
+        const until = Date.now() + ADMIN_LOCK_MINS * 60 * 1000;
+        localStorage.setItem(ADMIN_LOCK_KEY, JSON.stringify({ fails: newFails, until }));
+        setFails(newFails);
+        setLockedUntil(until);
+        setError(`${ADMIN_MAX_FAILS}回失敗しました。${ADMIN_LOCK_MINS}分間ロックされます。`);
+      } else {
+        localStorage.setItem(ADMIN_LOCK_KEY, JSON.stringify({ fails: newFails, until: 0 }));
+        setFails(newFails);
+        const left = ADMIN_MAX_FAILS - newFails;
+        setError(`メールアドレスまたはパスワードが違います。（残り${left}回）`);
+      }
+      setPassword("");
+    } finally {
+      setSubmitting(false);
     }
   };
 
+  // ── Loading splash ──
+  if (loading) {
+    return (
+      <div style={{
+        minHeight: "100vh",
+        background: `linear-gradient(135deg, ${C.teal} 0%, ${C.navy} 100%)`,
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }}>
+        <div style={{ color: C.white, fontSize: 14, opacity: 0.7 }}>読み込み中…</div>
+      </div>
+    );
+  }
+
   if (authed) return children;
 
+  // ── Login form ──
   return (
     <div style={{
       minHeight: "100vh",
@@ -47,10 +120,10 @@ function AdminGate({ children }) {
         margin: "0 16px",
         boxShadow: "0 20px 60px rgba(0,0,0,0.35)", overflow: "hidden",
       }}>
+        {/* Header band */}
         <div style={{
           background: `linear-gradient(90deg, ${C.teal}, ${C.tealMid})`,
-          padding: "24px",
-          textAlign: "center",
+          padding: "24px", textAlign: "center",
         }}>
           <div style={{ fontSize: 36, marginBottom: 8 }}>👑</div>
           <div style={{ color: C.white, fontSize: 18, fontWeight: 800 }}>管理者ページ</div>
@@ -58,43 +131,84 @@ function AdminGate({ children }) {
             Admin Dashboard
           </div>
         </div>
-        <form onSubmit={submit} style={{ padding: "28px 28px 24px" }}>
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 6 }}>
-              パスワード
-            </label>
-            <input
-              type="password"
-              value={input}
-              onChange={e => { setInput(e.target.value); setError(false); }}
-              placeholder="パスワードを入力"
-              autoFocus
-              style={{
-                width: "100%", padding: "10px 14px", boxSizing: "border-box",
-                border: `1.5px solid ${error ? "#E74C3C" : C.lightGray}`,
-                borderRadius: 8, fontSize: 14, fontFamily: "inherit",
-                outline: "none", color: C.charcoal,
-              }}
-            />
-            {error && (
-              <div style={{ color: "#E74C3C", fontSize: 12, marginTop: 6 }}>
-                パスワードが違います
-              </div>
-            )}
+
+        {/* Lockout screen */}
+        {isLocked ? (
+          <div style={{ padding: "32px 28px", textAlign: "center" }}>
+            <div style={{ fontSize: 44, marginBottom: 12 }}>🔒</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: C.charcoal, marginBottom: 6 }}>
+              アカウントがロックされています
+            </div>
+            <div style={{ fontSize: 12, color: "#888", marginBottom: 20 }}>
+              {ADMIN_MAX_FAILS}回の失敗によりロックされました
+            </div>
+            <div style={{
+              fontSize: 36, fontWeight: 800, letterSpacing: 3,
+              fontVariantNumeric: "tabular-nums", color: "#E74C3C",
+            }}>
+              {remMin}:{remSec}
+            </div>
+            <div style={{ fontSize: 11, color: "#aaa", marginTop: 6 }}>後に再試行できます</div>
           </div>
-          <button
-            type="submit"
-            style={{
-              width: "100%", padding: "12px",
-              background: `linear-gradient(90deg, ${C.teal}, ${C.tealMid})`,
-              color: C.white, border: "none", borderRadius: 8,
-              fontSize: 14, fontWeight: 700, cursor: "pointer",
-              fontFamily: "inherit",
-            }}
-          >
-            ログイン
-          </button>
-        </form>
+        ) : (
+          /* Login form */
+          <form onSubmit={submit} style={{ padding: "28px 28px 24px" }}>
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 6 }}>
+                メールアドレス
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={e => { setEmail(e.target.value); setError(""); }}
+                placeholder="admin@example.com"
+                autoComplete="email"
+                autoFocus
+                style={{
+                  width: "100%", padding: "10px 14px", boxSizing: "border-box",
+                  border: `1.5px solid ${error ? "#E74C3C" : C.lightGray}`,
+                  borderRadius: 8, fontSize: 14, fontFamily: "inherit",
+                  outline: "none", color: C.charcoal,
+                }}
+              />
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 6 }}>
+                パスワード
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={e => { setPassword(e.target.value); setError(""); }}
+                placeholder="パスワードを入力"
+                autoComplete="current-password"
+                style={{
+                  width: "100%", padding: "10px 14px", boxSizing: "border-box",
+                  border: `1.5px solid ${error ? "#E74C3C" : C.lightGray}`,
+                  borderRadius: 8, fontSize: 14, fontFamily: "inherit",
+                  outline: "none", color: C.charcoal,
+                }}
+              />
+              {error && (
+                <div style={{ color: "#E74C3C", fontSize: 12, marginTop: 6 }}>{error}</div>
+              )}
+            </div>
+            <button
+              type="submit"
+              disabled={submitting}
+              style={{
+                width: "100%", padding: "12px",
+                background: submitting ? "#bbb" : `linear-gradient(90deg, ${C.teal}, ${C.tealMid})`,
+                color: C.white, border: "none", borderRadius: 8,
+                fontSize: 14, fontWeight: 700,
+                cursor: submitting ? "not-allowed" : "pointer",
+                fontFamily: "inherit",
+              }}
+            >
+              {submitting ? "ログイン中…" : "ログイン"}
+            </button>
+          </form>
+        )}
       </div>
     </div>
   );
@@ -434,6 +548,7 @@ function AppRoutes() {
         onPostAnnouncement={postAnnouncement}
         onDeleteAnnouncement={deleteAnnouncement}
         onEditAnnouncement={editAnnouncement}
+        onSignOut={() => signOut(auth)}
       />
     </AdminGate>
   );

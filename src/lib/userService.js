@@ -1,6 +1,18 @@
 import { doc, setDoc, getDoc, collection, getDocs, deleteDoc } from "firebase/firestore";
 import { db } from "./firebase";
 
+// ── パスワードハッシュ (SHA-256 / Web Crypto API) ──────────
+// ブラウザ標準APIで外部ライブラリ不要、平文保存を防ぐ
+export async function hashPassword(raw) {
+  const buf = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(raw)
+  );
+  return Array.from(new Uint8Array(buf))
+    .map(b => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 // Sanitize email for use as Firestore document ID
 const emailToId = (email) => email.toLowerCase().trim().replace(/\./g, ",");
 
@@ -257,8 +269,14 @@ export async function fetchUserByCredentials(email, password) {
     const snap = await getDoc(ref);
     if (!snap.exists()) return "not_found";
     const user = snap.data();
-    if (user.password !== password) return "wrong_password";
-    return user;
+    const hashed = await hashPassword(password);
+    if (user.password === hashed) return user;
+    // 旧フォーマット（平文）との後方互換 → マッチしたらハッシュに移行
+    if (user.password === password) {
+      await setDoc(ref, { password: hashed }, { merge: true });
+      return { ...user, password: hashed };
+    }
+    return "wrong_password";
   } catch (err) {
     console.error("fetchUserByCredentials error:", err);
     return "error";
