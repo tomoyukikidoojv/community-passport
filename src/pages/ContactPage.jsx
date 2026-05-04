@@ -34,7 +34,7 @@ export default function ContactPage({ user }) {
   return (
     <div style={{
       minHeight: "100vh",
-      background: `linear-gradient(135deg, ${C.teal} 0%, ${C.navy} 100%)`,
+      background: C.bgGradient,
       padding: "28px 16px 48px",
       fontFamily: "'Segoe UI','Hiragino Sans','Meiryo',sans-serif",
     }}>
@@ -76,8 +76,11 @@ export default function ContactPage({ user }) {
         {/* LINE tab */}
         {tab === "line" && (
           <div style={{
-            background: C.white, borderRadius: 20,
-            boxShadow: "0 20px 60px rgba(0,0,0,0.25)",
+            background: C.glassWhite,
+            backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
+            border: "1px solid rgba(255,255,255,0.3)",
+            borderRadius: 20,
+            boxShadow: "0 20px 56px rgba(0,0,0,0.3)",
             padding: "36px 28px", textAlign: "center",
           }}>
             <div style={{ fontSize: 56, marginBottom: 16 }}>💚</div>
@@ -109,8 +112,11 @@ export default function ContactPage({ user }) {
         {/* Form tab */}
         {tab === "form" && (
           <div style={{
-            background: C.white, borderRadius: 20,
-            boxShadow: "0 20px 60px rgba(0,0,0,0.25)",
+            background: C.glassWhite,
+            backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
+            border: "1px solid rgba(255,255,255,0.3)",
+            borderRadius: 20,
+            boxShadow: "0 20px 56px rgba(0,0,0,0.3)",
             overflow: "hidden",
           }}>
             <div style={{

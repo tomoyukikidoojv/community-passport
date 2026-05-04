@@ -215,7 +215,7 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
     )}
     <div style={{
       minHeight: "100vh",
-      background: `linear-gradient(135deg, ${C.teal} 0%, ${C.navy} 100%)`,
+      background: C.bgGradient,
       padding: "28px 16px 40px",
       fontFamily: "'Segoe UI','Hiragino Sans','Meiryo',sans-serif",
     }}>

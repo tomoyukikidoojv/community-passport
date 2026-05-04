@@ -124,12 +124,14 @@ export default function LoginPage({ savedUser, onLogin, onReset, onShowRegister,
     return (
       <div style={{
         minHeight: "100vh",
-        background: `linear-gradient(135deg, ${C.teal} 0%, ${C.navy} 100%)`,
+        background: C.bgGradient,
         display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
         padding: "32px 16px",
         fontFamily: "'Segoe UI','Hiragino Sans','Meiryo',sans-serif",
-        position: "relative",
+        position: "relative", overflow: "hidden",
       }}>
+        <div style={{ position:"absolute", width:500, height:500, borderRadius:"50%", background:"rgba(124,58,237,0.18)", filter:"blur(100px)", top:-150, right:-100, pointerEvents:"none" }} />
+        <div style={{ position:"absolute", width:400, height:400, borderRadius:"50%", background:"rgba(11,122,107,0.18)", filter:"blur(90px)", bottom:-100, left:-80, pointerEvents:"none" }} />
         {/* 管理者ログインボタン */}
         <button
           onClick={() => navigate("/kanri-ashiya2026")}
@@ -147,12 +149,16 @@ export default function LoginPage({ savedUser, onLogin, onReset, onShowRegister,
         >
           👑 管理者
         </button>
-        <div style={{ width: "100%", maxWidth: 400, marginBottom: 12 }}>
+        <div style={{ width: "100%", maxWidth: 400, marginBottom: 12, position: "relative", zIndex: 1 }}>
           <LangDropdown />
         </div>
         <div style={{
-          background: C.white, borderRadius: 20, maxWidth: 400, width: "100%",
-          boxShadow: "0 20px 60px rgba(0,0,0,0.35)", overflow: "hidden",
+          background: C.glassWhite,
+          backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
+          border: "1px solid rgba(255,255,255,0.35)",
+          borderRadius: 20, maxWidth: 400, width: "100%",
+          boxShadow: "0 24px 64px rgba(0,0,0,0.4)", overflow: "hidden",
+          position: "relative", zIndex: 1,
         }}>
           <div style={{
             background: `linear-gradient(90deg, ${C.teal}, ${C.tealMid})`,
@@ -241,12 +247,14 @@ export default function LoginPage({ savedUser, onLogin, onReset, onShowRegister,
   return (
     <div style={{
       minHeight: "100vh",
-      background: `linear-gradient(135deg, ${C.teal} 0%, ${C.navy} 100%)`,
+      background: C.bgGradient,
       display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
       padding: "32px 16px",
       fontFamily: "'Segoe UI','Hiragino Sans','Meiryo',sans-serif",
-      position: "relative",
+      position: "relative", overflow: "hidden",
     }}>
+      <div style={{ position:"absolute", width:500, height:500, borderRadius:"50%", background:"rgba(124,58,237,0.18)", filter:"blur(100px)", top:-150, right:-100, pointerEvents:"none" }} />
+      <div style={{ position:"absolute", width:400, height:400, borderRadius:"50%", background:"rgba(11,122,107,0.18)", filter:"blur(90px)", bottom:-100, left:-80, pointerEvents:"none" }} />
       {/* 管理者ログインボタン */}
       <button
         onClick={() => navigate("/kanri-ashiya2026")}
@@ -264,13 +272,17 @@ export default function LoginPage({ savedUser, onLogin, onReset, onShowRegister,
       >
         👑 管理者
       </button>
-      <div style={{ width: "100%", maxWidth: 400 }}>
+      <div style={{ width: "100%", maxWidth: 400, position: "relative", zIndex: 1 }}>
         <LangDropdown />
       </div>
 
       <div style={{
-        background: C.white, borderRadius: 20, maxWidth: 400, width: "100%",
-        boxShadow: "0 20px 60px rgba(0,0,0,0.35)", overflow: "hidden",
+        background: C.glassWhite,
+        backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
+        border: "1px solid rgba(255,255,255,0.35)",
+        borderRadius: 20, maxWidth: 400, width: "100%",
+        boxShadow: "0 24px 64px rgba(0,0,0,0.4)", overflow: "hidden",
+        position: "relative", zIndex: 1,
       }}>
         {/* Header */}
         <div style={{

@@ -57,7 +57,7 @@ export default function ApplyPage({ user }) {
   const center = (content) => (
     <div style={{
       minHeight: "100vh",
-      background: `linear-gradient(135deg, ${C.teal} 0%, ${C.navy} 100%)`,
+      background: C.bgGradient,
       display: "flex", alignItems: "center", justifyContent: "center",
       padding: "32px 16px",
       fontFamily: "'Segoe UI','Hiragino Sans','Meiryo',sans-serif",
@@ -169,7 +169,7 @@ export default function ApplyPage({ user }) {
     return (
       <div style={{
         minHeight: "100vh",
-        background: `linear-gradient(135deg, ${C.teal} 0%, ${C.navy} 100%)`,
+        background: C.bgGradient,
         display: "flex", alignItems: "center", justifyContent: "center",
         padding: "32px 16px",
         fontFamily: "'Segoe UI','Hiragino Sans','Meiryo',sans-serif",
@@ -241,7 +241,7 @@ export default function ApplyPage({ user }) {
   return (
     <div style={{
       minHeight: "100vh",
-      background: `linear-gradient(135deg, ${C.teal} 0%, ${C.navy} 100%)`,
+      background: C.bgGradient,
       padding: "28px 16px 48px",
       fontFamily: "'Segoe UI','Hiragino Sans','Meiryo',sans-serif",
     }}>

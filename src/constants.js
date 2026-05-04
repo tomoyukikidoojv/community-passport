@@ -1,22 +1,33 @@
 // ── Color palette ──────────────────────────
 export const C = {
-  teal:      "#1B4F72",
-  tealMid:   "#2471A3",
-  tealLight: "#D6EAF8",
-  tealPale:  "#EBF5FB",
-  gold:      "#C9A227",
-  goldLight: "#FEF9E7",
-  navy:      "#1B2A6B",
+  teal:      "#0c7a8a",
+  tealMid:   "#0ea5b5",
+  tealLight: "#cdf0f5",
+  tealPale:  "#e8f9fb",
+  gold:      "#e8b84b",
+  goldLight: "#fdf6e3",
+  navy:      "#0d1b4b",
   white:     "#FFFFFF",
-  offWhite:  "#F7F9FC",
-  charcoal:  "#2C3E50",
-  gray:      "#7F8C8D",
-  lightGray: "#E4EAF0",
-  green:     "#1A6B45",
-  greenPale: "#EAFAF1",
-  red:       "#C0392B",
-  redPale:   "#FDEDEC",
-  purple:    "#6C3483",
+  offWhite:  "#f8fafc",
+  charcoal:  "#1e293b",
+  gray:      "#64748b",
+  lightGray: "#e2e8f0",
+  green:     "#059669",
+  greenPale: "#d1fae5",
+  red:       "#dc2626",
+  redPale:   "#fee2e2",
+  purple:    "#7c3aed",
+
+  // ── Glassmorphism design system ──────────
+  // 背景グラデーション（全ページ共通）
+  bgGradient: "linear-gradient(135deg, #1e0a3c 0%, #0d1b4b 38%, #0c4270 65%, #0b7a6b 100%)",
+  // ガラスカード
+  glassWhite:  "rgba(255,255,255,0.93)",
+  glass:       "rgba(255,255,255,0.10)",
+  glassMid:    "rgba(255,255,255,0.18)",
+  glassBorder: "rgba(255,255,255,0.22)",
+  // ナビゲーション
+  navBg:       "rgba(8,16,50,0.72)",
 };
 
 // ── Events (6 total) ───────────────────────

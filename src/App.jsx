@@ -97,7 +97,7 @@ function AdminGate({ children }) {
     return (
       <div style={{
         minHeight: "100vh",
-        background: `linear-gradient(135deg, ${C.teal} 0%, ${C.navy} 100%)`,
+        background: C.bgGradient,
         display: "flex", alignItems: "center", justifyContent: "center",
       }}>
         <div style={{ color: C.white, fontSize: 14, opacity: 0.7 }}>読み込み中…</div>
@@ -111,14 +111,21 @@ function AdminGate({ children }) {
   return (
     <div style={{
       minHeight: "100vh",
-      background: `linear-gradient(135deg, ${C.teal} 0%, ${C.navy} 100%)`,
+      background: C.bgGradient,
       display: "flex", alignItems: "center", justifyContent: "center",
       fontFamily: "'Segoe UI','Hiragino Sans','Meiryo',sans-serif",
+      position: "relative", overflow: "hidden",
     }}>
+      {/* 背景の光の玉 */}
+      <div style={{ position:"absolute", width:500, height:500, borderRadius:"50%", background:"rgba(124,58,237,0.18)", filter:"blur(100px)", top:-150, right:-100, pointerEvents:"none" }} />
+      <div style={{ position:"absolute", width:400, height:400, borderRadius:"50%", background:"rgba(11,122,107,0.18)", filter:"blur(90px)", bottom:-100, left:-80, pointerEvents:"none" }} />
       <div style={{
-        background: C.white, borderRadius: 20, maxWidth: 380, width: "100%",
+        background: C.glassWhite,
+        backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
+        borderRadius: 20, maxWidth: 380, width: "100%",
         margin: "0 16px",
-        boxShadow: "0 20px 60px rgba(0,0,0,0.35)", overflow: "hidden",
+        border: "1px solid rgba(255,255,255,0.35)",
+        boxShadow: "0 24px 64px rgba(0,0,0,0.4)", overflow: "hidden",
       }}>
         {/* Header band */}
         <div style={{
@@ -228,8 +235,11 @@ function UserNav({ registeredUser, myStamps, unreadCount, onLogout }) {
   return (
     <nav style={{
       position: "sticky", top: 0, zIndex: 100,
-      background: `linear-gradient(90deg, ${C.navy} 0%, ${C.teal} 100%)`,
-      boxShadow: "0 2px 16px rgba(0,0,0,0.35)",
+      background: C.navBg,
+      backdropFilter: "blur(20px)",
+      WebkitBackdropFilter: "blur(20px)",
+      borderBottom: "1px solid rgba(255,255,255,0.12)",
+      boxShadow: "0 4px 24px rgba(0,0,0,0.35)",
     }}>
       {/* Row 1: Logo + User info */}
       <div style={{

@@ -152,15 +152,21 @@ export default function RegisterPage({ onRegistered, onShowLogin }) {
     return (
       <div style={{
         minHeight: "100vh",
-        background: `linear-gradient(135deg, ${C.teal} 0%, ${C.navy} 100%)`,
+        background: C.bgGradient,
         display: "flex", alignItems: "center", justifyContent: "center",
         padding: "32px 16px",
         fontFamily: "'Segoe UI','Hiragino Sans','Meiryo',sans-serif",
+        position: "relative", overflow: "hidden",
       }}>
+        <div style={{ position:"absolute", width:500, height:500, borderRadius:"50%", background:"rgba(124,58,237,0.18)", filter:"blur(100px)", top:-150, right:-100, pointerEvents:"none" }} />
+        <div style={{ position:"absolute", width:400, height:400, borderRadius:"50%", background:"rgba(11,122,107,0.18)", filter:"blur(90px)", bottom:-100, left:-80, pointerEvents:"none" }} />
         <div style={{
-          background: C.white, borderRadius: 20, maxWidth: 480, width: "100%",
-          boxShadow: "0 20px 60px rgba(0,0,0,0.3)", overflow: "hidden",
-          textAlign: "center",
+          background: C.glassWhite,
+          backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
+          border: "1px solid rgba(255,255,255,0.35)",
+          borderRadius: 20, maxWidth: 480, width: "100%",
+          boxShadow: "0 24px 64px rgba(0,0,0,0.4)", overflow: "hidden",
+          textAlign: "center", position: "relative", zIndex: 1,
         }}>
           <div style={{
             background: `linear-gradient(90deg, ${C.teal}, ${C.tealMid})`,
@@ -258,11 +264,14 @@ export default function RegisterPage({ onRegistered, onShowLogin }) {
   return (
     <div style={{
       minHeight: "100vh",
-      background: `linear-gradient(135deg, ${C.teal} 0%, ${C.navy} 100%)`,
+      background: C.bgGradient,
       padding: "28px 16px 48px",
       fontFamily: "'Segoe UI','Hiragino Sans','Meiryo',sans-serif",
+      position: "relative",
     }}>
-      <div style={{ maxWidth: 560, margin: "0 auto" }}>
+      <div style={{ position:"absolute", width:600, height:600, borderRadius:"50%", background:"rgba(124,58,237,0.15)", filter:"blur(120px)", top:-200, right:-150, pointerEvents:"none" }} />
+      <div style={{ position:"absolute", width:500, height:500, borderRadius:"50%", background:"rgba(11,122,107,0.15)", filter:"blur(100px)", bottom:-150, left:-100, pointerEvents:"none" }} />
+      <div style={{ maxWidth: 560, margin: "0 auto", position: "relative", zIndex: 1 }}>
 
         <LangDropdown />
 
@@ -277,9 +286,12 @@ export default function RegisterPage({ onRegistered, onShowLogin }) {
         </div>
 
         <div style={{
-          background: C.white, borderRadius: 20,
-          boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
-          overflow: "visible", // ← ドロップダウンが隠れないようにvisibleに
+          background: C.glassWhite,
+          backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
+          border: "1px solid rgba(255,255,255,0.35)",
+          borderRadius: 20,
+          boxShadow: "0 24px 64px rgba(0,0,0,0.4)",
+          overflow: "visible",
         }}>
           <div style={{
             background: `linear-gradient(90deg, ${C.teal}, ${C.tealMid})`,
