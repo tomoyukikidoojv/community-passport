@@ -458,24 +458,33 @@ function AppRoutes() {
     });
   }, [registeredUser?.id]);
 
-  // Login state: stored in sessionStorage (resets when browser closes)
-  const [loggedIn, setLoggedIn] = useState(
-    () => sessionStorage.getItem("cp_loggedin") === "1"
-  );
+  // Login state: localStorage に有効期限付きで保存（60日間維持）
+  const LOGIN_EXPIRY_KEY = "cp_login_expiry";
+  const LOGIN_DAYS = 60;
+
+  const [loggedIn, setLoggedIn] = useState(() => {
+    const expiry = localStorage.getItem(LOGIN_EXPIRY_KEY);
+    if (!expiry) return false;
+    if (Date.now() > Number(expiry)) {
+      localStorage.removeItem(LOGIN_EXPIRY_KEY);
+      return false;
+    }
+    return true;
+  });
 
   const handleLogin = () => {
-    sessionStorage.setItem("cp_loggedin", "1");
+    localStorage.setItem(LOGIN_EXPIRY_KEY, String(Date.now() + LOGIN_DAYS * 86400000));
     setLoggedIn(true);
   };
 
   const handleLogout = () => {
-    sessionStorage.removeItem("cp_loggedin");
+    localStorage.removeItem(LOGIN_EXPIRY_KEY);
     setLoggedIn(false);
   };
 
   const handleReset = () => {
     localStorage.removeItem(STORAGE_KEY);
-    sessionStorage.removeItem("cp_loggedin");
+    localStorage.removeItem(LOGIN_EXPIRY_KEY);
     setRegisteredUser(null);
     setLoggedIn(false);
   };
