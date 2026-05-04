@@ -235,13 +235,11 @@ function UserNav({ registeredUser, myStamps, unreadCount, onLogout }) {
   return (
     <nav style={{
       position: "sticky", top: 0, zIndex: 100,
-      backgroundColor: "rgba(8,16,50,0.72)",
+      backgroundColor: "rgba(8,16,50,0.95)",
       backgroundImage: `url("data:image/svg+xml,${MTN_SVG_NAV}")`,
       backgroundSize: "100% 100%",
       backgroundPosition: "bottom center",
       backgroundRepeat: "no-repeat",
-      backdropFilter: "blur(20px)",
-      WebkitBackdropFilter: "blur(20px)",
       borderBottom: "1px solid rgba(255,255,255,0.12)",
       boxShadow: "0 4px 24px rgba(0,0,0,0.35)",
     }}>
@@ -262,10 +260,12 @@ function UserNav({ registeredUser, myStamps, unreadCount, onLogout }) {
               </linearGradient>
             </defs>
             <circle cx="12" cy="12" r="9" stroke="url(#globeGrad)" strokeWidth="1.6"/>
-            <ellipse cx="12" cy="12" rx="4" ry="9" stroke="url(#globeGrad)" strokeWidth="1.2" opacity="0.7"/>
-            <line x1="3" y1="12" x2="21" y2="12" stroke="url(#globeGrad)" strokeWidth="1.2" opacity="0.7"/>
-            <line x1="5" y1="7.5" x2="19" y2="7.5" stroke="url(#globeGrad)" strokeWidth="1" opacity="0.5"/>
-            <line x1="5" y1="16.5" x2="19" y2="16.5" stroke="url(#globeGrad)" strokeWidth="1" opacity="0.5"/>
+            {/* 経度線（縦の楕円＝子午線） */}
+            <ellipse cx="12" cy="12" rx="4" ry="9" stroke="url(#globeGrad)" strokeWidth="1.2" fill="none" opacity="0.7"/>
+            {/* 緯度線（横の楕円＝緯線） */}
+            <ellipse cx="12" cy="12" rx="9" ry="2.2" stroke="url(#globeGrad)" strokeWidth="1.2" fill="none" opacity="0.7"/>
+            <ellipse cx="12" cy="7.5" rx="7.8" ry="1.6" stroke="url(#globeGrad)" strokeWidth="1" fill="none" opacity="0.5"/>
+            <ellipse cx="12" cy="16.5" rx="7.8" ry="1.6" stroke="url(#globeGrad)" strokeWidth="1" fill="none" opacity="0.5"/>
           </svg>
           {/* テキスト */}
           <div style={{ lineHeight: 1.15 }}>
