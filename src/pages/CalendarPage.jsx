@@ -222,6 +222,8 @@ export default function CalendarPage({ stamps, user }) {
                     borderBottom: `1px solid ${C.lightGray}`,
                     background: isToday(day) ? `${C.teal}08` : C.white,
                     cursor: dayEvents.length > 0 ? "pointer" : "default",
+                    overflow: "hidden",
+                    minWidth: 0,
                   }}
                   onClick={() => dayEvents.length > 0 && setSelectedEvent(dayEvents[0])}
                 >

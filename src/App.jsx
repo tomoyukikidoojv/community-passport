@@ -387,21 +387,25 @@ function UserNav({ registeredUser, myStamps, unreadCount, onLogout }) {
             >
               {({ isActive }) => (
                 <>
-                  {isNotices && unreadCount > 0 && (
-                    <div style={{
-                      position: "absolute", top: 4, right: "calc(50% - 18px)",
-                      minWidth: 16, height: 16, borderRadius: 8,
-                      background: "#E74C3C", color: C.white,
-                      fontSize: 9, fontWeight: 800,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      padding: "0 4px",
-                    }}>{unreadCount}</div>
-                  )}
-                  <span style={{
-                    fontSize: 12,
-                    color: isActive ? C.white : "rgba(255,255,255,0.55)",
-                    fontWeight: isActive ? 700 : 400,
-                  }}>{t(item.labelKey)}</span>
+                  {/* Badge はテキストの右上に superscript として配置 */}
+                  <span style={{ position: "relative", display: "inline-block" }}>
+                    <span style={{
+                      fontSize: 12,
+                      color: isActive ? C.white : "rgba(255,255,255,0.55)",
+                      fontWeight: isActive ? 700 : 400,
+                    }}>{t(item.labelKey)}</span>
+                    {isNotices && unreadCount > 0 && (
+                      <span style={{
+                        position: "absolute", top: -7, right: -16,
+                        minWidth: 15, height: 15, borderRadius: 8,
+                        background: "#E74C3C", color: C.white,
+                        fontSize: 9, fontWeight: 800,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        padding: "0 3px",
+                        lineHeight: 1,
+                      }}>{unreadCount}</span>
+                    )}
+                  </span>
                 </>
               )}
             </NavLink>
