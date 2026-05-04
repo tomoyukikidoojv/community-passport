@@ -248,20 +248,36 @@ function UserNav({ registeredUser, myStamps, unreadCount, onLogout }) {
         borderBottom: "1px solid rgba(255,255,255,0.10)",
       }}>
         {/* Logo */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 9, flex: 1 }}>
+          {/* グラデーションアイコン */}
           <div style={{
-            width: 28, height: 28, borderRadius: 7,
-            background: C.gold,
+            width: 36, height: 36, borderRadius: 10,
+            background: "linear-gradient(135deg, #7c3aed 0%, #0c7a8a 100%)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 16, flexShrink: 0,
-          }}>🌏</div>
+            flexShrink: 0,
+            boxShadow: "0 3px 12px rgba(124,58,237,0.5), inset 0 0 0 1px rgba(255,255,255,0.15)",
+          }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="8.5" stroke="white" strokeWidth="1.5" opacity="0.95"/>
+              <ellipse cx="12" cy="12" rx="4" ry="8.5" stroke="white" strokeWidth="1.2" opacity="0.6"/>
+              <line x1="3.5" y1="12" x2="20.5" y2="12" stroke="white" strokeWidth="1.2" opacity="0.6"/>
+              <line x1="5.5" y1="7.5" x2="18.5" y2="7.5" stroke="white" strokeWidth="1" opacity="0.4"/>
+              <line x1="5.5" y1="16.5" x2="18.5" y2="16.5" stroke="white" strokeWidth="1" opacity="0.4"/>
+            </svg>
+          </div>
+          {/* テキスト */}
           <div style={{ lineHeight: 1.2 }}>
-            <div style={{ color: C.white, fontWeight: 800, fontSize: 12, letterSpacing: 0.5 }}>
-              Community
-            </div>
-            <div style={{ color: C.gold, fontWeight: 800, fontSize: 12, letterSpacing: 0.5 }}>
-              Passport
-            </div>
+            <div style={{
+              color: "rgba(255,255,255,0.65)",
+              fontWeight: 600, fontSize: 9,
+              letterSpacing: 2, textTransform: "uppercase",
+            }}>Community</div>
+            <div style={{
+              background: "linear-gradient(90deg, #e8b84b 0%, #f7e07a 100%)",
+              WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+              fontWeight: 800, fontSize: 14, letterSpacing: 0.3,
+            }}>Passport</div>
           </div>
         </div>
 
