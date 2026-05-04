@@ -249,22 +249,20 @@ function UserNav({ registeredUser, myStamps, unreadCount, onLogout }) {
       }}>
         {/* Logo */}
         <div style={{ display: "flex", alignItems: "center", gap: 9, flex: 1 }}>
-          {/* グラデーションアイコン */}
-          <div style={{
-            width: 36, height: 36, borderRadius: 10,
-            background: "linear-gradient(135deg, #7c3aed 0%, #0c7a8a 100%)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            flexShrink: 0,
-            boxShadow: "0 3px 12px rgba(124,58,237,0.5), inset 0 0 0 1px rgba(255,255,255,0.15)",
-          }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="8.5" stroke="white" strokeWidth="1.5" opacity="0.95"/>
-              <ellipse cx="12" cy="12" rx="4" ry="8.5" stroke="white" strokeWidth="1.2" opacity="0.6"/>
-              <line x1="3.5" y1="12" x2="20.5" y2="12" stroke="white" strokeWidth="1.2" opacity="0.6"/>
-              <line x1="5.5" y1="7.5" x2="18.5" y2="7.5" stroke="white" strokeWidth="1" opacity="0.4"/>
-              <line x1="5.5" y1="16.5" x2="18.5" y2="16.5" stroke="white" strokeWidth="1" opacity="0.4"/>
-            </svg>
-          </div>
+          {/* グローブアイコン（背景なし） */}
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0, filter: "drop-shadow(0 0 6px rgba(124,58,237,0.5))" }}>
+            <defs>
+              <linearGradient id="globeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#a78bfa"/>
+                <stop offset="100%" stopColor="#2dd4bf"/>
+              </linearGradient>
+            </defs>
+            <circle cx="12" cy="12" r="9" stroke="url(#globeGrad)" strokeWidth="1.6"/>
+            <ellipse cx="12" cy="12" rx="4" ry="9" stroke="url(#globeGrad)" strokeWidth="1.2" opacity="0.7"/>
+            <line x1="3" y1="12" x2="21" y2="12" stroke="url(#globeGrad)" strokeWidth="1.2" opacity="0.7"/>
+            <line x1="5" y1="7.5" x2="19" y2="7.5" stroke="url(#globeGrad)" strokeWidth="1" opacity="0.5"/>
+            <line x1="5" y1="16.5" x2="19" y2="16.5" stroke="url(#globeGrad)" strokeWidth="1" opacity="0.5"/>
+          </svg>
           {/* テキスト */}
           <div style={{ lineHeight: 1.2 }}>
             <div style={{
