@@ -337,49 +337,81 @@ export default function RegisterPage({ onRegistered, onShowLogin }) {
                 <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 6 }}>
                   {t("register.country")} <span style={{ color: "#E74C3C" }}>*</span>
                 </label>
-                <input
-                  type="text"
-                  value={countrySearch}
-                  onChange={e => {
-                    setCountrySearch(e.target.value);
-                    setCountryOpen(true);
-                    setForm(f => ({ ...f, country: "" }));
+
+                {/* 選択済み or 未選択の表示ボタン */}
+                <div
+                  onClick={() => { setCountryOpen(o => !o); setCountrySearch(""); }}
+                  style={{
+                    ...inputStyle,
+                    borderColor: errors.country ? "#E74C3C" : countryOpen ? C.teal : C.lightGray,
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                    cursor: "pointer", userSelect: "none",
+                    color: form.country ? C.charcoal : C.gray,
                   }}
-                  onFocus={() => { if (countrySearch && !form.country) setCountryOpen(true); }}
-                  placeholder={t("register.country_placeholder")}
-                  style={{ ...inputStyle, borderColor: errors.country ? "#E74C3C" : C.lightGray }}
-                />
-                {countryOpen && countrySearch && (
+                >
+                  <span style={{ fontSize: form.country ? 14 : 13 }}>
+                    {form.country
+                      ? (() => { const c = COUNTRIES.find(x => x.code === form.country); return c ? `${c.flag} ${c.name}` : ""; })()
+                      : t("register.country_placeholder")}
+                  </span>
+                  <span style={{ fontSize: 11, color: C.gray, marginLeft: 4 }}>
+                    {countryOpen ? "▲" : "▼"}
+                  </span>
+                </div>
+
+                {/* ドロップダウン */}
+                {countryOpen && (
                   <div style={{
-                    maxHeight: 220, overflowY: "auto",
-                    WebkitOverflowScrolling: "touch", // iOS スムーズスクロール
-                    border: `1.5px solid ${C.tealLight}`, borderRadius: 8,
-                    background: C.white, boxShadow: "0 8px 24px rgba(0,0,0,0.25)",
                     position: "absolute", zIndex: 200, width: "100%", top: "calc(100% + 4px)", left: 0,
+                    background: C.white, borderRadius: 10,
+                    border: `1.5px solid ${C.tealLight}`,
+                    boxShadow: "0 8px 28px rgba(0,0,0,0.22)",
+                    overflow: "hidden",
                   }}>
-                    {filteredCountries.slice(0, 30).map(c => (
-                      <div
-                        key={c.code}
-                        onMouseDown={e => e.preventDefault()} // フォーカス外れを防ぐ
-                        onClick={() => {
-                          setForm(f => ({ ...f, country: c.code }));
-                          setCountrySearch(`${c.flag} ${c.name}`);
-                          setCountryOpen(false); // ← 選択後に閉じる
-                          setErrors(er => ({ ...er, country: null }));
-                        }}
+                    {/* 検索ボックス */}
+                    <div style={{ padding: "8px 10px", borderBottom: `1px solid ${C.lightGray}` }}>
+                      <input
+                        type="text"
+                        autoFocus
+                        value={countrySearch}
+                        onChange={e => setCountrySearch(e.target.value)}
+                        placeholder="🔍 検索..."
                         style={{
-                          padding: "9px 12px", cursor: "pointer", fontSize: 13,
-                          background: form.country === c.code ? C.tealPale : C.white,
-                          display: "flex", alignItems: "center", gap: 8,
+                          width: "100%", padding: "7px 10px", boxSizing: "border-box",
+                          border: `1.5px solid ${C.tealLight}`, borderRadius: 6,
+                          fontSize: 13, fontFamily: "inherit", outline: "none",
                         }}
-                      >
-                        <span style={{ fontSize: 16 }}>{c.flag}</span>
-                        <span>{c.name}</span>
-                      </div>
-                    ))}
-                    {filteredCountries.length === 0 && (
-                      <div style={{ padding: "10px 14px", color: C.gray, fontSize: 13 }}>—</div>
-                    )}
+                      />
+                    </div>
+                    {/* 国リスト */}
+                    <div style={{ maxHeight: 200, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
+                      {(countrySearch ? filteredCountries : COUNTRIES).map(c => (
+                        <div
+                          key={c.code}
+                          onMouseDown={e => e.preventDefault()}
+                          onClick={() => {
+                            setForm(f => ({ ...f, country: c.code }));
+                            setCountryOpen(false);
+                            setCountrySearch("");
+                            setErrors(er => ({ ...er, country: null }));
+                          }}
+                          style={{
+                            padding: "10px 14px", cursor: "pointer", fontSize: 13,
+                            background: form.country === c.code ? C.tealPale : C.white,
+                            display: "flex", alignItems: "center", gap: 10,
+                            borderBottom: `1px solid ${C.lightGray}22`,
+                          }}
+                        >
+                          <span style={{ fontSize: 18 }}>{c.flag}</span>
+                          <span style={{ color: form.country === c.code ? C.teal : C.charcoal, fontWeight: form.country === c.code ? 700 : 400 }}>
+                            {c.name}
+                          </span>
+                        </div>
+                      ))}
+                      {countrySearch && filteredCountries.length === 0 && (
+                        <div style={{ padding: "14px", color: C.gray, fontSize: 13, textAlign: "center" }}>見つかりません</div>
+                      )}
+                    </div>
                   </div>
                 )}
                 {errors.country && <div style={{ color: "#E74C3C", fontSize: 11, marginTop: 4 }}>{errors.country}</div>}
