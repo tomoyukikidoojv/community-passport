@@ -6,7 +6,7 @@ import { sendContactEmail } from "../lib/emailService";
 // ── LINE設定 ─────────────────────────────────────────────
 // LINE公式アカウントのURLに変更してください
 // 例: "https://line.me/R/ti/p/@xxxxxxxx"
-const LINE_URL = "https://line.me/R/ti/p/@ashiyacp";
+const LINE_URL = "https://line.me/R/ti/p/@307ghsul";
 
 export default function ContactPage({ user }) {
   const { t } = useLang();

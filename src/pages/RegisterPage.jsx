@@ -58,6 +58,7 @@ export default function RegisterPage({ onRegistered, onShowLogin }) {
   const [submitted, setSubmitted] = useState(false);
   const [newUser, setNewUser] = useState(null);
   const [countrySearch, setCountrySearch] = useState("");
+  const [countryOpen, setCountryOpen] = useState(false);
 
   const set = k => e => {
     setForm(f => ({ ...f, [k]: e.target.value }));
@@ -102,7 +103,7 @@ export default function RegisterPage({ onRegistered, onShowLogin }) {
     if (!form.dob)                   errs.dob       = t("register.err_required");
     if (!form.country)               errs.country   = t("register.err_country");
     if (!form.email.trim())          errs.email     = t("register.err_required");
-    if (!form.phone.trim())          errs.phone     = t("register.err_required");
+    // phone は任意 — バリデーション不要
     if (form.languages.length === 0) errs.languages = t("register.err_languages");
     if (!form.volunteer)             errs.volunteer = t("register.err_required");
     if (form.password.length < 4)   errs.password  = t("register.err_password");
@@ -218,13 +219,32 @@ export default function RegisterPage({ onRegistered, onShowLogin }) {
               </div>
             </div>
 
+            {/* LINEに参加 */}
+            <a
+              href="https://line.me/R/ti/p/@307ghsul"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+                width: "100%", padding: "13px",
+                background: "#06C755",
+                color: C.white, border: "none", borderRadius: 10,
+                fontSize: 15, fontWeight: 700, cursor: "pointer",
+                textDecoration: "none", marginBottom: 10,
+                boxShadow: "0 4px 14px rgba(6,199,85,0.35)",
+                boxSizing: "border-box",
+              }}
+            >
+              <span style={{ fontSize: 20 }}>💚</span> LINEコミュニティに参加する
+            </a>
+
             <button
               onClick={() => onRegistered(newUser)}
               style={{
-                width: "100%", padding: "14px",
+                width: "100%", padding: "13px",
                 background: `linear-gradient(90deg, ${C.teal}, ${C.tealMid})`,
                 color: C.white, border: "none", borderRadius: 10,
-                fontSize: 15, fontWeight: 700, cursor: "pointer",
+                fontSize: 14, fontWeight: 700, cursor: "pointer",
                 fontFamily: "inherit",
               }}
             >{t("register.success_btn")}</button>
@@ -258,11 +278,13 @@ export default function RegisterPage({ onRegistered, onShowLogin }) {
 
         <div style={{
           background: C.white, borderRadius: 20,
-          boxShadow: "0 20px 60px rgba(0,0,0,0.3)", overflow: "hidden",
+          boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
+          overflow: "visible", // ← ドロップダウンが隠れないようにvisibleに
         }}>
           <div style={{
             background: `linear-gradient(90deg, ${C.teal}, ${C.tealMid})`,
             padding: "16px 28px",
+            borderRadius: "20px 20px 0 0", // ← 角丸をここで設定
             display: "flex", alignItems: "center", gap: 12,
           }}>
             <div style={{
@@ -318,32 +340,41 @@ export default function RegisterPage({ onRegistered, onShowLogin }) {
                 <input
                   type="text"
                   value={countrySearch}
-                  onChange={e => { setCountrySearch(e.target.value); setForm(f => ({ ...f, country: "" })); }}
+                  onChange={e => {
+                    setCountrySearch(e.target.value);
+                    setCountryOpen(true);
+                    setForm(f => ({ ...f, country: "" }));
+                  }}
+                  onFocus={() => { if (countrySearch && !form.country) setCountryOpen(true); }}
                   placeholder={t("register.country_placeholder")}
                   style={{ ...inputStyle, borderColor: errors.country ? "#E74C3C" : C.lightGray }}
                 />
-                {countrySearch && (
+                {countryOpen && countrySearch && (
                   <div style={{
-                    maxHeight: 180, overflowY: "auto",
+                    maxHeight: 220, overflowY: "auto",
+                    WebkitOverflowScrolling: "touch", // iOS スムーズスクロール
                     border: `1.5px solid ${C.tealLight}`, borderRadius: 8,
-                    background: C.white, boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                    position: "absolute", zIndex: 20, width: "100%", top: "100%", left: 0,
+                    background: C.white, boxShadow: "0 8px 24px rgba(0,0,0,0.25)",
+                    position: "absolute", zIndex: 200, width: "100%", top: "calc(100% + 4px)", left: 0,
                   }}>
                     {filteredCountries.slice(0, 30).map(c => (
                       <div
                         key={c.code}
+                        onMouseDown={e => e.preventDefault()} // フォーカス外れを防ぐ
                         onClick={() => {
                           setForm(f => ({ ...f, country: c.code }));
                           setCountrySearch(`${c.flag} ${c.name}`);
+                          setCountryOpen(false); // ← 選択後に閉じる
                           setErrors(er => ({ ...er, country: null }));
                         }}
                         style={{
-                          padding: "7px 12px", cursor: "pointer", fontSize: 13,
+                          padding: "9px 12px", cursor: "pointer", fontSize: 13,
                           background: form.country === c.code ? C.tealPale : C.white,
-                          display: "flex", alignItems: "center", gap: 6,
+                          display: "flex", alignItems: "center", gap: 8,
                         }}
                       >
-                        <span>{c.flag}</span> {c.name}
+                        <span style={{ fontSize: 16 }}>{c.flag}</span>
+                        <span>{c.name}</span>
                       </div>
                     ))}
                     {filteredCountries.length === 0 && (
@@ -370,7 +401,8 @@ export default function RegisterPage({ onRegistered, onShowLogin }) {
               </div>
               <div>
                 <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 6 }}>
-                  {t("register.phone")} <span style={{ color: "#E74C3C" }}>*</span>
+                  {t("register.phone")}
+                  <span style={{ fontSize: 11, fontWeight: 400, color: C.gray, marginLeft: 6 }}>任意</span>
                 </label>
                 <input
                   type="tel" value={form.phone} onChange={e => {
@@ -381,7 +413,6 @@ export default function RegisterPage({ onRegistered, onShowLogin }) {
                   maxLength={15}
                   style={{ ...inputStyle, borderColor: errors.phone ? "#E74C3C" : C.lightGray }}
                 />
-                {errors.phone && <div style={{ color: "#E74C3C", fontSize: 11, marginTop: 4 }}>{errors.phone}</div>}
               </div>
             </div>
 
@@ -624,6 +655,7 @@ export default function RegisterPage({ onRegistered, onShowLogin }) {
               borderTop: `1px solid ${C.lightGray}`,
               padding: "16px 28px",
               textAlign: "center",
+              borderRadius: "0 0 20px 20px",
             }}>
               <span style={{ fontSize: 13, color: C.gray }}>
                 {t("register.have_account")}{" "}
