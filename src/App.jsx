@@ -8,7 +8,7 @@ import AnnouncementsPage from "./pages/AnnouncementsPage";
 import CalendarPage from "./pages/CalendarPage";
 import ContactPage from "./pages/ContactPage";
 import AdminDashboard from "./pages/AdminDashboard";
-import { C, initialAttendance, initialAnnouncements } from "./constants";
+import { C, MTN_SVG_NAV, initialAttendance, initialAnnouncements } from "./constants";
 import { LangProvider, useLang } from "./i18n/LangContext";
 import { LANGS } from "./i18n/translations";
 import { saveUserToCloud, saveAttendanceToCloud, fetchUserAttendance, fetchAnnouncements, saveAnnouncementToCloud, deleteAnnouncementFromCloud, fetchFormsFromCloud } from "./lib/userService";
@@ -235,7 +235,11 @@ function UserNav({ registeredUser, myStamps, unreadCount, onLogout }) {
   return (
     <nav style={{
       position: "sticky", top: 0, zIndex: 100,
-      background: C.navBg,
+      backgroundColor: "rgba(8,16,50,0.72)",
+      backgroundImage: `url("data:image/svg+xml,${MTN_SVG_NAV}")`,
+      backgroundSize: "100% 48px",
+      backgroundPosition: "bottom center",
+      backgroundRepeat: "no-repeat",
       backdropFilter: "blur(20px)",
       WebkitBackdropFilter: "blur(20px)",
       borderBottom: "1px solid rgba(255,255,255,0.12)",
@@ -264,19 +268,24 @@ function UserNav({ registeredUser, myStamps, unreadCount, onLogout }) {
             <line x1="5" y1="16.5" x2="19" y2="16.5" stroke="url(#globeGrad)" strokeWidth="1" opacity="0.5"/>
           </svg>
           {/* テキスト */}
-          <div style={{ lineHeight: 1.2 }}>
+          <div style={{ lineHeight: 1.15 }}>
             <div style={{
-              background: "linear-gradient(90deg, #e8b84b 0%, #f7e07a 50%, #e8b84b 100%)",
+              color: "rgba(255,255,255,0.60)",
+              fontWeight: 600, fontSize: 9,
+              letterSpacing: 1.5, textTransform: "uppercase",
+            }}>Community</div>
+            <div style={{
+              background: "linear-gradient(90deg, #e8b84b 0%, #f7e07a 100%)",
               WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
               backgroundClip: "text",
-              fontWeight: 800, fontSize: 15, letterSpacing: 4,
-              textTransform: "uppercase",
-            }}>ASHIYA</div>
+              fontWeight: 800, fontSize: 15, letterSpacing: 0.3,
+            }}>Passport</div>
             <div style={{
-              color: "rgba(255,255,255,0.50)",
-              fontWeight: 500, fontSize: 8,
-              letterSpacing: 1.5, textTransform: "uppercase",
-            }}>Community Passport</div>
+              color: "rgba(255,255,255,0.28)",
+              fontWeight: 400, fontSize: 7,
+              letterSpacing: 3.5, textTransform: "uppercase",
+              marginTop: 1,
+            }}>ASHIYA</div>
           </div>
         </div>
 

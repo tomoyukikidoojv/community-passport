@@ -1,7 +1,7 @@
-// ── Mountain silhouette (六甲山) background helper ──
-const _mtnSvg = encodeURIComponent(
+// ── Mountain silhouette (六甲山) — nav banner用（高めの不透明度） ──
+export const MTN_SVG_NAV = encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 220" preserveAspectRatio="none">' +
-  '<path d="M0,220 L0,190 C60,178 120,165 180,154 C240,143 300,132 360,121 C410,112 455,104 500,95 C535,88 568,82 600,76 C628,71 655,66 682,61 C708,57 732,53 755,50 C775,47 795,45 815,43 C833,41 851,40 869,39 C886,38 903,38 920,38 C937,38 953,39 969,41 C986,43 1003,46 1022,51 C1045,57 1070,65 1098,77 C1128,90 1160,107 1200,128 C1240,149 1290,175 1360,198 L1440,220 Z" fill="rgba(255,255,255,0.055)"/>' +
+  '<path d="M0,220 L0,190 C60,178 120,165 180,154 C240,143 300,132 360,121 C410,112 455,104 500,95 C535,88 568,82 600,76 C628,71 655,66 682,61 C708,57 732,53 755,50 C775,47 795,45 815,43 C833,41 851,40 869,39 C886,38 903,38 920,38 C937,38 953,39 969,41 C986,43 1003,46 1022,51 C1045,57 1070,65 1098,77 C1128,90 1160,107 1200,128 C1240,149 1290,175 1360,198 L1440,220 Z" fill="rgba(255,255,255,0.18)"/>' +
   '</svg>'
 );
 
@@ -26,8 +26,7 @@ export const C = {
   purple:    "#7c3aed",
 
   // ── Glassmorphism design system ──────────
-  // 六甲山シルエットSVG（芦屋らしさ）
-  bgGradient: `url("data:image/svg+xml,${_mtnSvg}") bottom center / 100% 220px no-repeat, linear-gradient(135deg, #1e0a3c 0%, #0d1b4b 38%, #0c4270 65%, #0b7a6b 100%)`,
+  bgGradient: "linear-gradient(135deg, #1e0a3c 0%, #0d1b4b 38%, #0c4270 65%, #0b7a6b 100%)",
   // ガラスカード
   glassWhite:  "rgba(255,255,255,0.93)",
   glass:       "rgba(255,255,255,0.10)",
