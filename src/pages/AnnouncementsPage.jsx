@@ -26,12 +26,14 @@ function AnnouncementCard({ item, isRead, onRead }) {
     <div
       onClick={toggle}
       style={{
-        borderRadius: 12,
-        border: `1.5px solid ${isRead ? C.lightGray : cat.color + "60"}`,
-        background: isRead ? C.white : `${cat.color}07`,
+        borderRadius: 14,
+        border: `1.5px solid ${isRead ? "rgba(255,255,255,0.25)" : cat.color + "80"}`,
+        background: isRead ? "rgba(255,255,255,0.88)" : "rgba(255,255,255,0.96)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
         boxShadow: isRead
-          ? "0 1px 4px rgba(0,0,0,0.05)"
-          : `0 3px 12px ${cat.color}20`,
+          ? "0 2px 12px rgba(0,0,0,0.12)"
+          : `0 4px 20px ${cat.color}30`,
         marginBottom: 12,
         cursor: "pointer",
         transition: "all 0.2s",
@@ -152,9 +154,12 @@ export default function AnnouncementsPage({ announcements, readIds, onRead, onRe
 
         {/* Filter + actions bar */}
         <div style={{
-          background: C.white, borderRadius: 14,
+          background: "rgba(255,255,255,0.92)",
+          backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
+          border: "1px solid rgba(255,255,255,0.3)",
+          borderRadius: 14,
           marginBottom: 16,
-          boxShadow: "0 4px 16px rgba(0,0,0,0.15)",
+          boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
           overflow: "hidden",
         }}>
           {/* Scrollable filter row */}
@@ -207,9 +212,12 @@ export default function AnnouncementsPage({ announcements, readIds, onRead, onRe
         <div>
           {filtered.length === 0 ? (
             <div style={{
-              background: C.white, borderRadius: 12, padding: "40px",
+              background: "rgba(255,255,255,0.90)",
+              backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
+              border: "1px solid rgba(255,255,255,0.3)",
+              borderRadius: 14, padding: "40px",
               textAlign: "center", color: C.gray, fontSize: 14,
-              boxShadow: "0 4px 16px rgba(0,0,0,0.1)",
+              boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
             }}>
               {t("ann.empty")}
             </div>
