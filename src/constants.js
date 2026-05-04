@@ -28,7 +28,7 @@ export const C = {
   // ── Glassmorphism design system ──────────
   // 芦屋川イラストを薄く透かしたグラデーション背景
   // ※ /public/ashiyagawa.jpg を置くと画像が表示されます
-  bgGradient: "linear-gradient(135deg, rgba(30,10,60,0.90) 0%, rgba(13,27,75,0.90) 38%, rgba(12,66,112,0.90) 65%, rgba(11,122,107,0.90) 100%), url('/ashiyagawa.jpg') center/cover fixed",
+  bgGradient: "linear-gradient(135deg, rgba(30,10,60,0.92) 0%, rgba(13,27,75,0.92) 38%, rgba(12,66,112,0.92) 65%, rgba(11,122,107,0.92) 100%), url('/ashiyagawa.jpg') center/50% auto no-repeat fixed",
   // ガラスカード
   glassWhite:  "rgba(255,255,255,0.93)",
   glass:       "rgba(255,255,255,0.10)",
