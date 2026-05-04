@@ -237,7 +237,7 @@ function UserNav({ registeredUser, myStamps, unreadCount, onLogout }) {
       position: "sticky", top: 0, zIndex: 100,
       backgroundColor: "rgba(8,16,50,0.72)",
       backgroundImage: `url("data:image/svg+xml,${MTN_SVG_NAV}")`,
-      backgroundSize: "100% 48px",
+      backgroundSize: "100% 100%",
       backgroundPosition: "bottom center",
       backgroundRepeat: "no-repeat",
       backdropFilter: "blur(20px)",
