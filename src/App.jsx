@@ -266,16 +266,17 @@ function UserNav({ registeredUser, myStamps, unreadCount, onLogout }) {
           {/* テキスト */}
           <div style={{ lineHeight: 1.2 }}>
             <div style={{
-              color: "rgba(255,255,255,0.65)",
-              fontWeight: 600, fontSize: 9,
-              letterSpacing: 2, textTransform: "uppercase",
-            }}>Community</div>
-            <div style={{
-              background: "linear-gradient(90deg, #e8b84b 0%, #f7e07a 100%)",
+              background: "linear-gradient(90deg, #e8b84b 0%, #f7e07a 50%, #e8b84b 100%)",
               WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
               backgroundClip: "text",
-              fontWeight: 800, fontSize: 14, letterSpacing: 0.3,
-            }}>Passport</div>
+              fontWeight: 800, fontSize: 15, letterSpacing: 4,
+              textTransform: "uppercase",
+            }}>ASHIYA</div>
+            <div style={{
+              color: "rgba(255,255,255,0.50)",
+              fontWeight: 500, fontSize: 8,
+              letterSpacing: 1.5, textTransform: "uppercase",
+            }}>Community Passport</div>
           </div>
         </div>
 
