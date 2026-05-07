@@ -1415,6 +1415,7 @@ function RsvpSummaryPanel() {
   const [allCounts, setAllCounts] = useState({});
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [openEventId, setOpenEventId] = useState(null);
 
   useEffect(() => {
     Promise.all([fetchAllRsvpFromCloud(), fetchAllRsvpCountFromCloud(), fetchAllUsers()])
@@ -1433,141 +1434,214 @@ function RsvpSummaryPanel() {
       : { name: `#${userId}`, flag: "" };
   };
 
+  // イベントごとの参加データを計算
+  const eventData = events.map(ev => {
+    const suffix = `_${ev.id}`;
+    const goingUsers = [];
+    const notGoingUsers = [];
+    Object.entries(allRsvp).forEach(([key, status]) => {
+      if (!key.endsWith(suffix)) return;
+      const userId = key.slice(0, key.length - suffix.length);
+      const info = getUserInfo(userId);
+      if (status === "going") {
+        const cnt = allCounts[key] || { adults: 0, children: 0 };
+        goingUsers.push({ userId, ...info, adults: cnt.adults ?? 0, children: cnt.children ?? 0 });
+      } else if (status === "not_going") {
+        notGoingUsers.push({ userId, ...info });
+      }
+    });
+    return { ev, goingUsers, notGoingUsers };
+  });
+
+  // Excel出力
+  const downloadRsvpExcel = () => {
+    const wb = XLSX.utils.book_new();
+    eventData.forEach(({ ev, goingUsers, notGoingUsers }) => {
+      const rows = [
+        ...goingUsers.map(u => ({
+          "イベント": ev.nameShort,
+          "日付": ev.fullDate,
+          "名前": u.name,
+          "国旗": u.flag,
+          "ステータス": "さんか",
+          "おとな": u.adults,
+          "こども": u.children,
+          "合計": u.adults + u.children,
+        })),
+        ...notGoingUsers.map(u => ({
+          "イベント": ev.nameShort,
+          "日付": ev.fullDate,
+          "名前": u.name,
+          "国旗": u.flag,
+          "ステータス": "ふさんか",
+          "おとな": "",
+          "こども": "",
+          "合計": "",
+        })),
+      ];
+      if (rows.length === 0) return;
+      const ws = XLSX.utils.json_to_sheet(rows);
+      ws["!cols"] = [22, 14, 20, 6, 10, 8, 8, 8].map(wch => ({ wch }));
+      // シート名は最大31文字
+      const sheetName = ev.nameShort.replace(/[:\\/?\[\]*]/g, "").slice(0, 31);
+      XLSX.utils.book_append_sheet(wb, ws, sheetName || `event_${ev.id}`);
+    });
+    const date = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `rsvp_${date}.xlsx`);
+  };
+
   return (
     <div style={{
       background: C.white, borderRadius: 16,
       boxShadow: "0 8px 30px rgba(0,0,0,0.2)",
       overflow: "hidden", marginTop: 20,
     }}>
+      {/* ヘッダー */}
       <div style={{
-        padding: "16px 20px 14px",
+        padding: "14px 20px",
         borderBottom: `1px solid ${C.lightGray}`,
         display: "flex", alignItems: "center", gap: 8,
       }}>
         <span style={{ display: "inline-block", width: 4, height: 16, background: C.teal, borderRadius: 2 }} />
-        <span style={{ fontSize: 13, fontWeight: 700, color: C.charcoal }}>参加意向サマリー</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: C.charcoal, flex: 1 }}>参加意向サマリー</span>
+        {!loading && (
+          <button
+            onClick={downloadRsvpExcel}
+            style={{
+              background: C.teal, color: C.white,
+              border: "none", borderRadius: 8,
+              padding: "6px 14px", fontSize: 12, fontWeight: 700,
+              cursor: "pointer", fontFamily: "inherit",
+              display: "flex", alignItems: "center", gap: 5,
+            }}
+          >
+            📥 Excel出力
+          </button>
+        )}
       </div>
 
       {loading ? (
         <div style={{ padding: "24px", textAlign: "center", color: C.gray, fontSize: 13 }}>読み込み中…</div>
       ) : (
         <div style={{ padding: "12px 16px" }}>
-          {events.map(ev => {
-            const suffix = `_${ev.id}`;
-            const goingUsers = [];
-            const notGoingUsers = [];
-
-            Object.entries(allRsvp).forEach(([key, status]) => {
-              if (!key.endsWith(suffix)) return;
-              const userId = key.slice(0, key.length - suffix.length);
-              const info = getUserInfo(userId);
-              if (status === "going") {
-                const cnt = allCounts[key] || { adults: 0, children: 0 };
-                goingUsers.push({ userId, ...info, adults: cnt.adults ?? 0, children: cnt.children ?? 0 });
-              } else if (status === "not_going") {
-                notGoingUsers.push({ userId, ...info });
-              }
-            });
-
+          {eventData.map(({ ev, goingUsers, notGoingUsers }) => {
+            const isOpen = openEventId === ev.id;
             const totalAdults   = goingUsers.reduce((s, u) => s + u.adults, 0);
             const totalChildren = goingUsers.reduce((s, u) => s + u.children, 0);
 
             return (
               <div key={ev.id} style={{
-                marginBottom: 16, borderRadius: 12,
-                border: `1px solid ${C.lightGray}`, overflow: "hidden",
+                marginBottom: 10, borderRadius: 12,
+                border: `1px solid ${isOpen ? ev.color + "60" : C.lightGray}`,
+                overflow: "hidden", transition: "border-color 0.15s",
               }}>
-                {/* イベントヘッダー */}
-                <div style={{
-                  background: `${ev.color}18`, padding: "12px 16px",
-                  display: "flex", alignItems: "center", gap: 12,
-                }}>
-                  <span style={{ fontSize: 24, flexShrink: 0 }}>{ev.emoji}</span>
+                {/* クリックでアコーディオン開閉 */}
+                <div
+                  onClick={() => setOpenEventId(isOpen ? null : ev.id)}
+                  style={{
+                    background: isOpen ? `${ev.color}18` : C.offWhite,
+                    padding: "12px 16px", cursor: "pointer",
+                    display: "flex", alignItems: "center", gap: 12,
+                    transition: "background 0.15s",
+                  }}
+                >
+                  <span style={{ fontSize: 22, flexShrink: 0 }}>{ev.emoji}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: C.charcoal }}>{ev.nameShort}</div>
-                    <div style={{ fontSize: 11, color: C.gray, marginTop: 2 }}>{ev.fullDate}</div>
+                    <div style={{ fontSize: 11, color: C.gray, marginTop: 1 }}>{ev.fullDate}</div>
                   </div>
-                  <div style={{ display: "flex", gap: 14, flexShrink: 0 }}>
+                  <div style={{ display: "flex", gap: 12, flexShrink: 0, alignItems: "center" }}>
                     <div style={{ textAlign: "center" }}>
-                      <div style={{ fontSize: 20, fontWeight: 800, color: goingUsers.length > 0 ? ev.color : C.lightGray, lineHeight: 1 }}>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: goingUsers.length > 0 ? ev.color : C.lightGray, lineHeight: 1 }}>
                         {goingUsers.length}
                       </div>
-                      <div style={{ fontSize: 10, color: C.gray, marginTop: 2 }}>さんか</div>
+                      <div style={{ fontSize: 10, color: C.gray, marginTop: 1 }}>さんか</div>
                     </div>
-                    <div style={{ width: 1, background: C.lightGray, alignSelf: "stretch" }} />
+                    <div style={{ width: 1, background: C.lightGray, height: 28 }} />
                     <div style={{ textAlign: "center" }}>
-                      <div style={{ fontSize: 20, fontWeight: 800, color: notGoingUsers.length > 0 ? C.gray : C.lightGray, lineHeight: 1 }}>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: notGoingUsers.length > 0 ? C.gray : C.lightGray, lineHeight: 1 }}>
                         {notGoingUsers.length}
                       </div>
-                      <div style={{ fontSize: 10, color: C.gray, marginTop: 2 }}>ふさんか</div>
+                      <div style={{ fontSize: 10, color: C.gray, marginTop: 1 }}>ふさんか</div>
                     </div>
+                    <span style={{
+                      fontSize: 12, color: C.gray, marginLeft: 4,
+                      display: "inline-block",
+                      transform: isOpen ? "rotate(180deg)" : "none",
+                      transition: "transform 0.2s",
+                    }}>▼</span>
                   </div>
                 </div>
 
-                {/* 参加希望ユーザー */}
-                {goingUsers.length > 0 && (
-                  <div style={{ borderBottom: notGoingUsers.length > 0 ? `1px solid ${C.lightGray}` : "none" }}>
-                    <div style={{
-                      padding: "8px 16px 4px",
-                      fontSize: 11, fontWeight: 700, color: ev.color,
-                      display: "flex", alignItems: "center", justifyContent: "space-between",
-                    }}>
-                      <span>🙋 さんかしたい</span>
-                      <span style={{ fontSize: 11, color: C.gray, fontWeight: 400 }}>
-                        おとな計 {totalAdults}人 ／ こども計 {totalChildren}人
-                      </span>
-                    </div>
-                    {goingUsers.map((u, i) => (
-                      <div key={u.userId} style={{
-                        display: "flex", alignItems: "center", gap: 10,
-                        padding: "8px 16px",
-                        borderTop: i > 0 ? `1px solid ${C.lightGray}` : "none",
-                        background: i % 2 === 0 ? C.white : C.offWhite,
-                      }}>
-                        <span style={{ fontSize: 18, flexShrink: 0 }}>{u.flag}</span>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: C.charcoal, flex: 1, minWidth: 0 }}>
-                          {u.name}
-                        </span>
-                        <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                          <span style={{
-                            background: `${ev.color}18`, color: ev.color,
-                            borderRadius: 6, padding: "2px 8px",
-                            fontSize: 11, fontWeight: 700,
-                          }}>おとな {u.adults}</span>
-                          <span style={{
-                            background: `${C.teal}18`, color: C.teal,
-                            borderRadius: 6, padding: "2px 8px",
-                            fontSize: 11, fontWeight: 700,
-                          }}>こども {u.children}</span>
+                {/* 展開コンテンツ */}
+                {isOpen && (
+                  <div>
+                    {/* 参加希望ユーザー */}
+                    {goingUsers.length > 0 && (
+                      <div style={{ borderBottom: notGoingUsers.length > 0 ? `1px solid ${C.lightGray}` : "none" }}>
+                        <div style={{
+                          padding: "8px 16px 4px",
+                          fontSize: 11, fontWeight: 700, color: ev.color,
+                          display: "flex", alignItems: "center", justifyContent: "space-between",
+                        }}>
+                          <span>🙋 さんかしたい</span>
+                          <span style={{ fontSize: 11, color: C.gray, fontWeight: 400 }}>
+                            おとな計 {totalAdults}人 ／ こども計 {totalChildren}人
+                          </span>
+                        </div>
+                        {goingUsers.map((u, i) => (
+                          <div key={u.userId} style={{
+                            display: "flex", alignItems: "center", gap: 10,
+                            padding: "8px 16px",
+                            borderTop: i > 0 ? `1px solid ${C.lightGray}` : `1px solid ${C.lightGray}`,
+                            background: i % 2 === 0 ? C.white : C.offWhite,
+                          }}>
+                            <span style={{ fontSize: 18, flexShrink: 0 }}>{u.flag}</span>
+                            <span style={{ fontSize: 13, fontWeight: 600, color: C.charcoal, flex: 1, minWidth: 0 }}>
+                              {u.name}
+                            </span>
+                            <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                              <span style={{
+                                background: `${ev.color}18`, color: ev.color,
+                                borderRadius: 6, padding: "2px 8px",
+                                fontSize: 11, fontWeight: 700,
+                              }}>おとな {u.adults}</span>
+                              <span style={{
+                                background: `${C.teal}18`, color: C.teal,
+                                borderRadius: 6, padding: "2px 8px",
+                                fontSize: 11, fontWeight: 700,
+                              }}>こども {u.children}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* 不参加ユーザー */}
+                    {notGoingUsers.length > 0 && (
+                      <div style={{ padding: "10px 16px", background: C.offWhite }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: C.gray, marginBottom: 8 }}>🙅 ふさんか</div>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                          {notGoingUsers.map(u => (
+                            <div key={u.userId} style={{
+                              background: C.white, border: `1px solid ${C.lightGray}`,
+                              borderRadius: 20, padding: "4px 12px",
+                              fontSize: 12, color: C.gray,
+                              display: "flex", alignItems: "center", gap: 4,
+                            }}>
+                              <span>{u.flag}</span>
+                              <span>{u.name}</span>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
+                    )}
 
-                {/* 不参加ユーザー */}
-                {notGoingUsers.length > 0 && (
-                  <div style={{ padding: "10px 16px", background: C.offWhite }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: C.gray, marginBottom: 8 }}>🙅 ふさんか</div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                      {notGoingUsers.map(u => (
-                        <div key={u.userId} style={{
-                          background: C.white, border: `1px solid ${C.lightGray}`,
-                          borderRadius: 20, padding: "4px 12px",
-                          fontSize: 12, color: C.gray,
-                          display: "flex", alignItems: "center", gap: 4,
-                        }}>
-                          <span>{u.flag}</span>
-                          <span>{u.name}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {goingUsers.length === 0 && notGoingUsers.length === 0 && (
-                  <div style={{ padding: "18px", textAlign: "center", color: C.gray, fontSize: 12 }}>
-                    まだ回答はありません
+                    {goingUsers.length === 0 && notGoingUsers.length === 0 && (
+                      <div style={{ padding: "18px", textAlign: "center", color: C.gray, fontSize: 12 }}>
+                        まだ回答はありません
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
