@@ -5,7 +5,8 @@ import { useEvents } from "../hooks/useEvents";
 import { useLang } from "../i18n/LangContext";
 import { saveUserRsvpToCloud, fetchUserRsvpFromCloud } from "../lib/userService";
 
-const RSVP_KEY = "cp_rsvp"; // { "userId_eventId": "going" | "not_going" }
+const RSVP_KEY = "cp_rsvp";       // { "userId_eventId": "going" | "not_going" }
+const RSVP_COUNT_KEY = "cp_rsvp_count"; // { "userId_eventId": number }
 
 function loadAllRsvp() {
   try { return JSON.parse(localStorage.getItem(RSVP_KEY)) || {}; }
@@ -13,6 +14,13 @@ function loadAllRsvp() {
 }
 function saveAllRsvp(data) {
   localStorage.setItem(RSVP_KEY, JSON.stringify(data));
+}
+function loadAllRsvpCount() {
+  try { return JSON.parse(localStorage.getItem(RSVP_COUNT_KEY)) || {}; }
+  catch { return {}; }
+}
+function saveAllRsvpCount(data) {
+  localStorage.setItem(RSVP_COUNT_KEY, JSON.stringify(data));
 }
 
 export function getRsvpCounts(eventId) {
@@ -59,6 +67,7 @@ export default function CalendarPage({ stamps, user }) {
   const [lightboxImg, setLightboxImg] = useState(null);
 
   const uid = user?.id ?? "guest";
+  const [allRsvpCount, setAllRsvpCount] = useState(loadAllRsvpCount);
 
   // 起動時にFirestoreから自分のRSVPを取得してlocalStorageと同期
   useEffect(() => {
@@ -79,6 +88,20 @@ export default function CalendarPage({ stamps, user }) {
       .filter(([k]) => k.startsWith(`${uid}_`))
       .map(([k, v]) => [k.slice(`${uid}_`.length), v])
   );
+
+  // Current user's RSVP count: { [eventId]: number }
+  const rsvpCount = Object.fromEntries(
+    Object.entries(allRsvpCount)
+      .filter(([k]) => k.startsWith(`${uid}_`))
+      .map(([k, v]) => [k.slice(`${uid}_`.length), v])
+  );
+
+  const handleRsvpCount = (eventId, count) => {
+    const key = `${uid}_${eventId}`;
+    const updated = { ...allRsvpCount, [key]: Math.max(1, Math.min(20, count)) };
+    setAllRsvpCount(updated);
+    saveAllRsvpCount(updated);
+  };
 
   const handleRsvp = (eventId, status) => {
     const key = `${uid}_${eventId}`;
@@ -314,9 +337,12 @@ export default function CalendarPage({ stamps, user }) {
                 {new Date(selectedEvent.fullDate) >= new Date(today.toDateString()) && !stamps?.has(selectedEvent.id) && (
                   <div style={{ marginBottom: 14 }}>
                     <div style={{ fontSize: 11, color: C.gray, marginBottom: 8 }}>{t("calendar.rsvp_label")}</div>
-                    <div style={{ display: "flex", gap: 8 }}>
+                    <div style={{ display: "flex", gap: 8, marginBottom: rsvp[selectedEvent.id] === "going" ? 10 : 0 }}>
                       <button
-                        onClick={() => handleRsvp(selectedEvent.id, "going")}
+                        onClick={() => {
+                          handleRsvp(selectedEvent.id, "going");
+                          if (!rsvpCount[selectedEvent.id]) handleRsvpCount(selectedEvent.id, 1);
+                        }}
                         style={{
                           flex: 1, padding: "10px",
                           background: rsvp[selectedEvent.id] === "going" ? selectedEvent.color : C.offWhite,
@@ -342,6 +368,46 @@ export default function CalendarPage({ stamps, user }) {
                         {rsvp[selectedEvent.id] === "not_going" ? t("calendar.not_going_done") : t("calendar.not_going")}
                       </button>
                     </div>
+
+                    {/* 参加人数入力 — 参加したいを選んだときのみ表示 */}
+                    {rsvp[selectedEvent.id] === "going" && (
+                      <div style={{
+                        background: `${selectedEvent.color}10`,
+                        border: `1px solid ${selectedEvent.color}30`,
+                        borderRadius: 10, padding: "10px 14px",
+                        display: "flex", alignItems: "center", justifyContent: "space-between",
+                      }}>
+                        <span style={{ fontSize: 12, color: C.charcoal, fontWeight: 600 }}>
+                          {t("calendar.rsvp_count")}
+                        </span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                          <button
+                            onClick={() => handleRsvpCount(selectedEvent.id, (rsvpCount[selectedEvent.id] || 1) - 1)}
+                            style={{
+                              width: 28, height: 28, borderRadius: "50%",
+                              background: C.white, border: `1.5px solid ${C.lightGray}`,
+                              fontSize: 16, cursor: "pointer", display: "flex",
+                              alignItems: "center", justifyContent: "center",
+                              color: C.charcoal, lineHeight: 1,
+                            }}
+                          >−</button>
+                          <span style={{ fontSize: 20, fontWeight: 800, color: selectedEvent.color, minWidth: 24, textAlign: "center" }}>
+                            {rsvpCount[selectedEvent.id] || 1}
+                          </span>
+                          <button
+                            onClick={() => handleRsvpCount(selectedEvent.id, (rsvpCount[selectedEvent.id] || 1) + 1)}
+                            style={{
+                              width: 28, height: 28, borderRadius: "50%",
+                              background: selectedEvent.color, border: "none",
+                              fontSize: 16, cursor: "pointer", display: "flex",
+                              alignItems: "center", justifyContent: "center",
+                              color: C.white, lineHeight: 1,
+                            }}
+                          >+</button>
+                          <span style={{ fontSize: 12, color: C.gray }}>人</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -489,7 +555,7 @@ export default function CalendarPage({ stamps, user }) {
                         background: ev.color, color: C.white,
                         borderRadius: 20, padding: "3px 10px",
                         fontSize: 10, fontWeight: 700,
-                      }}>{t("calendar.going_short")}</div>
+                      }}>🙋 {rsvpCount[ev.id] ? `${rsvpCount[ev.id]}人` : t("calendar.going_short").replace("🙋 ","")}</div>
                     ) : rsvp[ev.id] === "not_going" ? (
                       <div style={{
                         background: C.lightGray, color: C.gray,

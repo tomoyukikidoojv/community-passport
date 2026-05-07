@@ -363,7 +363,7 @@ export default function CommunityPassport({ stamps, onManualStamp, user, onPhoto
             onClick={() => setQrExpanded(true)}
             style={{
               margin: "22px 22px 0",
-              background: `linear-gradient(135deg, ${C.navy} 0%, #1a3a5c 50%, ${C.teal} 100%)`,
+              background: `linear-gradient(135deg, rgba(13,27,75,0.86) 0%, rgba(26,58,92,0.86) 50%, rgba(11,122,107,0.86) 100%), url('/ashiyagawa.jpg') center/cover`,
               borderRadius: 16,
               padding: "20px 24px",
               position: "relative",

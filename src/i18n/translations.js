@@ -141,7 +141,8 @@ const T = {
     "calendar.ended": "おわり",
     "calendar.going_short": "🙋 さんかよてい",
     "calendar.not_going_short": "✗ さんかしない",
-    "calendar.unanswered": "みかいとう",
+    "calendar.unanswered": "参加しますか？",
+    "calendar.rsvp_count": "参加人数",
     "calendar.images": "🖼 チラシ・がぞう",
 
     // Passport
@@ -336,7 +337,8 @@ const T = {
     "calendar.ended": "Ended",
     "calendar.going_short": "🙋 Going",
     "calendar.not_going_short": "✗ Not going",
-    "calendar.unanswered": "No response",
+    "calendar.unanswered": "Will you come?",
+    "calendar.rsvp_count": "No. of attendees",
     "calendar.images": "🖼 Flyers & Images",
 
     "passport.header": "ASHIYA MULTICULTURAL COMMUNITY",
@@ -528,7 +530,8 @@ const T = {
     "calendar.ended": "Terminado",
     "calendar.going_short": "🙋 Asistiré",
     "calendar.not_going_short": "✗ No asistiré",
-    "calendar.unanswered": "Sin responder",
+    "calendar.unanswered": "¿Asistirás?",
+    "calendar.rsvp_count": "Número de personas",
     "calendar.images": "🖼 Folletos e Imágenes",
 
     "passport.header": "ASHIYA MULTICULTURAL COMMUNITY",
@@ -720,7 +723,8 @@ const T = {
     "calendar.ended": "Terminé",
     "calendar.going_short": "🙋 Y assiste",
     "calendar.not_going_short": "✗ N'y assiste pas",
-    "calendar.unanswered": "Sans réponse",
+    "calendar.unanswered": "Participerez-vous?",
+    "calendar.rsvp_count": "Nombre de personnes",
     "calendar.images": "🖼 Affiches & Images",
 
     "passport.header": "ASHIYA MULTICULTURAL COMMUNITY",
@@ -912,7 +916,8 @@ const T = {
     "calendar.ended": "Encerrado",
     "calendar.going_short": "🙋 Participarei",
     "calendar.not_going_short": "✗ Não vou",
-    "calendar.unanswered": "Sem resposta",
+    "calendar.unanswered": "Vai participar?",
+    "calendar.rsvp_count": "Número de pessoas",
     "calendar.images": "🖼 Folhetos & Imagens",
 
     "passport.header": "ASHIYA MULTICULTURAL COMMUNITY",
@@ -1104,7 +1109,8 @@ const T = {
     "calendar.ended": "종료",
     "calendar.going_short": "🙋 참가 예정",
     "calendar.not_going_short": "✗ 불참",
-    "calendar.unanswered": "미응답",
+    "calendar.unanswered": "참가하시겠습니까?",
+    "calendar.rsvp_count": "참가 인원",
     "calendar.images": "🖼 안내지 & 이미지",
 
     "passport.header": "ASHIYA MULTICULTURAL COMMUNITY",
@@ -1296,7 +1302,8 @@ const T = {
     "calendar.ended": "已结束",
     "calendar.going_short": "🙋 将参加",
     "calendar.not_going_short": "✗ 不参加",
-    "calendar.unanswered": "未回答",
+    "calendar.unanswered": "要参加吗？",
+    "calendar.rsvp_count": "参加人数",
     "calendar.images": "🖼 传单和图片",
 
     "passport.header": "ASHIYA MULTICULTURAL COMMUNITY",
