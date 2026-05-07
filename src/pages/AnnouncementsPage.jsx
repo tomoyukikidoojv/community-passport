@@ -2,6 +2,9 @@ import { useState } from "react";
 import { C, NOTICE_CATS } from "../constants";
 import { useLang } from "../i18n/LangContext";
 
+// 言語フラグマップ
+const LANG_FLAGS = { ja: "🇯🇵", en: "🇺🇸", es: "🇪🇸", fr: "🇫🇷", pt: "🇵🇹", ko: "🇰🇷", zh: "🇨🇳" };
+
 // URLを検出してクリッカブルリンクに変換
 function renderBody(text) {
   if (!text) return null;
@@ -32,9 +35,22 @@ function AnnouncementCard({ item, isRead, onRead }) {
   const { t, lang } = useLang();
   const cat = categoryMeta(item.category, t);
 
-  // 現在の言語に翻訳があればそれを使用、なければ元テキスト
-  const localTitle = item.i18n?.[lang]?.title || item.title;
-  const localBody  = item.i18n?.[lang]?.body  || item.body;
+  // このカードで利用可能な言語一覧（翻訳が入力されているもの + 元言語 ja）
+  const availLangs = ["ja", ...Object.keys(item.i18n || {}).filter(
+    k => item.i18n[k]?.title || item.i18n[k]?.body
+  )];
+
+  // カード固有の表示言語（グローバル言語を初期値に、availLangs にあれば使う）
+  const initLang = availLangs.includes(lang) ? lang : "ja";
+  const [cardLang, setCardLang] = useState(initLang);
+
+  // 表示テキスト（jaは元テキスト、他は i18n から）
+  const localTitle = cardLang === "ja"
+    ? item.title
+    : (item.i18n?.[cardLang]?.title || item.title);
+  const localBody = cardLang === "ja"
+    ? item.body
+    : (item.i18n?.[cardLang]?.body || item.body);
 
   const toggle = () => {
     setExpanded(e => !e);
@@ -112,11 +128,38 @@ function AnnouncementCard({ item, isRead, onRead }) {
           )}
         </div>
 
-        <div style={{
-          fontSize: 12, color: C.gray, flexShrink: 0, marginTop: 2,
-          transform: expanded ? "rotate(180deg)" : "none",
-          transition: "transform 0.2s",
-        }}>▼</div>
+        {/* 右上：言語切り替え + 開閉矢印 */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0 }}>
+          {/* 言語ボタン（翻訳が2言語以上ある場合のみ表示） */}
+          {availLangs.length > 1 && (
+            <div style={{ display: "flex", gap: 3, flexWrap: "wrap", justifyContent: "flex-end" }}
+              onClick={e => e.stopPropagation()}>
+              {availLangs.map(code => (
+                <button
+                  key={code}
+                  onClick={e => { e.stopPropagation(); setCardLang(code); }}
+                  style={{
+                    padding: "2px 6px", borderRadius: 10, cursor: "pointer",
+                    fontSize: 13, lineHeight: 1,
+                    background: cardLang === code ? `${cat.color}22` : "transparent",
+                    border: `1px solid ${cardLang === code ? cat.color : "rgba(0,0,0,0.12)"}`,
+                    outline: "none", transition: "all 0.15s",
+                    opacity: cardLang === code ? 1 : 0.5,
+                  }}
+                  title={code.toUpperCase()}
+                >
+                  {LANG_FLAGS[code] || code}
+                </button>
+              ))}
+            </div>
+          )}
+          {/* 開閉矢印 */}
+          <div style={{
+            fontSize: 11, color: C.gray,
+            transform: expanded ? "rotate(180deg)" : "none",
+            transition: "transform 0.2s",
+          }}>▼</div>
+        </div>
       </div>
 
       {expanded && (
