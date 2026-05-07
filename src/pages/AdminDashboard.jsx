@@ -19,11 +19,62 @@ const inputStyle = {
   outline: "none", background: C.white, boxSizing: "border-box",
 };
 
-const EMPTY_FORM = { category: "event", title: "", body: "" };
+const EMPTY_FORM = { category: "event", title: "", body: "", i18n: {} };
+
+const NOTICE_LANGS = [
+  { code: "en", flag: "🇺🇸", label: "English" },
+  { code: "es", flag: "🇪🇸", label: "Español" },
+  { code: "fr", flag: "🇫🇷", label: "Français" },
+  { code: "pt", flag: "🇵🇹", label: "Português" },
+  { code: "ko", flag: "🇰🇷", label: "한국어" },
+  { code: "zh", flag: "🇨🇳", label: "中文" },
+];
+
+function I18nFields({ i18n, onChange }) {
+  const [activeLang, setActiveLang] = useState("en");
+  const setField = (lang, field, val) =>
+    onChange({ ...i18n, [lang]: { ...(i18n[lang] || {}), [field]: val } });
+  const active = NOTICE_LANGS.find(l => l.code === activeLang);
+
+  return (
+    <div style={{ marginTop: 8, background: C.offWhite, border: `1px solid ${C.lightGray}`, borderRadius: 10, padding: "12px 14px" }}>
+      {/* Language tabs */}
+      <div style={{ display: "flex", gap: 4, marginBottom: 12, flexWrap: "wrap" }}>
+        {NOTICE_LANGS.map(l => {
+          const filled = !!(i18n[l.code]?.title || i18n[l.code]?.body);
+          const isActive = activeLang === l.code;
+          return (
+            <button key={l.code} type="button" onClick={() => setActiveLang(l.code)} style={{
+              padding: "4px 10px", borderRadius: 20, cursor: "pointer",
+              fontFamily: "inherit", fontSize: 11,
+              fontWeight: isActive ? 700 : 400,
+              background: isActive ? C.teal : filled ? `${C.teal}15` : C.white,
+              color: isActive ? C.white : filled ? C.teal : C.gray,
+              border: `1px solid ${isActive ? C.teal : filled ? `${C.teal}50` : C.lightGray}`,
+            }}>{l.flag} {l.label}{filled && !isActive ? " ✓" : ""}</button>
+          );
+        })}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <input type="text"
+          placeholder={`タイトル（${active?.label}・任意）`}
+          value={i18n[activeLang]?.title || ""}
+          onChange={e => setField(activeLang, "title", e.target.value)}
+          style={inputStyle} />
+        <textarea
+          placeholder={`本文（${active?.label}・任意）`}
+          value={i18n[activeLang]?.body || ""}
+          onChange={e => setField(activeLang, "body", e.target.value)}
+          rows={3} style={{ ...inputStyle, resize: "vertical", lineHeight: 1.6 }} />
+      </div>
+    </div>
+  );
+}
 
 function NoticeForm({ onPost }) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [error, setError] = useState("");
+  const [showI18n, setShowI18n] = useState(false);
 
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
 
@@ -33,9 +84,15 @@ function NoticeForm({ onPost }) {
       setError("タイトルと本文を入力してください");
       return;
     }
-    onPost({ ...form, id: Date.now(), date: new Date().toISOString().slice(0, 10) });
+    // Remove empty i18n entries before saving
+    const cleanI18n = {};
+    Object.entries(form.i18n || {}).forEach(([lang, v]) => {
+      if (v?.title?.trim() || v?.body?.trim()) cleanI18n[lang] = v;
+    });
+    onPost({ ...form, i18n: cleanI18n, id: Date.now(), date: new Date().toISOString().slice(0, 10) });
     setForm(EMPTY_FORM);
     setError("");
+    setShowI18n(false);
   };
 
   const cat = NOTICE_CATS.find(c => c.id === form.category);
@@ -84,6 +141,23 @@ function NoticeForm({ onPost }) {
           rows={3}
           style={{ ...inputStyle, resize: "vertical", lineHeight: 1.6 }}
         />
+      </div>
+
+      {/* 他言語翻訳トグル */}
+      <div style={{ marginBottom: 12 }}>
+        <button type="button" onClick={() => setShowI18n(s => !s)} style={{
+          background: showI18n ? `${C.teal}12` : C.offWhite,
+          border: `1px solid ${showI18n ? C.teal : C.lightGray}`,
+          borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 600,
+          color: showI18n ? C.teal : C.gray, cursor: "pointer", fontFamily: "inherit",
+          display: "flex", alignItems: "center", gap: 6,
+        }}>
+          🌐 他言語の翻訳を追加
+          <span style={{ display: "inline-block", transform: showI18n ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>▼</span>
+        </button>
+        {showI18n && (
+          <I18nFields i18n={form.i18n || {}} onChange={i18n => setForm(f => ({ ...f, i18n }))} />
+        )}
       </div>
 
       {error && (
@@ -1125,15 +1199,20 @@ function MembersPanel() {
 
 // ── お知らせ編集フォーム ───────────────────────────────────
 function AnnouncementEditForm({ item, onSave, onCancel }) {
-  const [form, setForm] = useState({ category: item.category, title: item.title, body: item.body });
+  const [form, setForm] = useState({ category: item.category, title: item.title, body: item.body, i18n: item.i18n || {} });
   const [error, setError] = useState("");
+  const [showI18n, setShowI18n] = useState(Object.keys(item.i18n || {}).length > 0);
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
   const cat = NOTICE_CATS.find(c => c.id === form.category);
 
   const submit = e => {
     e.preventDefault();
     if (!form.title.trim() || !form.body.trim()) { setError("タイトルと本文を入力してください"); return; }
-    onSave({ ...item, ...form });
+    const cleanI18n = {};
+    Object.entries(form.i18n || {}).forEach(([lang, v]) => {
+      if (v?.title?.trim() || v?.body?.trim()) cleanI18n[lang] = v;
+    });
+    onSave({ ...item, ...form, i18n: cleanI18n });
   };
 
   return (
@@ -1157,6 +1236,24 @@ function AnnouncementEditForm({ item, onSave, onCancel }) {
           <input type="text" value={form.title} onChange={set("title")} placeholder="タイトル" style={inputStyle} />
         </div>
         <textarea value={form.body} onChange={set("body")} rows={2} placeholder="本文" style={{ ...inputStyle, resize: "vertical", lineHeight: 1.6 }} />
+
+        {/* 他言語 */}
+        <div>
+          <button type="button" onClick={() => setShowI18n(s => !s)} style={{
+            background: showI18n ? `${C.teal}12` : C.white,
+            border: `1px solid ${showI18n ? C.teal : C.lightGray}`,
+            borderRadius: 8, padding: "5px 12px", fontSize: 11, fontWeight: 600,
+            color: showI18n ? C.teal : C.gray, cursor: "pointer", fontFamily: "inherit",
+            display: "flex", alignItems: "center", gap: 5,
+          }}>
+            🌐 他言語の翻訳
+            <span style={{ display: "inline-block", transform: showI18n ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>▼</span>
+          </button>
+          {showI18n && (
+            <I18nFields i18n={form.i18n || {}} onChange={i18n => setForm(f => ({ ...f, i18n }))} />
+          )}
+        </div>
+
         {error && <div style={{ color: C.red, fontSize: 11 }}>{error}</div>}
         <div style={{ display: "flex", gap: 8 }}>
           <button type="submit" style={{

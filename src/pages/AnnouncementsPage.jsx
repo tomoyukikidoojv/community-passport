@@ -2,6 +2,21 @@ import { useState } from "react";
 import { C, NOTICE_CATS } from "../constants";
 import { useLang } from "../i18n/LangContext";
 
+// URLを検出してクリッカブルリンクに変換
+function renderBody(text) {
+  if (!text) return null;
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  return text.split(urlRegex).map((part, i) =>
+    /^https?:\/\//.test(part)
+      ? <a key={i} href={part} target="_blank" rel="noopener noreferrer"
+          onClick={e => e.stopPropagation()}
+          style={{ color: C.teal, wordBreak: "break-all", textDecoration: "underline" }}>
+          {part}
+        </a>
+      : part
+  );
+}
+
 function categoryMeta(id, t) {
   const cat = NOTICE_CATS.find(c => c.id === id) || { id, color: C.gray };
   return { ...cat, label: t ? t(`ann.cat.${cat.id}`) || cat.label || id : cat.label || id };
@@ -14,8 +29,12 @@ function formatDate(iso) {
 
 function AnnouncementCard({ item, isRead, onRead }) {
   const [expanded, setExpanded] = useState(false);
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const cat = categoryMeta(item.category, t);
+
+  // 現在の言語に翻訳があればそれを使用、なければ元テキスト
+  const localTitle = item.i18n?.[lang]?.title || item.title;
+  const localBody  = item.i18n?.[lang]?.body  || item.body;
 
   const toggle = () => {
     setExpanded(e => !e);
@@ -80,7 +99,7 @@ function AnnouncementCard({ item, isRead, onRead }) {
             color: isRead ? C.charcoal : C.navy,
             lineHeight: 1.4,
           }}>
-            {item.title}
+            {localTitle}
           </div>
 
           {!expanded && (
@@ -88,7 +107,7 @@ function AnnouncementCard({ item, isRead, onRead }) {
               fontSize: 12, color: C.gray, marginTop: 4,
               overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
             }}>
-              {item.body}
+              {localBody}
             </div>
           )}
         </div>
@@ -110,7 +129,7 @@ function AnnouncementCard({ item, isRead, onRead }) {
           marginTop: -2,
           whiteSpace: "pre-line",
         }}>
-          {item.body}
+          {renderBody(localBody)}
         </div>
       )}
     </div>
