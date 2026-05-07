@@ -108,6 +108,7 @@ function AnnouncementCard({ item, isRead, onRead }) {
           borderTop: `1px dashed ${C.lightGray}`,
           paddingTop: 12,
           marginTop: -2,
+          whiteSpace: "pre-line",
         }}>
           {item.body}
         </div>

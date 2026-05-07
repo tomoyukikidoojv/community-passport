@@ -591,9 +591,7 @@ export default function CalendarPage({ stamps, user }) {
                         background: ev.color, color: C.white,
                         borderRadius: 20, padding: "3px 10px",
                         fontSize: 10, fontWeight: 700,
-                      }}>🙋 {rsvpCount[ev.id]
-                        ? `おとな${rsvpCount[ev.id].adults ?? 1} こども${rsvpCount[ev.id].children ?? 0}`
-                        : t("calendar.going_short").replace("🙋 ","")}</div>
+                      }}>{t("calendar.going_short")}</div>
                     ) : rsvp[ev.id] === "not_going" ? (
                       <div style={{
                         background: C.lightGray, color: C.gray,
