@@ -3,10 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { C } from "../constants";
 import { useEvents } from "../hooks/useEvents";
 import { useLang } from "../i18n/LangContext";
-import { saveUserRsvpToCloud, fetchUserRsvpFromCloud } from "../lib/userService";
+import { saveUserRsvpToCloud, fetchUserRsvpFromCloud, saveUserRsvpCountToCloud, fetchUserRsvpCountFromCloud } from "../lib/userService";
 
 const RSVP_KEY = "cp_rsvp";       // { "userId_eventId": "going" | "not_going" }
-const RSVP_COUNT_KEY = "cp_rsvp_count"; // { "userId_eventId": number }
+const RSVP_COUNT_KEY = "cp_rsvp_count"; // { "userId_eventId": { adults: N, children: N } }
 
 function loadAllRsvp() {
   try { return JSON.parse(localStorage.getItem(RSVP_KEY)) || {}; }
@@ -80,6 +80,14 @@ export default function CalendarPage({ stamps, user }) {
         return merged;
       });
     });
+    fetchUserRsvpCountFromCloud(user.id).then(cloudCounts => {
+      if (Object.keys(cloudCounts).length === 0) return;
+      setAllRsvpCount(prev => {
+        const merged = { ...prev, ...cloudCounts };
+        saveAllRsvpCount(merged);
+        return merged;
+      });
+    });
   }, [user?.id]);
 
   // Current user's RSVP: { [eventId]: status }
@@ -96,11 +104,21 @@ export default function CalendarPage({ stamps, user }) {
       .map(([k, v]) => [k.slice(`${uid}_`.length), v])
   );
 
-  const handleRsvpCount = (eventId, count) => {
+  // field: "adults" | "children", delta: +1 | -1
+  const handleRsvpCount = (eventId, field, delta) => {
     const key = `${uid}_${eventId}`;
-    const updated = { ...allRsvpCount, [key]: Math.max(1, Math.min(20, count)) };
+    const prev = allRsvpCount[key] || { adults: 1, children: 0 };
+    const min = field === "adults" ? 1 : 0;
+    const newVal = Math.max(min, Math.min(20, (prev[field] ?? (field === "adults" ? 1 : 0)) + delta));
+    const updated = { ...allRsvpCount, [key]: { ...prev, [field]: newVal } };
     setAllRsvpCount(updated);
     saveAllRsvpCount(updated);
+    // Firestoreへ保存（ユーザー分の counts を書き込み）
+    const countEntries = {};
+    Object.entries(updated)
+      .filter(([k]) => k.startsWith(`${uid}_`))
+      .forEach(([k, v]) => { countEntries[k.slice(`${uid}_`.length)] = v; });
+    saveUserRsvpCountToCloud(uid, countEntries);
   };
 
   const handleRsvp = (eventId, status) => {
@@ -341,7 +359,12 @@ export default function CalendarPage({ stamps, user }) {
                       <button
                         onClick={() => {
                           handleRsvp(selectedEvent.id, "going");
-                          if (!rsvpCount[selectedEvent.id]) handleRsvpCount(selectedEvent.id, 1);
+                          if (!rsvpCount[selectedEvent.id]) {
+                            const key = `${uid}_${selectedEvent.id}`;
+                            const updated = { ...allRsvpCount, [key]: { adults: 1, children: 0 } };
+                            setAllRsvpCount(updated);
+                            saveAllRsvpCount(updated);
+                          }
                         }}
                         style={{
                           flex: 1, padding: "10px",
@@ -369,43 +392,56 @@ export default function CalendarPage({ stamps, user }) {
                       </button>
                     </div>
 
-                    {/* 参加人数入力 — 参加したいを選んだときのみ表示 */}
+                    {/* 参加人数入力（おとな/こども）— 参加したいを選んだときのみ表示 */}
                     {rsvp[selectedEvent.id] === "going" && (
                       <div style={{
                         background: `${selectedEvent.color}10`,
                         border: `1px solid ${selectedEvent.color}30`,
-                        borderRadius: 10, padding: "10px 14px",
-                        display: "flex", alignItems: "center", justifyContent: "space-between",
+                        borderRadius: 10, padding: "12px 14px",
+                        display: "flex", flexDirection: "column", gap: 10,
                       }}>
-                        <span style={{ fontSize: 12, color: C.charcoal, fontWeight: 600 }}>
+                        <span style={{ fontSize: 12, color: C.charcoal, fontWeight: 700 }}>
                           {t("calendar.rsvp_count")}
                         </span>
-                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                          <button
-                            onClick={() => handleRsvpCount(selectedEvent.id, (rsvpCount[selectedEvent.id] || 1) - 1)}
-                            style={{
-                              width: 28, height: 28, borderRadius: "50%",
-                              background: C.white, border: `1.5px solid ${C.lightGray}`,
-                              fontSize: 16, cursor: "pointer", display: "flex",
-                              alignItems: "center", justifyContent: "center",
-                              color: C.charcoal, lineHeight: 1,
-                            }}
-                          >−</button>
-                          <span style={{ fontSize: 20, fontWeight: 800, color: selectedEvent.color, minWidth: 24, textAlign: "center" }}>
-                            {rsvpCount[selectedEvent.id] || 1}
-                          </span>
-                          <button
-                            onClick={() => handleRsvpCount(selectedEvent.id, (rsvpCount[selectedEvent.id] || 1) + 1)}
-                            style={{
-                              width: 28, height: 28, borderRadius: "50%",
-                              background: selectedEvent.color, border: "none",
-                              fontSize: 16, cursor: "pointer", display: "flex",
-                              alignItems: "center", justifyContent: "center",
-                              color: C.white, lineHeight: 1,
-                            }}
-                          >+</button>
-                          <span style={{ fontSize: 12, color: C.gray }}>人</span>
-                        </div>
+                        {[
+                          { field: "adults",   label: "おとな", min: 1 },
+                          { field: "children", label: "こども", min: 0 },
+                        ].map(({ field, label, min }) => {
+                          const counts = rsvpCount[selectedEvent.id] || { adults: 1, children: 0 };
+                          const val = counts[field] ?? (field === "adults" ? 1 : 0);
+                          return (
+                            <div key={field} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                              <span style={{ fontSize: 13, color: C.charcoal, fontWeight: 500 }}>{label}</span>
+                              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                <button
+                                  onClick={() => handleRsvpCount(selectedEvent.id, field, -1)}
+                                  style={{
+                                    width: 28, height: 28, borderRadius: "50%",
+                                    background: val <= min ? C.lightGray : C.white,
+                                    border: `1.5px solid ${C.lightGray}`,
+                                    fontSize: 16, cursor: val <= min ? "default" : "pointer",
+                                    display: "flex", alignItems: "center", justifyContent: "center",
+                                    color: val <= min ? C.gray : C.charcoal, lineHeight: 1,
+                                  }}
+                                >−</button>
+                                <span style={{ fontSize: 20, fontWeight: 800, color: selectedEvent.color, minWidth: 24, textAlign: "center" }}>
+                                  {val}
+                                </span>
+                                <button
+                                  onClick={() => handleRsvpCount(selectedEvent.id, field, 1)}
+                                  style={{
+                                    width: 28, height: 28, borderRadius: "50%",
+                                    background: selectedEvent.color, border: "none",
+                                    fontSize: 16, cursor: "pointer", display: "flex",
+                                    alignItems: "center", justifyContent: "center",
+                                    color: C.white, lineHeight: 1,
+                                  }}
+                                >+</button>
+                                <span style={{ fontSize: 12, color: C.gray, minWidth: 12 }}>人</span>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -555,7 +591,9 @@ export default function CalendarPage({ stamps, user }) {
                         background: ev.color, color: C.white,
                         borderRadius: 20, padding: "3px 10px",
                         fontSize: 10, fontWeight: 700,
-                      }}>🙋 {rsvpCount[ev.id] ? `${rsvpCount[ev.id]}人` : t("calendar.going_short").replace("🙋 ","")}</div>
+                      }}>🙋 {rsvpCount[ev.id]
+                        ? `おとな${rsvpCount[ev.id].adults ?? 1} こども${rsvpCount[ev.id].children ?? 0}`
+                        : t("calendar.going_short").replace("🙋 ","")}</div>
                     ) : rsvp[ev.id] === "not_going" ? (
                       <div style={{
                         background: C.lightGray, color: C.gray,

@@ -214,11 +214,31 @@ export async function saveUserRsvpToCloud(userId, rsvpEntries) {
   if (!userId) return false;
   try {
     const ref = doc(db, "rsvp", String(userId));
-    await setDoc(ref, { entries: rsvpEntries });
+    await setDoc(ref, { entries: rsvpEntries }, { merge: true });
     return true;
   } catch (err) {
     console.error("saveUserRsvpToCloud error:", err);
     return false;
+  }
+}
+
+/** 利用者自身のRSVP参加人数をFirebaseから取得 */
+export async function fetchUserRsvpCountFromCloud(userId) {
+  if (!userId) return {};
+  try {
+    const ref = doc(db, "rsvp", String(userId));
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return {};
+    const counts = snap.data().counts || {};
+    // CalendarPageが使う形式 { "userId_eventId": { adults, children } } に変換
+    const result = {};
+    Object.entries(counts).forEach(([eventId, cnt]) => {
+      result[`${userId}_${eventId}`] = cnt;
+    });
+    return result;
+  } catch (err) {
+    console.error("fetchUserRsvpCountFromCloud error:", err);
+    return {};
   }
 }
 
@@ -238,6 +258,39 @@ export async function fetchUserRsvpFromCloud(userId) {
     return result;
   } catch (err) {
     console.error("fetchUserRsvpFromCloud error:", err);
+    return {};
+  }
+}
+
+/** 利用者の参加人数（おとな/こども）をFirebaseに保存 */
+export async function saveUserRsvpCountToCloud(userId, countEntries) {
+  // countEntries: { [eventId]: { adults: N, children: N } }
+  if (!userId) return false;
+  try {
+    const ref = doc(db, "rsvp", String(userId));
+    await setDoc(ref, { counts: countEntries }, { merge: true });
+    return true;
+  } catch (err) {
+    console.error("saveUserRsvpCountToCloud error:", err);
+    return false;
+  }
+}
+
+/** 管理者用: 全ユーザーの参加人数を取得 */
+export async function fetchAllRsvpCountFromCloud() {
+  try {
+    const snap = await getDocs(collection(db, "rsvp"));
+    const result = {};
+    snap.docs.forEach(d => {
+      const userId = d.id;
+      const counts = d.data().counts || {};
+      Object.entries(counts).forEach(([eventId, cnt]) => {
+        result[`${userId}_${eventId}`] = cnt;
+      });
+    });
+    return result;
+  } catch (err) {
+    console.error("fetchAllRsvpCountFromCloud error:", err);
     return {};
   }
 }

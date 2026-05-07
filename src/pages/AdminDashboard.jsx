@@ -7,13 +7,10 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell,
 } from "recharts";
 import { C, getLevel, NOTICE_CATS } from "../constants";
-import { fetchAllUsers, fetchAllAttendance, fetchAllApplicationsFromCloud, fetchAllRsvpFromCloud } from "../lib/userService";
+import { fetchAllUsers, fetchAllAttendance, fetchAllRsvpFromCloud, fetchAllRsvpCountFromCloud } from "../lib/userService";
 import { useEvents } from "../hooks/useEvents";
 import EventsManager from "./admin/EventsManager";
-import { getApplicationsByEvent } from "./ApplyPage";
-import { getRsvpCounts } from "./CalendarPage";
 import EventFormBuilder from "./admin/EventFormBuilder";
-import { getForm } from "../lib/formStorage";
 
 const inputStyle = {
   width: "100%", padding: "9px 12px",
@@ -666,11 +663,8 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
           </div>
         </div>}
 
-        {/* ── Tab: 申込管理 ── */}
-        {activeTab === "applications" && <>
-          <RsvpSummaryPanel />
-          <ApplicationsPanel />
-        </>}
+        {/* ── Tab: 参加者 ── */}
+        {activeTab === "applications" && <RsvpSummaryPanel />}
 
         {/* ── Tab: イベント管理 ── */}
         {activeTab === "events" && <EventsManager />}
@@ -1418,24 +1412,25 @@ function StatsPanel({ members, mergedAttendance, events, loading }) {
 function RsvpSummaryPanel() {
   const events = useEvents();
   const [allRsvp, setAllRsvp] = useState({});
+  const [allCounts, setAllCounts] = useState({});
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchAllRsvpFromCloud().then(data => {
-      setAllRsvp(data);
-      setLoading(false);
-    });
+    Promise.all([fetchAllRsvpFromCloud(), fetchAllRsvpCountFromCloud(), fetchAllUsers()])
+      .then(([rsvp, counts, allUsers]) => {
+        setAllRsvp(rsvp);
+        setAllCounts(counts);
+        setUsers(allUsers);
+        setLoading(false);
+      });
   }, []);
 
-  const getRsvpCounts = (eventId) => {
-    let going = 0, notGoing = 0;
-    Object.entries(allRsvp).forEach(([key, status]) => {
-      if (key.endsWith(`_${eventId}`)) {
-        if (status === "going") going++;
-        else if (status === "not_going") notGoing++;
-      }
-    });
-    return { going, notGoing };
+  const getUserInfo = (userId) => {
+    const u = users.find(u => String(u.id) === String(userId));
+    return u
+      ? { name: u.name || `#${userId}`, flag: u.country?.flag || u.flag || "" }
+      : { name: `#${userId}`, flag: "" };
   };
 
   return (
@@ -1449,13 +1444,8 @@ function RsvpSummaryPanel() {
         borderBottom: `1px solid ${C.lightGray}`,
         display: "flex", alignItems: "center", gap: 8,
       }}>
-        <span style={{
-          display: "inline-block", width: 4, height: 16,
-          background: C.teal, borderRadius: 2,
-        }} />
-        <span style={{ fontSize: 13, fontWeight: 700, color: C.charcoal }}>
-          参加意向サマリー
-        </span>
+        <span style={{ display: "inline-block", width: 4, height: 16, background: C.teal, borderRadius: 2 }} />
+        <span style={{ fontSize: 13, fontWeight: 700, color: C.charcoal }}>参加意向サマリー</span>
       </div>
 
       {loading ? (
@@ -1463,58 +1453,123 @@ function RsvpSummaryPanel() {
       ) : (
         <div style={{ padding: "12px 16px" }}>
           {events.map(ev => {
-            const { going, notGoing } = getRsvpCounts(ev.id);
-            const total = going + notGoing;
-            const goingPct = total > 0 ? Math.round((going / total) * 100) : 0;
+            const suffix = `_${ev.id}`;
+            const goingUsers = [];
+            const notGoingUsers = [];
+
+            Object.entries(allRsvp).forEach(([key, status]) => {
+              if (!key.endsWith(suffix)) return;
+              const userId = key.slice(0, key.length - suffix.length);
+              const info = getUserInfo(userId);
+              if (status === "going") {
+                const cnt = allCounts[key] || { adults: 0, children: 0 };
+                goingUsers.push({ userId, ...info, adults: cnt.adults ?? 0, children: cnt.children ?? 0 });
+              } else if (status === "not_going") {
+                notGoingUsers.push({ userId, ...info });
+              }
+            });
+
+            const totalAdults   = goingUsers.reduce((s, u) => s + u.adults, 0);
+            const totalChildren = goingUsers.reduce((s, u) => s + u.children, 0);
+
             return (
               <div key={ev.id} style={{
-                display: "flex", alignItems: "center", gap: 12,
-                padding: "10px 12px", marginBottom: 6,
-                borderRadius: 10, border: `1px solid ${C.lightGray}`,
-                background: C.offWhite,
+                marginBottom: 16, borderRadius: 12,
+                border: `1px solid ${C.lightGray}`, overflow: "hidden",
               }}>
-                <span style={{ fontSize: 20, flexShrink: 0 }}>{ev.emoji}</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: C.charcoal, marginBottom: 5 }}>
-                    {ev.nameShort}
+                {/* イベントヘッダー */}
+                <div style={{
+                  background: `${ev.color}18`, padding: "12px 16px",
+                  display: "flex", alignItems: "center", gap: 12,
+                }}>
+                  <span style={{ fontSize: 24, flexShrink: 0 }}>{ev.emoji}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.charcoal }}>{ev.nameShort}</div>
+                    <div style={{ fontSize: 11, color: C.gray, marginTop: 2 }}>{ev.fullDate}</div>
                   </div>
-                  {total > 0 ? (
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <div style={{
-                        flex: 1, height: 8, borderRadius: 4,
-                        background: C.lightGray, overflow: "hidden",
-                      }}>
-                        <div style={{
-                          width: `${goingPct}%`, height: "100%",
-                          background: `linear-gradient(90deg, ${ev.color}, ${ev.color}bb)`,
-                          borderRadius: 4, transition: "width 0.3s",
-                        }} />
+                  <div style={{ display: "flex", gap: 14, flexShrink: 0 }}>
+                    <div style={{ textAlign: "center" }}>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: goingUsers.length > 0 ? ev.color : C.lightGray, lineHeight: 1 }}>
+                        {goingUsers.length}
                       </div>
-                      <span style={{ fontSize: 11, color: ev.color, fontWeight: 700, flexShrink: 0 }}>
-                        {goingPct}%
+                      <div style={{ fontSize: 10, color: C.gray, marginTop: 2 }}>さんか</div>
+                    </div>
+                    <div style={{ width: 1, background: C.lightGray, alignSelf: "stretch" }} />
+                    <div style={{ textAlign: "center" }}>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: notGoingUsers.length > 0 ? C.gray : C.lightGray, lineHeight: 1 }}>
+                        {notGoingUsers.length}
+                      </div>
+                      <div style={{ fontSize: 10, color: C.gray, marginTop: 2 }}>ふさんか</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 参加希望ユーザー */}
+                {goingUsers.length > 0 && (
+                  <div style={{ borderBottom: notGoingUsers.length > 0 ? `1px solid ${C.lightGray}` : "none" }}>
+                    <div style={{
+                      padding: "8px 16px 4px",
+                      fontSize: 11, fontWeight: 700, color: ev.color,
+                      display: "flex", alignItems: "center", justifyContent: "space-between",
+                    }}>
+                      <span>🙋 さんかしたい</span>
+                      <span style={{ fontSize: 11, color: C.gray, fontWeight: 400 }}>
+                        おとな計 {totalAdults}人 ／ こども計 {totalChildren}人
                       </span>
                     </div>
-                  ) : (
-                    <div style={{ height: 8, borderRadius: 4, background: C.lightGray }} />
-                  )}
-                </div>
-                <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-                  <div style={{ textAlign: "center" }}>
-                    <div style={{
-                      fontSize: 16, fontWeight: 800, color: going > 0 ? ev.color : C.lightGray,
-                      lineHeight: 1,
-                    }}>{going}</div>
-                    <div style={{ fontSize: 10, color: C.gray, marginTop: 2 }}>参加したい</div>
+                    {goingUsers.map((u, i) => (
+                      <div key={u.userId} style={{
+                        display: "flex", alignItems: "center", gap: 10,
+                        padding: "8px 16px",
+                        borderTop: i > 0 ? `1px solid ${C.lightGray}` : "none",
+                        background: i % 2 === 0 ? C.white : C.offWhite,
+                      }}>
+                        <span style={{ fontSize: 18, flexShrink: 0 }}>{u.flag}</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: C.charcoal, flex: 1, minWidth: 0 }}>
+                          {u.name}
+                        </span>
+                        <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                          <span style={{
+                            background: `${ev.color}18`, color: ev.color,
+                            borderRadius: 6, padding: "2px 8px",
+                            fontSize: 11, fontWeight: 700,
+                          }}>おとな {u.adults}</span>
+                          <span style={{
+                            background: `${C.teal}18`, color: C.teal,
+                            borderRadius: 6, padding: "2px 8px",
+                            fontSize: 11, fontWeight: 700,
+                          }}>こども {u.children}</span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div style={{ width: 1, background: C.lightGray, alignSelf: "stretch" }} />
-                  <div style={{ textAlign: "center" }}>
-                    <div style={{
-                      fontSize: 16, fontWeight: 800, color: notGoing > 0 ? C.gray : C.lightGray,
-                      lineHeight: 1,
-                    }}>{notGoing}</div>
-                    <div style={{ fontSize: 10, color: C.gray, marginTop: 2 }}>不参加</div>
+                )}
+
+                {/* 不参加ユーザー */}
+                {notGoingUsers.length > 0 && (
+                  <div style={{ padding: "10px 16px", background: C.offWhite }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: C.gray, marginBottom: 8 }}>🙅 ふさんか</div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                      {notGoingUsers.map(u => (
+                        <div key={u.userId} style={{
+                          background: C.white, border: `1px solid ${C.lightGray}`,
+                          borderRadius: 20, padding: "4px 12px",
+                          fontSize: 12, color: C.gray,
+                          display: "flex", alignItems: "center", gap: 4,
+                        }}>
+                          <span>{u.flag}</span>
+                          <span>{u.name}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {goingUsers.length === 0 && notGoingUsers.length === 0 && (
+                  <div style={{ padding: "18px", textAlign: "center", color: C.gray, fontSize: 12 }}>
+                    まだ回答はありません
+                  </div>
+                )}
               </div>
             );
           })}
@@ -1524,158 +1579,3 @@ function RsvpSummaryPanel() {
   );
 }
 
-function ApplicationsPanel() {
-  const events = useEvents();
-  const [openEventId, setOpenEventId] = useState(null);
-  const [allApps, setAllApps] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchAllApplicationsFromCloud().then(apps => {
-      setAllApps(apps);
-      setLoading(false);
-    });
-  }, []);
-
-  const getApps = (eventId) => allApps.filter(a => a.eventId === eventId);
-
-  return (
-    <div style={{
-      background: C.white, borderRadius: 16,
-      boxShadow: "0 8px 30px rgba(0,0,0,0.2)",
-      overflow: "hidden", marginTop: 20,
-    }}>
-      <div style={{
-        padding: "16px 20px 14px",
-        borderBottom: `1px solid ${C.lightGray}`,
-        display: "flex", alignItems: "center", gap: 8,
-      }}>
-        <span style={{
-          display: "inline-block", width: 4, height: 16,
-          background: C.purple, borderRadius: 2,
-        }} />
-        <span style={{ fontSize: 13, fontWeight: 700, color: C.charcoal }}>
-          イベント申し込み一覧
-        </span>
-      </div>
-
-      {loading ? (
-        <div style={{ padding: "24px", textAlign: "center", color: C.gray, fontSize: 13 }}>読み込み中…</div>
-      ) : null}
-      <div style={{ padding: "12px 16px" }}>
-        {events.map(ev => {
-          const apps = getApps(ev.id);
-          const formConfig = getForm(ev.id);
-          const questions = formConfig?.questions || [];
-          const isOpen = openEventId === ev.id;
-          return (
-            <div key={ev.id} style={{ marginBottom: 8 }}>
-              <div
-                onClick={() => setOpenEventId(isOpen ? null : ev.id)}
-                style={{
-                  display: "flex", alignItems: "center", gap: 12,
-                  padding: "10px 14px", borderRadius: 10, cursor: "pointer",
-                  border: `1px solid ${isOpen ? ev.color + "60" : C.lightGray}`,
-                  background: isOpen ? `${ev.color}08` : C.offWhite,
-                  transition: "all 0.15s",
-                }}
-              >
-                <span style={{ fontSize: 20 }}>{ev.emoji}</span>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: C.charcoal }}>
-                    {ev.nameShort}
-                  </div>
-                  <div style={{ fontSize: 11, color: C.gray }}>{ev.fullDate}</div>
-                </div>
-                <div style={{
-                  background: apps.length > 0 ? ev.color : C.lightGray,
-                  color: apps.length > 0 ? C.white : C.gray,
-                  borderRadius: 20, padding: "2px 12px",
-                  fontSize: 12, fontWeight: 700,
-                }}>
-                  {apps.length}件
-                </div>
-                <span style={{
-                  fontSize: 12, color: C.gray,
-                  transform: isOpen ? "rotate(180deg)" : "none",
-                  transition: "transform 0.2s",
-                }}>▼</span>
-              </div>
-
-              {isOpen && (
-                <div style={{
-                  border: `1px solid ${ev.color}30`,
-                  borderTop: "none", borderRadius: "0 0 10px 10px",
-                  overflow: "hidden",
-                }}>
-                  {apps.length === 0 ? (
-                    <div style={{
-                      padding: "16px", textAlign: "center",
-                      color: C.gray, fontSize: 13,
-                    }}>
-                      申し込みはまだありません
-                    </div>
-                  ) : (
-                    <div>
-                      {apps.map((app, i) => (
-                        <div key={i} style={{
-                          padding: "12px 16px",
-                          borderBottom: i < apps.length - 1 ? `1px solid ${C.lightGray}` : "none",
-                          background: i % 2 === 0 ? C.white : C.offWhite,
-                        }}>
-                          {/* Header row */}
-                          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: questions.length > 0 ? 8 : 0 }}>
-                            <div style={{ flex: 1 }}>
-                              <span style={{ fontWeight: 700, color: C.charcoal, fontSize: 13 }}>
-                                {app.userFlag} {app.userName}
-                              </span>
-                              {app.userNameEn && (
-                                <span style={{ color: C.gray, fontSize: 11, marginLeft: 6 }}>({app.userNameEn})</span>
-                              )}
-                            </div>
-                            <div style={{
-                              background: `${ev.color}20`, color: ev.color,
-                              borderRadius: 6, padding: "2px 8px",
-                              fontSize: 11, fontWeight: 700,
-                            }}>
-                              {app.count}
-                            </div>
-                            <div style={{ color: C.gray, fontSize: 11, whiteSpace: "nowrap" }}>
-                              {new Date(app.appliedAt).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                            </div>
-                          </div>
-
-                          {/* Custom answers */}
-                          {questions.length > 0 && app.answers && (
-                            <div style={{
-                              background: C.offWhite, borderRadius: 8,
-                              padding: "8px 12px",
-                              display: "flex", flexDirection: "column", gap: 5,
-                            }}>
-                              {questions.map(q => {
-                                const ans = app.answers[q.id];
-                                const display = q.type === "name"
-                                  ? [ans?.kanji, ans?.roman].filter(Boolean).join(" / ") || "—"
-                                  : Array.isArray(ans) ? ans.join("、") : (ans || "—");
-                                return (
-                                  <div key={q.id} style={{ display: "flex", gap: 8, fontSize: 12 }}>
-                                    <span style={{ color: C.gray, flexShrink: 0, minWidth: 100 }}>{q.label}</span>
-                                    <span style={{ color: C.charcoal, fontWeight: 600 }}>{display}</span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
