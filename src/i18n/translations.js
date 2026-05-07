@@ -141,8 +141,8 @@ const T = {
     "calendar.ended": "おわり",
     "calendar.going_short": "🙋 さんかよてい",
     "calendar.not_going_short": "✗ さんかしない",
-    "calendar.unanswered": "参加しますか？",
-    "calendar.rsvp_count": "参加人数",
+    "calendar.unanswered": "さんかしますか？",
+    "calendar.rsvp_count": "さんかにんずう",
     "calendar.images": "🖼 チラシ・がぞう",
 
     // Passport
