@@ -404,14 +404,14 @@ export default function CalendarPage({ stamps, user }) {
                           {t("calendar.rsvp_count")}
                         </span>
                         {[
-                          { field: "adults",   label: "おとな", min: 1 },
-                          { field: "children", label: "こども", min: 0 },
-                        ].map(({ field, label, min }) => {
+                          { field: "adults",   labelKey: "calendar.adults",   min: 1 },
+                          { field: "children", labelKey: "calendar.children", min: 0 },
+                        ].map(({ field, labelKey, min }) => {
                           const counts = rsvpCount[selectedEvent.id] || { adults: 1, children: 0 };
                           const val = counts[field] ?? (field === "adults" ? 1 : 0);
                           return (
                             <div key={field} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                              <span style={{ fontSize: 13, color: C.charcoal, fontWeight: 500 }}>{label}</span>
+                              <span style={{ fontSize: 13, color: C.charcoal, fontWeight: 600 }}>{t(labelKey)}</span>
                               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                                 <button
                                   onClick={() => handleRsvpCount(selectedEvent.id, field, -1)}
@@ -437,7 +437,7 @@ export default function CalendarPage({ stamps, user }) {
                                     color: C.white, lineHeight: 1,
                                   }}
                                 >+</button>
-                                <span style={{ fontSize: 12, color: C.gray, minWidth: 12 }}>人</span>
+                                <span style={{ fontSize: 12, color: C.gray, minWidth: 16 }}>{t("calendar.person")}</span>
                               </div>
                             </div>
                           );

@@ -143,6 +143,9 @@ const T = {
     "calendar.not_going_short": "✗ さんかしない",
     "calendar.unanswered": "さんかしますか？",
     "calendar.rsvp_count": "さんかにんずう",
+    "calendar.adults": "👨 おとな",
+    "calendar.children": "👦 こども",
+    "calendar.person": "人",
     "calendar.images": "🖼 チラシ・がぞう",
 
     // Passport
@@ -339,6 +342,9 @@ const T = {
     "calendar.not_going_short": "✗ Not going",
     "calendar.unanswered": "Will you come?",
     "calendar.rsvp_count": "No. of attendees",
+    "calendar.adults": "👨 Adults",
+    "calendar.children": "👦 Children",
+    "calendar.person": "ppl",
     "calendar.images": "🖼 Flyers & Images",
 
     "passport.header": "ASHIYA MULTICULTURAL COMMUNITY",
@@ -532,6 +538,9 @@ const T = {
     "calendar.not_going_short": "✗ No asistiré",
     "calendar.unanswered": "¿Asistirás?",
     "calendar.rsvp_count": "Número de personas",
+    "calendar.adults": "👨 Adultos",
+    "calendar.children": "👦 Niños",
+    "calendar.person": "pers.",
     "calendar.images": "🖼 Folletos e Imágenes",
 
     "passport.header": "ASHIYA MULTICULTURAL COMMUNITY",
@@ -725,6 +734,9 @@ const T = {
     "calendar.not_going_short": "✗ N'y assiste pas",
     "calendar.unanswered": "Participerez-vous?",
     "calendar.rsvp_count": "Nombre de personnes",
+    "calendar.adults": "👨 Adultes",
+    "calendar.children": "👦 Enfants",
+    "calendar.person": "pers.",
     "calendar.images": "🖼 Affiches & Images",
 
     "passport.header": "ASHIYA MULTICULTURAL COMMUNITY",
@@ -918,6 +930,9 @@ const T = {
     "calendar.not_going_short": "✗ Não vou",
     "calendar.unanswered": "Vai participar?",
     "calendar.rsvp_count": "Número de pessoas",
+    "calendar.adults": "👨 Adultos",
+    "calendar.children": "👦 Crianças",
+    "calendar.person": "pes.",
     "calendar.images": "🖼 Folhetos & Imagens",
 
     "passport.header": "ASHIYA MULTICULTURAL COMMUNITY",
@@ -1111,6 +1126,9 @@ const T = {
     "calendar.not_going_short": "✗ 불참",
     "calendar.unanswered": "참가하시겠습니까?",
     "calendar.rsvp_count": "참가 인원",
+    "calendar.adults": "👨 어른",
+    "calendar.children": "👦 어린이",
+    "calendar.person": "명",
     "calendar.images": "🖼 안내지 & 이미지",
 
     "passport.header": "ASHIYA MULTICULTURAL COMMUNITY",
@@ -1304,6 +1322,9 @@ const T = {
     "calendar.not_going_short": "✗ 不参加",
     "calendar.unanswered": "要参加吗？",
     "calendar.rsvp_count": "参加人数",
+    "calendar.adults": "👨 大人",
+    "calendar.children": "👦 儿童",
+    "calendar.person": "人",
     "calendar.images": "🖼 传单和图片",
 
     "passport.header": "ASHIYA MULTICULTURAL COMMUNITY",
