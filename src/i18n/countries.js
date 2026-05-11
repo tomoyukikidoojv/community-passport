@@ -161,6 +161,7 @@ const COUNTRIES = [
   { code: "SB", name: "Solomon Islands", flag: "🇸🇧" },
   { code: "SO", name: "Somalia", flag: "🇸🇴" },
   { code: "ZA", name: "South Africa", flag: "🇿🇦" },
+  { code: "KR", name: "South Korea", flag: "🇰🇷" },
   { code: "SS", name: "South Sudan", flag: "🇸🇸" },
   { code: "ES", name: "Spain", flag: "🇪🇸" },
   { code: "LK", name: "Sri Lanka", flag: "🇱🇰" },
