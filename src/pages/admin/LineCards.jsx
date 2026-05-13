@@ -99,7 +99,6 @@ function SingleCard() {
         fontSize: 11.5, color: "rgba(255,255,255,0.65)", lineHeight: 1.75,
       }}>
         イベントのお知らせを 読んで、イベントに 参加できる アプリです。<br />
-        芦屋市でのつながりのためのツールです。<br />
         <span style={{ color: "rgba(255,255,255,0.42)", fontSize: 10.5 }}>
           Read event announcements and join events in Ashiya City.
         </span>
