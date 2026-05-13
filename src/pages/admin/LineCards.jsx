@@ -169,8 +169,14 @@ function SingleCard() {
         background: "linear-gradient(90deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.04) 100%)",
       }} />
       <div style={{
+        padding: "8px 30px 0",
+        fontSize: 9, fontWeight: 700,
+        color: "rgba(255,255,255,0.35)",
+        letterSpacing: 1.5, textTransform: "uppercase",
+      }}>その他の機能 / Other Features</div>
+      <div style={{
         display: "flex",
-        padding: "10px 30px 0",
+        padding: "4px 30px 0",
       }}>
         {[
           { emoji: "📢", ja: "おしらせ",  en: "Announcements" },
