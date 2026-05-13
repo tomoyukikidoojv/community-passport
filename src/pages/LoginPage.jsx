@@ -149,7 +149,7 @@ export default function LoginPage({ savedUser, onLogin, onReset, onShowRegister,
         >
           👑 管理者
         </button>
-        <div style={{ width: "100%", maxWidth: 400, marginBottom: 12, position: "relative", zIndex: 1 }}>
+        <div style={{ width: "100%", maxWidth: 400, marginBottom: 12, position: "relative", zIndex: 10 }}>
           <LangDropdown />
         </div>
         <div style={{
@@ -157,7 +157,7 @@ export default function LoginPage({ savedUser, onLogin, onReset, onShowRegister,
           backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
           border: "1px solid rgba(255,255,255,0.35)",
           borderRadius: 20, maxWidth: 400, width: "100%",
-          boxShadow: "0 24px 64px rgba(0,0,0,0.4)", overflow: "hidden",
+          boxShadow: "0 24px 64px rgba(0,0,0,0.4)",
           position: "relative", zIndex: 1,
         }}>
           <div style={{
@@ -272,7 +272,7 @@ export default function LoginPage({ savedUser, onLogin, onReset, onShowRegister,
       >
         👑 管理者
       </button>
-      <div style={{ width: "100%", maxWidth: 400, position: "relative", zIndex: 1 }}>
+      <div style={{ width: "100%", maxWidth: 400, position: "relative", zIndex: 10 }}>
         <LangDropdown />
       </div>
 
@@ -281,7 +281,7 @@ export default function LoginPage({ savedUser, onLogin, onReset, onShowRegister,
         backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
         border: "1px solid rgba(255,255,255,0.35)",
         borderRadius: 20, maxWidth: 400, width: "100%",
-        boxShadow: "0 24px 64px rgba(0,0,0,0.4)", overflow: "hidden",
+        boxShadow: "0 24px 64px rgba(0,0,0,0.4)",
         position: "relative", zIndex: 1,
       }}>
         {/* Header */}
