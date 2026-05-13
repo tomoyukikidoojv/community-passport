@@ -189,12 +189,6 @@ function SingleCard() {
         ))}
       </div>
 
-      {/* ─── FOOTER ─── */}
-      <div style={{
-        padding: "10px 30px 18px",
-        fontSize: 8.5, color: "rgba(255,255,255,0.2)",
-        letterSpacing: 2, textAlign: "center",
-      }}>ASHIYA CITY · 芦屋市</div>
     </div>
   );
 }
