@@ -172,7 +172,7 @@ function SingleCard() {
         fontSize: 9, fontWeight: 700,
         color: "rgba(255,255,255,0.35)",
         letterSpacing: 1.5, textTransform: "uppercase",
-      }}>その他の機能 / Other Features</div>
+      }}>アプリの3つの機能 / 3 App Features</div>
       <div style={{
         display: "flex",
         padding: "4px 30px 0",
