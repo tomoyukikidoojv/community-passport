@@ -96,13 +96,12 @@ function SingleCard() {
       {/* タグライン */}
       <div style={{
         padding: "0 30px 14px",
-        fontSize: 11.5, color: "rgba(255,255,255,0.65)", lineHeight: 1.65,
+        fontSize: 11.5, color: "rgba(255,255,255,0.65)", lineHeight: 1.75,
       }}>
-        芦屋市に住む外国籍のかたが、イベントにさんかし
-        コミュニティとつながるためのアプリです。<br />
+        イベントのお知らせを 読んで、イベントに 参加できる アプリです。<br />
+        芦屋市でのつながりのためのツールです。<br />
         <span style={{ color: "rgba(255,255,255,0.42)", fontSize: 10.5 }}>
-          An app for foreign residents of Ashiya to join local events
-          and connect with the community.
+          Read event announcements and join events in Ashiya City.
         </span>
       </div>
 
@@ -121,9 +120,13 @@ function SingleCard() {
         }}>
           <div style={{
             background: `linear-gradient(135deg, ${B.gold}, ${B.goldLt})`,
-            borderRadius: 6, padding: "3px 10px",
-            fontSize: 10, fontWeight: 800, color: B.navy, letterSpacing: 0.5,
-          }}>How to Join Events</div>
+            borderRadius: 6, padding: "4px 12px",
+            color: B.navy, letterSpacing: 0.3,
+            lineHeight: 1.4,
+          }}>
+            <div style={{ fontSize: 11, fontWeight: 800 }}>イベントへの参加のしかた</div>
+            <div style={{ fontSize: 9, fontWeight: 600, opacity: 0.75 }}>How to Join Events</div>
+          </div>
         </div>
 
         {/* ステップ */}
@@ -191,7 +194,7 @@ function SingleCard() {
         padding: "10px 30px 18px",
         fontSize: 8.5, color: "rgba(255,255,255,0.2)",
         letterSpacing: 2, textAlign: "center",
-      }}>ASHIYA CITY MULTICULTURAL COEXISTENCE PROJECT</div>
+      }}>ASHIYA CITY · 芦屋市</div>
     </div>
   );
 }
