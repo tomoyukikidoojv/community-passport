@@ -19,7 +19,7 @@ const inputStyle = {
   outline: "none", background: C.white, boxSizing: "border-box",
 };
 
-const EMPTY_FORM = { category: "event", title: "", body: "", i18n: {} };
+const EMPTY_FORM = { category: "event", title: "", body: "", i18n: {}, eventId: "" };
 
 const NOTICE_LANGS = [
   { code: "en", flag: "🇺🇸", label: "English" },
@@ -75,6 +75,7 @@ function NoticeForm({ onPost }) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [error, setError] = useState("");
   const [showI18n, setShowI18n] = useState(false);
+  const events = useEvents();
 
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
 
@@ -142,6 +143,32 @@ function NoticeForm({ onPost }) {
           style={{ ...inputStyle, resize: "vertical", lineHeight: 1.6 }}
         />
       </div>
+
+      {/* イベント紐づけ（カテゴリ=event の場合のみ表示） */}
+      {form.category === "event" && (
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: C.charcoal, marginBottom: 5 }}>
+            📅 イベントに紐づける（任意）
+          </div>
+          <select
+            value={form.eventId || ""}
+            onChange={set("eventId")}
+            style={{ ...inputStyle, appearance: "none", cursor: "pointer" }}
+          >
+            <option value="">— 紐づけなし —</option>
+            {events.map(ev => (
+              <option key={ev.id} value={ev.id}>
+                {ev.emoji} {ev.nameShort}（{ev.fullDate}）
+              </option>
+            ))}
+          </select>
+          {form.eventId && (
+            <div style={{ fontSize: 11, color: C.teal, marginTop: 4 }}>
+              ✓ お知らせカードに「参加を申し込む」ボタンが表示されます
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 他言語翻訳トグル */}
       <div style={{ marginBottom: 12 }}>
@@ -1199,11 +1226,12 @@ function MembersPanel() {
 
 // ── お知らせ編集フォーム ───────────────────────────────────
 function AnnouncementEditForm({ item, onSave, onCancel }) {
-  const [form, setForm] = useState({ category: item.category, title: item.title, body: item.body, i18n: item.i18n || {} });
+  const [form, setForm] = useState({ category: item.category, title: item.title, body: item.body, i18n: item.i18n || {}, eventId: item.eventId || "" });
   const [error, setError] = useState("");
   const [showI18n, setShowI18n] = useState(Object.keys(item.i18n || {}).length > 0);
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
   const cat = NOTICE_CATS.find(c => c.id === form.category);
+  const events = useEvents();
 
   const submit = e => {
     e.preventDefault();
@@ -1236,6 +1264,32 @@ function AnnouncementEditForm({ item, onSave, onCancel }) {
           <input type="text" value={form.title} onChange={set("title")} placeholder="タイトル" style={inputStyle} />
         </div>
         <textarea value={form.body} onChange={set("body")} rows={2} placeholder="本文" style={{ ...inputStyle, resize: "vertical", lineHeight: 1.6 }} />
+
+        {/* イベント紐づけ（カテゴリ=event の場合のみ） */}
+        {form.category === "event" && (
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: C.charcoal, marginBottom: 4 }}>
+              📅 イベントに紐づける（任意）
+            </div>
+            <select
+              value={form.eventId || ""}
+              onChange={set("eventId")}
+              style={{ ...inputStyle, appearance: "none", cursor: "pointer", fontSize: 12 }}
+            >
+              <option value="">— 紐づけなし —</option>
+              {events.map(ev => (
+                <option key={ev.id} value={ev.id}>
+                  {ev.emoji} {ev.nameShort}（{ev.fullDate}）
+                </option>
+              ))}
+            </select>
+            {form.eventId && (
+              <div style={{ fontSize: 10, color: C.teal, marginTop: 2 }}>
+                ✓ 「参加を申し込む」ボタンが表示されます
+              </div>
+            )}
+          </div>
+        )}
 
         {/* 他言語 */}
         <div>

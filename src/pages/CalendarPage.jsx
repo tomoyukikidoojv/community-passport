@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { C } from "../constants";
 import { useEvents } from "../hooks/useEvents";
 import { useLang } from "../i18n/LangContext";
@@ -58,6 +58,7 @@ function formatFullDate(iso) {
 export default function CalendarPage({ stamps, user }) {
   const { t } = useLang();
   const navigate = useNavigate();
+  const location = useLocation();
   const today = new Date();
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
@@ -68,6 +69,22 @@ export default function CalendarPage({ stamps, user }) {
 
   const uid = user?.id ?? "guest";
   const [allRsvpCount, setAllRsvpCount] = useState(loadAllRsvpCount);
+
+  // お知らせからの直接遷移：openEventId が state に含まれていれば該当イベントを自動表示
+  useEffect(() => {
+    const openId = location.state?.openEventId;
+    if (!openId || events.length === 0) return;
+    const ev = events.find(e => String(e.id) === String(openId));
+    if (ev) {
+      const d = new Date(ev.fullDate);
+      setViewYear(d.getFullYear());
+      setViewMonth(d.getMonth());
+      setSelectedEvent(ev);
+      // stateをクリアして再レンダリング時に再発火しない
+      window.history.replaceState({}, "");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [events, location.state?.openEventId]);
 
   // 起動時にFirestoreから自分のRSVPを取得してlocalStorageと同期
   useEffect(() => {

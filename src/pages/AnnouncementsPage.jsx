@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { C, NOTICE_CATS } from "../constants";
 import { useLang } from "../i18n/LangContext";
 
@@ -30,7 +31,7 @@ function formatDate(iso) {
   return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
 }
 
-function AnnouncementCard({ item, isRead, onRead }) {
+function AnnouncementCard({ item, isRead, onRead, onRsvp }) {
   const [expanded, setExpanded] = useState(false);
   const { t, lang } = useLang();
   const cat = categoryMeta(item.category, t);
@@ -171,8 +172,35 @@ function AnnouncementCard({ item, isRead, onRead }) {
           paddingTop: 12,
           marginTop: -2,
           whiteSpace: "pre-line",
-        }}>
+        }}
+          onClick={e => e.stopPropagation()}
+        >
           {renderBody(localBody)}
+
+          {/* イベントに紐づいている場合、申し込みCTAを表示 */}
+          {item.eventId && onRsvp && (
+            <div style={{ marginTop: 14 }}
+              onClick={e => e.stopPropagation()}>
+              <button
+                onClick={e => { e.stopPropagation(); onRsvp(item.eventId); }}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 7,
+                  padding: "10px 20px",
+                  background: `linear-gradient(90deg, ${cat.color}, ${cat.color}cc)`,
+                  color: C.white,
+                  border: "none", borderRadius: 10,
+                  fontSize: 13, fontWeight: 700, cursor: "pointer",
+                  fontFamily: "inherit",
+                  boxShadow: `0 3px 10px ${cat.color}50`,
+                  transition: "opacity 0.15s",
+                }}
+                onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
+                onMouseLeave={e => e.currentTarget.style.opacity = "1"}
+              >
+                📅 {t("ann.rsvp_cta")}
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -181,6 +209,7 @@ function AnnouncementCard({ item, isRead, onRead }) {
 
 export default function AnnouncementsPage({ announcements, readIds, onRead, onReadAll }) {
   const { t } = useLang();
+  const navigate = useNavigate();
   const [filter, setFilter] = useState("all");
 
   const unreadCount = announcements.filter(a => !readIds.has(a.id)).length;
@@ -291,6 +320,7 @@ export default function AnnouncementsPage({ announcements, readIds, onRead, onRe
                 item={item}
                 isRead={readIds.has(item.id)}
                 onRead={onRead}
+                onRsvp={eventId => navigate("/calendar", { state: { openEventId: eventId } })}
               />
             ))
           )}
