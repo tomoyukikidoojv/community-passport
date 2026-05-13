@@ -123,10 +123,7 @@ function SingleCard() {
             background: `linear-gradient(135deg, ${B.gold}, ${B.goldLt})`,
             borderRadius: 6, padding: "3px 10px",
             fontSize: 10, fontWeight: 800, color: B.navy, letterSpacing: 0.5,
-          }}>HOW TO JOIN</div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: B.white }}>
-            イベントへのさんかのしかた
-          </div>
+          }}>イベントへの参加方法</div>
         </div>
 
         {/* ステップ */}
