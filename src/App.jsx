@@ -8,6 +8,7 @@ import AnnouncementsPage from "./pages/AnnouncementsPage";
 import CalendarPage from "./pages/CalendarPage";
 import ContactPage from "./pages/ContactPage";
 import AdminDashboard from "./pages/AdminDashboard";
+import TutorialModal from "./components/TutorialModal";
 import { C, MTN_SVG_NAV, initialAttendance, initialAnnouncements } from "./constants";
 import { LangProvider, useLang } from "./i18n/LangContext";
 import { LANGS } from "./i18n/translations";
@@ -462,6 +463,8 @@ function AppRoutes() {
   const LOGIN_EXPIRY_KEY = "cp_login_expiry";
   const LOGIN_DAYS = 60;
 
+  const [showTutorial, setShowTutorial] = useState(false);
+
   const [loggedIn, setLoggedIn] = useState(() => {
     const expiry = localStorage.getItem(LOGIN_EXPIRY_KEY);
     if (!expiry) return false;
@@ -562,6 +565,9 @@ function AppRoutes() {
     setLoggedIn(true);
     setAttendance(prev => ({ ...prev, [newUser.id]: new Set() }));
     navigate("/passport");
+    if (!localStorage.getItem("cp_tutorial_done")) {
+      setShowTutorial(true);
+    }
   };
 
   const postAnnouncement = (item) => {
@@ -661,6 +667,12 @@ function AppRoutes() {
       {/* User area: 2-tab nav */}
       <Route path="*" element={
         <div style={{ fontFamily: "'Segoe UI','Hiragino Sans','Meiryo',sans-serif" }}>
+          {showTutorial && (
+            <TutorialModal onClose={() => {
+              localStorage.setItem("cp_tutorial_done", "1");
+              setShowTutorial(false);
+            }} />
+          )}
           <UserNav
             registeredUser={registeredUser}
             myStamps={myStamps}
