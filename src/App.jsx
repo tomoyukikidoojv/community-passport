@@ -479,14 +479,6 @@ function AppRoutes() {
 
   const [showTutorial, setShowTutorial] = useState(false);
 
-  // パスポート登録後・または未表示のログイン済みユーザーにチュートリアルを1回表示
-  const TUTORIAL_KEY = "cp_tutorial_v2";
-  useEffect(() => {
-    if (loggedIn && registeredUser?.id && !localStorage.getItem(TUTORIAL_KEY)) {
-      setShowTutorial(true);
-    }
-  }, [loggedIn, registeredUser?.id]);
-
   const [loggedIn, setLoggedIn] = useState(() => {
     const expiry = localStorage.getItem(LOGIN_EXPIRY_KEY);
     if (!expiry) return false;
@@ -496,6 +488,14 @@ function AppRoutes() {
     }
     return true;
   });
+
+  // パスポート登録後・または未表示のログイン済みユーザーにチュートリアルを1回表示
+  const TUTORIAL_KEY = "cp_tutorial_v2";
+  useEffect(() => {
+    if (loggedIn && registeredUser?.id && !localStorage.getItem(TUTORIAL_KEY)) {
+      setShowTutorial(true);
+    }
+  }, [loggedIn, registeredUser?.id]);
 
   const handleLogin = () => {
     localStorage.setItem(LOGIN_EXPIRY_KEY, String(Date.now() + LOGIN_DAYS * 86400000));
