@@ -355,11 +355,14 @@ function UserNav({ registeredUser, myStamps, unreadCount, onLogout, onShowTutori
               onClick={onShowTutorial}
               title={t("nav.howToUse")}
               style={{
-                background: "rgba(255,255,255,0.12)",
-                border: "1px solid rgba(255,255,255,0.2)",
-                borderRadius: 4, padding: "2px 6px",
-                color: "rgba(255,255,255,0.7)", fontSize: 9,
+                background: "linear-gradient(90deg, #e8b84b, #f7c948)",
+                border: "none",
+                borderRadius: 14, padding: "4px 11px",
+                color: "#1e1a00", fontSize: 10,
+                fontWeight: 800,
                 cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
+                boxShadow: "0 2px 8px rgba(232,184,75,0.55)",
+                letterSpacing: 0.2,
               }}
             >❓ {t("nav.howToUse")}</button>
             <button
