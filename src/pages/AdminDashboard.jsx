@@ -11,6 +11,7 @@ import { fetchAllUsers, fetchAllAttendance, fetchAllRsvpFromCloud, fetchAllRsvpC
 import { useEvents } from "../hooks/useEvents";
 import EventsManager from "./admin/EventsManager";
 import EventFormBuilder from "./admin/EventFormBuilder";
+import LineCards from "./admin/LineCards";
 
 const inputStyle = {
   width: "100%", padding: "9px 12px",
@@ -214,6 +215,7 @@ const ADMIN_TABS = [
   { id: "applications",  label: "参加者",     emoji: "📋" },
   { id: "events",        label: "イベント",   emoji: "📅" },
   { id: "formbuilder",   label: "アンケート", emoji: "📝" },
+  { id: "linecards",     label: "LINE配信",   emoji: "📲" },
 ];
 
 // ── ラベルマップ ──────────────────────────────────────────
@@ -772,6 +774,9 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
 
         {/* ── Tab: フォーム ── */}
         {activeTab === "formbuilder" && <EventFormBuilder />}
+
+        {/* ── Tab: LINE配信カード ── */}
+        {activeTab === "linecards" && <LineCards />}
 
       </div>
     </div>
