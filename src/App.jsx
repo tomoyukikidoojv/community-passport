@@ -586,7 +586,7 @@ function AppRoutes() {
     setRegisteredUser(newUser);
     setLoggedIn(true);
     setAttendance(prev => ({ ...prev, [newUser.id]: new Set() }));
-    navigate("/passport");
+    navigate("/calendar");
   };
 
   const postAnnouncement = (item) => {
@@ -634,7 +634,7 @@ function AppRoutes() {
     setRegisteredUser(user);
     setLoggedIn(true);
     setAttendance(prev => ({ ...prev, [user.id]: prev[user.id] || new Set() }));
-    navigate("/passport");
+    navigate("/calendar");
   };
 
   // Not registered yet → registration or login screen (except admin)
@@ -700,7 +700,7 @@ function AppRoutes() {
             onShowTutorial={() => setShowTutorial(true)}
           />
           <Routes>
-            <Route path="/" element={<Navigate to="/announcements" replace />} />
+            <Route path="/" element={<Navigate to="/calendar" replace />} />
             <Route path="/announcements" element={
               <AnnouncementsPage
                 announcements={announcements}
@@ -718,7 +718,7 @@ function AppRoutes() {
             <Route path="/contact" element={
               <ContactPage user={registeredUser} />
             } />
-            <Route path="*" element={<Navigate to="/announcements" replace />} />
+            <Route path="*" element={<Navigate to="/calendar" replace />} />
           </Routes>
         </div>
       } />
