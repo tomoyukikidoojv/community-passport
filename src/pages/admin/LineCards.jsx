@@ -149,11 +149,11 @@ function SingleCard() {
               <div style={{
                 fontSize: 13, fontWeight: 700, color: B.white,
                 lineHeight: 1.35, marginBottom: 2,
-              }}>{ja}</div>
+              }}>{en}</div>
               <div style={{
                 fontSize: 10.5, color: "rgba(255,255,255,0.52)",
                 lineHeight: 1.4,
-              }}>{en}</div>
+              }}>{ja}</div>
             </div>
           </div>
         ))}
