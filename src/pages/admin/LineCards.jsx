@@ -197,9 +197,59 @@ function SingleCard() {
 }
 
 // ─────────────────────────────────────────────────────────────
+const LINE_MESSAGES = {
+  ja: `📣 コミュニティパスポートにとうろくしてくださったみなさまへ
+
+とうろくありがとうございます！
+
+📅 イベントへのさんかについて
+
+イベントにさんかするためには、アプリの「カレンダー」タブから さんかのいしひょうじが ひつようです。
+
+【さんかのしかた】
+① アプリをひらいて「カレンダー」をタップ
+② さんかしたいイベントをえらぶ
+③ 「さんかしたい」ボタンをおす
+④ おとな・こどもの にんずうをえらぶ
+
+さんかのいしひょうじをすることで、スタッフが じゅんびをしやすくなります。
+ぜひよろしくおねがいします！
+
+ご不明な点は じむきょくまでお問い合わせください。
+芦屋市 多文化共生アドバイザー事務局`,
+
+  en: `📣 To all Community Passport members,
+
+Thank you for registering!
+
+📅 How to join events
+
+To participate in events, you need to register your attendance through the "Calendar" tab in the app.
+
+【Steps to join】
+① Open the app and tap "Calendar"
+② Select the event you want to attend
+③ Press the "Going" button
+④ Choose the number of adults & children
+
+Your RSVP helps our staff prepare for the event.
+We look forward to seeing you!
+
+For any questions, please contact our office.
+Ashiya City Multicultural Coexistence Advisor Office`,
+};
+
 export default function LineCards() {
   const cardRef = useRef(null);
   const [exporting, setExporting] = useState(false);
+  const [copied, setCopied] = useState(null); // "ja" | "en" | null
+
+  const copyText = (lang) => {
+    navigator.clipboard.writeText(LINE_MESSAGES[lang]).then(() => {
+      setCopied(lang);
+      setTimeout(() => setCopied(null), 2000);
+    });
+  };
 
   const download = async () => {
     if (!cardRef.current) return;
@@ -282,6 +332,64 @@ export default function LineCards() {
         </div>
       </div>
 
+      {/* ─── LINE テキストメッセージ ─── */}
+      <div style={{ marginTop: 32 }}>
+        <div style={{ fontSize: 15, fontWeight: 800, color: "#0d1b4b", marginBottom: 4 }}>
+          ✉️ LINE配信用テキスト
+        </div>
+        <div style={{ fontSize: 12, color: "#64748b", marginBottom: 16 }}>
+          コピーしてLINE公式アカウントのメッセージ作成画面に貼り付けてください。
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {[
+            { lang: "ja", label: "🇯🇵 日本語（やさしい日本語）" },
+            { lang: "en", label: "🇺🇸 English" },
+          ].map(({ lang, label }) => (
+            <div key={lang} style={{
+              background: "#fff",
+              border: "1.5px solid #e2e8f0",
+              borderRadius: 12, overflow: "hidden",
+            }}>
+              {/* ヘッダー行 */}
+              <div style={{
+                padding: "10px 16px",
+                background: "#f8fafc",
+                borderBottom: "1px solid #e2e8f0",
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+              }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>{label}</span>
+                <button
+                  onClick={() => copyText(lang)}
+                  style={{
+                    padding: "5px 14px",
+                    background: copied === lang
+                      ? "linear-gradient(90deg, #059669, #10b981)"
+                      : "linear-gradient(90deg, #0c7a8a, #0ea5b5)",
+                    color: "#fff", border: "none", borderRadius: 8,
+                    fontSize: 12, fontWeight: 700,
+                    cursor: "pointer", fontFamily: "inherit",
+                    transition: "background 0.2s",
+                  }}
+                >
+                  {copied === lang ? "✓ コピーしました！" : "📋 コピー"}
+                </button>
+              </div>
+              {/* テキスト本文 */}
+              <pre style={{
+                margin: 0, padding: "14px 16px",
+                fontSize: 12, color: "#334155",
+                lineHeight: 1.85, whiteSpace: "pre-wrap",
+                fontFamily: "'Hiragino Sans','Meiryo',sans-serif",
+                background: "#fff",
+              }}>
+                {LINE_MESSAGES[lang]}
+              </pre>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* ヒント */}
       <div style={{
         marginTop: 24,
@@ -291,7 +399,7 @@ export default function LineCards() {
       }}>
         <strong>💡 LINE公式アカウントでの配信手順</strong><br />
         ① LINE公式アカウントマネージャー（manager.line.biz）にログイン<br />
-        ② 「メッセージを作成」→「画像」でダウンロードしたPNGをアップロード<br />
+        ② 「メッセージを作成」→「テキスト」または「画像」でコンテンツを追加<br />
         ③ 「配信」で全員に送信できます
       </div>
     </div>
