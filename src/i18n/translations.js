@@ -19,6 +19,7 @@ const T = {
     "nav.passport": "パスポート",
     "nav.contact": "お問い合わせ",
     "nav.logout": "ログアウト",
+    "nav.howToUse": "つかいかた",
     "nav.admin": "かんりしゃ",
     "nav.stamps": "{n} スタンプ",
 
@@ -234,6 +235,7 @@ const T = {
     "nav.passport": "Passport",
     "nav.contact": "Contact",
     "nav.logout": "Log out",
+    "nav.howToUse": "How to use",
     "nav.admin": "Admin",
     "nav.stamps": "{n} stamps",
 
@@ -441,6 +443,7 @@ const T = {
     "nav.passport": "Pasaporte",
     "nav.contact": "Contacto",
     "nav.logout": "Salir",
+    "nav.howToUse": "Cómo usar",
     "nav.admin": "Admin",
     "nav.stamps": "{n} sellos",
 
@@ -648,6 +651,7 @@ const T = {
     "nav.passport": "Passeport",
     "nav.contact": "Contact",
     "nav.logout": "Déconnexion",
+    "nav.howToUse": "Comment utiliser",
     "nav.admin": "Admin",
     "nav.stamps": "{n} tampons",
 
@@ -855,6 +859,7 @@ const T = {
     "nav.passport": "Passaporte",
     "nav.contact": "Contato",
     "nav.logout": "Sair",
+    "nav.howToUse": "Como usar",
     "nav.admin": "Admin",
     "nav.stamps": "{n} carimbos",
 
@@ -1062,6 +1067,7 @@ const T = {
     "nav.passport": "패스포트",
     "nav.contact": "문의",
     "nav.logout": "로그아웃",
+    "nav.howToUse": "사용 방법",
     "nav.admin": "관리자",
     "nav.stamps": "{n} 스탬프",
 
@@ -1269,6 +1275,7 @@ const T = {
     "nav.passport": "护照",
     "nav.contact": "联系",
     "nav.logout": "登出",
+    "nav.howToUse": "使用方法",
     "nav.admin": "管理员",
     "nav.stamps": "{n} 印章",
 

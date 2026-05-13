@@ -223,7 +223,7 @@ function AdminGate({ children }) {
 }
 
 // ── User nav ──────────────────────────────────────────
-function UserNav({ registeredUser, myStamps, unreadCount, onLogout }) {
+function UserNav({ registeredUser, myStamps, unreadCount, onLogout, onShowTutorial }) {
   const { t, lang, setLang } = useLang();
   const [showLangMenu, setShowLangMenu] = useState(false);
   const NAV = [
@@ -351,6 +351,17 @@ function UserNav({ registeredUser, myStamps, unreadCount, onLogout }) {
                 ⭐ {t("nav.stamps", { n: myStamps.size })}
               </div>
             </div>
+            <button
+              onClick={onShowTutorial}
+              title={t("nav.howToUse")}
+              style={{
+                background: "rgba(255,255,255,0.12)",
+                border: "1px solid rgba(255,255,255,0.2)",
+                borderRadius: 4, padding: "2px 6px",
+                color: "rgba(255,255,255,0.7)", fontSize: 9,
+                cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
+              }}
+            >❓ {t("nav.howToUse")}</button>
             <button
               onClick={onLogout}
               style={{
@@ -678,6 +689,7 @@ function AppRoutes() {
             myStamps={myStamps}
             unreadCount={unreadCount}
             onLogout={handleLogout}
+            onShowTutorial={() => setShowTutorial(true)}
           />
           <Routes>
             <Route path="/" element={<Navigate to="/announcements" replace />} />
