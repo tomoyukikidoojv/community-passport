@@ -535,14 +535,13 @@ function AppRoutes() {
   }, []);
 
   // Firestoreからお知らせを読み込む（初回のみ）
+  // ⚠️ 安全ルール: エラー時は何もしない。自動シードは廃止（データ破壊防止）
   useEffect(() => {
     fetchAnnouncements().then(items => {
-      if (items === null) {
-        // Firestoreが空 → initialAnnouncementsをシード
-        initialAnnouncements.forEach(a => saveAnnouncementToCloud(a));
-      } else {
+      if (items) {
         setAnnouncements(items);
       }
+      // null(未設定) または undefined(エラー) → 何もしない
     });
   }, []);
 

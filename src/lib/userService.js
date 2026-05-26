@@ -86,7 +86,12 @@ export async function fetchAllUsers() {
 
 // ── Announcements Cloud Sync ──────────────────────────
 
-/** お知らせ一覧をクラウドから取得 (空ならnull) */
+/** お知らせ一覧をクラウドから取得
+ *  戻り値:
+ *    - 配列     : 正常取得
+ *    - null     : コレクションが空（初回）
+ *    - undefined: ネットワークエラー等 → 呼び元でシード禁止
+ */
 export async function fetchAnnouncements() {
   try {
     const snap = await getDocs(collection(db, "announcements"));
@@ -94,7 +99,7 @@ export async function fetchAnnouncements() {
     return snap.docs.map(d => d.data()).sort((a, b) => (b.id || 0) - (a.id || 0));
   } catch (err) {
     console.error("fetchAnnouncements error:", err);
-    return null;
+    return undefined;  // エラー = undefined（null と区別してシード禁止）
   }
 }
 
@@ -124,18 +129,23 @@ export async function deleteAnnouncementFromCloud(id) {
 
 // ── Events Cloud Sync ──────────────────────────────────
 
-/** イベント一覧をFirebaseから取得（なければnull） */
+/** イベント一覧をFirebaseから取得
+ *  戻り値:
+ *    - 配列  : 正常取得
+ *    - null  : ドキュメントが存在しない（初回 or 意図的に空）
+ *    - undefined : ネットワークエラー等 → 絶対に上書き禁止
+ */
 export async function fetchEventsFromCloud() {
   try {
     const ref = doc(db, "config", "events");
     const snap = await getDoc(ref);
-    if (!snap.exists()) return null;
+    if (!snap.exists()) return null;        // 文書なし = 初回のみシード許可
     const data = snap.data().events;
     if (!data || data.length === 0) return null;
     return data;
   } catch (err) {
     console.error("fetchEventsFromCloud error:", err);
-    return null;
+    return undefined;  // エラー = undefined（null と区別してシード禁止）
   }
 }
 
