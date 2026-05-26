@@ -272,18 +272,33 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
   const [members, setMembers] = useState([]);
   const [cloudAttendance, setCloudAttendance] = useState({});
   const [loadingMembers, setLoadingMembers] = useState(true);
+  const [membersError, setMembersError] = useState(false);
   const events = useEvents();
   const navigate = useNavigate();
 
   // Firebase から登録ユーザーとスタンプを取得
-  useEffect(() => {
-    Promise.all([fetchAllUsers(), fetchAllAttendance()]).then(([users, stamps]) => {
-      const sorted = [...users].sort((a, b) => (b.id || 0) - (a.id || 0));
-      setMembers(sorted);
-      setCloudAttendance(stamps);
-      setLoadingMembers(false);
-    });
-  }, []);
+  const loadMembers = () => {
+    setLoadingMembers(true);
+    setMembersError(false);
+    Promise.all([fetchAllUsers(), fetchAllAttendance()])
+      .then(([users, stamps]) => {
+        if (users.length === 0) {
+          // 空かエラーかを区別するため再確認（fetchAllUsersはエラー時[]を返す）
+          console.warn("[AdminDashboard] fetchAllUsers returned empty array — may be an error");
+        }
+        const sorted = [...users].sort((a, b) => (b.id || 0) - (a.id || 0));
+        setMembers(sorted);
+        setCloudAttendance(stamps);
+        setLoadingMembers(false);
+      })
+      .catch(err => {
+        console.error("[AdminDashboard] loadMembers error:", err);
+        setMembersError(true);
+        setLoadingMembers(false);
+      });
+  };
+
+  useEffect(() => { loadMembers(); }, []);
 
   // Firebase のスタンプ + ローカルのスタンプをマージして使う
   const mergedAttendance = { ...attendance };
@@ -489,9 +504,24 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
                   <tr><td colSpan={events.length + 2} style={{ padding: "24px", textAlign: "center", color: C.gray, fontSize: 13 }}>
                     読み込み中…
                   </td></tr>
+                ) : membersError ? (
+                  <tr><td colSpan={events.length + 2} style={{ padding: "24px", textAlign: "center", fontSize: 13 }}>
+                    <div style={{ color: "#e53e3e", marginBottom: 10 }}>⚠️ データの読み込みに失敗しました（ネットワークまたは権限エラー）</div>
+                    <button onClick={loadMembers} style={{
+                      padding: "7px 18px", borderRadius: 8, border: "none",
+                      background: C.teal, color: C.white, fontSize: 12, fontWeight: 700,
+                      cursor: "pointer", fontFamily: "inherit",
+                    }}>🔄 再読み込み</button>
+                  </td></tr>
                 ) : members.length === 0 ? (
-                  <tr><td colSpan={events.length + 2} style={{ padding: "24px", textAlign: "center", color: C.gray, fontSize: 13 }}>
-                    登録されたユーザーはまだいません
+                  <tr><td colSpan={events.length + 2} style={{ padding: "24px", textAlign: "center", fontSize: 13 }}>
+                    <div style={{ color: C.gray, marginBottom: 10 }}>登録されたユーザーはまだいません</div>
+                    <button onClick={loadMembers} style={{
+                      padding: "7px 18px", borderRadius: 8, border: "none",
+                      background: C.offWhite, color: C.gray, fontSize: 12, fontWeight: 700,
+                      cursor: "pointer", fontFamily: "inherit",
+                      border: `1px solid ${C.lightGray}`,
+                    }}>🔄 再読み込み</button>
                   </td></tr>
                 ) : null}
                 {members.map((user, ui) => {
@@ -1053,16 +1083,27 @@ const EVT_OPTIONS = [
 function MembersPanel() {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [search, setSearch] = useState("");
   const [filterVolunteer, setFilterVolunteer] = useState(""); // "" | "yes" | "no"
   const [filterEvent, setFilterEvent] = useState("");         // "" | event key
 
-  useEffect(() => {
-    fetchAllUsers().then(users => {
-      setMembers(users.sort((a, b) => (a.no || "").localeCompare(b.no || "")));
-      setLoading(false);
-    });
-  }, []);
+  const loadMembers = () => {
+    setLoading(true);
+    setLoadError(false);
+    fetchAllUsers()
+      .then(users => {
+        setMembers(users.sort((a, b) => (a.no || "").localeCompare(b.no || "")));
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error("[MembersPanel] fetchAllUsers error:", err);
+        setLoadError(true);
+        setLoading(false);
+      });
+  };
+
+  useEffect(() => { loadMembers(); }, []);
 
   const filtered = members.filter(m => {
     if (search && !m.name?.includes(search) && !m.email?.includes(search) &&
@@ -1155,9 +1196,27 @@ function MembersPanel() {
       <div style={{ overflowX: "auto" }}>
         {loading ? (
           <div style={{ padding: "32px", textAlign: "center", color: C.gray, fontSize: 13 }}>読み込み中…</div>
+        ) : loadError ? (
+          <div style={{ padding: "32px", textAlign: "center", fontSize: 13 }}>
+            <div style={{ color: "#e53e3e", marginBottom: 10 }}>⚠️ データの読み込みに失敗しました（ネットワークまたは権限エラー）</div>
+            <button onClick={loadMembers} style={{
+              padding: "7px 18px", borderRadius: 8, border: "none",
+              background: C.teal, color: C.white, fontSize: 12, fontWeight: 700,
+              cursor: "pointer", fontFamily: "inherit",
+            }}>🔄 再読み込み</button>
+          </div>
         ) : filtered.length === 0 ? (
-          <div style={{ padding: "32px", textAlign: "center", color: C.gray, fontSize: 13 }}>
-            {search ? "該当する会員が見つかりません" : "登録された会員はまだいません"}
+          <div style={{ padding: "32px", textAlign: "center", fontSize: 13 }}>
+            <div style={{ color: C.gray, marginBottom: 10 }}>
+              {search ? "該当する会員が見つかりません" : "登録された会員はまだいません"}
+            </div>
+            {!search && (
+              <button onClick={loadMembers} style={{
+                padding: "7px 18px", borderRadius: 8, border: `1px solid ${C.lightGray}`,
+                background: C.offWhite, color: C.gray, fontSize: 12, fontWeight: 700,
+                cursor: "pointer", fontFamily: "inherit",
+              }}>🔄 再読み込み</button>
+            )}
           </div>
         ) : (
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontFamily: "inherit" }}>
