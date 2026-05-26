@@ -73,8 +73,18 @@ function AdminGate({ children }) {
       localStorage.removeItem(ADMIN_LOCK_KEY);
       setFails(0);
       setLockedUntil(0);
-    } catch {
+    } catch (err) {
+      console.error("[AdminGate] Firebase Auth error:", err.code, err.message);
       const newFails = fails + 1;
+      // Firebase エラーコードに応じてメッセージを分ける
+      let msg = `メールアドレスまたはパスワードが違います。（残り${ADMIN_MAX_FAILS - newFails}回）`;
+      if (err.code === "auth/user-not-found")      msg = "このメールアドレスのアカウントが見つかりません。Firebaseコンソールで確認してください。";
+      if (err.code === "auth/wrong-password")      msg = `パスワードが違います。（残り${ADMIN_MAX_FAILS - newFails}回）`;
+      if (err.code === "auth/invalid-email")       msg = "メールアドレスの形式が正しくありません。";
+      if (err.code === "auth/too-many-requests")   msg = "Firebaseにより一時的にブロックされています。しばらく待つか、パスワードをリセットしてください。";
+      if (err.code === "auth/network-request-failed") msg = "ネットワークエラーです。インターネット接続を確認してください。";
+      if (err.code === "auth/invalid-credential")  msg = `メールアドレスまたはパスワードが違います。（残り${ADMIN_MAX_FAILS - newFails}回）`;
+
       if (newFails >= ADMIN_MAX_FAILS) {
         const until = Date.now() + ADMIN_LOCK_MINS * 60 * 1000;
         localStorage.setItem(ADMIN_LOCK_KEY, JSON.stringify({ fails: newFails, until }));
@@ -84,8 +94,7 @@ function AdminGate({ children }) {
       } else {
         localStorage.setItem(ADMIN_LOCK_KEY, JSON.stringify({ fails: newFails, until: 0 }));
         setFails(newFails);
-        const left = ADMIN_MAX_FAILS - newFails;
-        setError(`メールアドレスまたはパスワードが違います。（残り${left}回）`);
+        setError(msg);
       }
       setPassword("");
     } finally {
