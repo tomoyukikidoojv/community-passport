@@ -24,13 +24,14 @@ function getSurveyResponse(eventId, userId) {
   return loadSurveyResponses().find(a => a.eventId === eventId && a.userId === userId) || null;
 }
 
-export default function SurveyPage({ user, stamps }) {
+export default function SurveyPage({ user, stamps, forms = {} }) {
   const { eventId } = useParams();
   const navigate = useNavigate();
   const events = useEvents();
   const event = events.find(e => e.id === Number(eventId));
 
-  const formConfig = event ? getForm(event.id) : null;
+  // formsプロップ優先（Firestoreから同期済み）、なければlocalStorage
+  const formConfig = event ? (forms[event.id] || getForm(event.id)) : null;
   const existing = event && user ? getSurveyResponse(event.id, user.id) : null;
 
   const [form, setForm] = useState({ answers: {} });

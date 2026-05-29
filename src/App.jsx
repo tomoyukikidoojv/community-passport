@@ -535,11 +535,15 @@ function AppRoutes() {
   const [announcements, setAnnouncements] = useState([...initialAnnouncements]);
   const [readIds, setReadIds] = useState(new Set());
 
-  // 起動時にアンケートフォーム設定をFirestoreから同期（利用者が最新フォームを見られるよう）
+  // 起動時にアンケートフォーム設定をFirestoreから同期
+  const [forms, setForms] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("cp_event_forms")) || {}; } catch { return {}; }
+  });
   useEffect(() => {
     fetchFormsFromCloud().then(cloudForms => {
       if (cloudForms) {
         localStorage.setItem("cp_event_forms", JSON.stringify(cloudForms));
+        setForms(cloudForms); // React stateも更新 → 再レンダリングされる
       }
     });
   }, []);
@@ -722,13 +726,13 @@ function AppRoutes() {
               <CalendarPage stamps={myStamps} user={registeredUser} />
             } />
             <Route path="/passport" element={
-              <CommunityPassport stamps={myStamps} onManualStamp={toggleStamp} user={registeredUser} onPhotoUpdate={handlePhotoUpdate} />
+              <CommunityPassport stamps={myStamps} onManualStamp={toggleStamp} user={registeredUser} onPhotoUpdate={handlePhotoUpdate} forms={forms} />
             } />
             <Route path="/contact" element={
               <ContactPage user={registeredUser} />
             } />
             <Route path="/survey/:eventId" element={
-              <SurveyPage user={registeredUser} stamps={myStamps} />
+              <SurveyPage user={registeredUser} stamps={myStamps} forms={forms} />
             } />
             <Route path="*" element={<Navigate to="/calendar" replace />} />
           </Routes>

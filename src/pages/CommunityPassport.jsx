@@ -229,7 +229,7 @@ function Stamp({ event, stamped, onClick }) {
   );
 }
 
-export default function CommunityPassport({ stamps, onManualStamp, user, onPhotoUpdate }) {
+export default function CommunityPassport({ stamps, onManualStamp, user, onPhotoUpdate, forms = {} }) {
   const { t } = useLang();
   const navigate = useNavigate();
   const [flash, setFlash] = useState(null);
@@ -533,12 +533,23 @@ export default function CommunityPassport({ stamps, onManualStamp, user, onPhoto
           </div>
 
           {/* アンケートセクション：スタンプ持ち & 公開中のイベントのみ */}
-          {events.filter(ev => stamps.has(ev.id) && isFormActive(ev.id)).length > 0 && (
+          {(() => {
+            const now = new Date();
+            const activeForUser = events.filter(ev => {
+              if (!stamps.has(ev.id)) return false;
+              const f = forms[ev.id];
+              if (!f || !f.enabled) return false;
+              if (f.openDate && new Date(f.openDate) > now) return false;
+              if (f.closeDate && new Date(f.closeDate + "T23:59:59") < now) return false;
+              return true;
+            });
+            if (activeForUser.length === 0) return null;
+            return (
             <div style={{ margin: "0 22px 20px" }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
                 📝 アンケートに答えてください
               </div>
-              {events.filter(ev => stamps.has(ev.id) && isFormActive(ev.id)).map(ev => (
+              {activeForUser.map(ev => (
                 <button
                   key={ev.id}
                   onClick={() => navigate(`/survey/${ev.id}`)}
@@ -561,7 +572,8 @@ export default function CommunityPassport({ stamps, onManualStamp, user, onPhoto
                 </button>
               ))}
             </div>
-          )}
+            );
+          })()}
 
           {/* Flash notification */}
           {flash && (
