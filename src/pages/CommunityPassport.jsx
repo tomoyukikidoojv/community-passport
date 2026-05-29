@@ -3,6 +3,8 @@ import { QRCodeSVG } from "qrcode.react";
 import { C, USERS, getLevel } from "../constants";
 import { useEvents } from "../hooks/useEvents";
 import { useLang } from "../i18n/LangContext";
+import { isFormActive } from "../lib/formStorage";
+import { useNavigate } from "react-router-dom";
 
 // ── 写真トリミングモーダル ───────────────────────────────
 function PhotoCropModal({ src, onConfirm, onCancel }) {
@@ -229,6 +231,7 @@ function Stamp({ event, stamped, onClick }) {
 
 export default function CommunityPassport({ stamps, onManualStamp, user, onPhotoUpdate }) {
   const { t } = useLang();
+  const navigate = useNavigate();
   const [flash, setFlash] = useState(null);
   const [qrExpanded, setQrExpanded] = useState(false);
   const [photoHover, setPhotoHover] = useState(false);
@@ -528,6 +531,37 @@ export default function CommunityPassport({ stamps, onManualStamp, user, onPhoto
               ))}
             </div>
           </div>
+
+          {/* アンケートセクション：スタンプ持ち & 公開中のイベントのみ */}
+          {events.filter(ev => stamps.has(ev.id) && isFormActive(ev.id)).length > 0 && (
+            <div style={{ margin: "0 22px 20px" }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
+                📝 アンケートに答えてください
+              </div>
+              {events.filter(ev => stamps.has(ev.id) && isFormActive(ev.id)).map(ev => (
+                <button
+                  key={ev.id}
+                  onClick={() => navigate(`/survey/${ev.id}`)}
+                  style={{
+                    width: "100%", padding: "12px 16px",
+                    background: `linear-gradient(90deg, ${ev.color}, ${ev.color}cc)`,
+                    color: C.white, border: "none", borderRadius: 10,
+                    fontSize: 13, fontWeight: 700, cursor: "pointer",
+                    fontFamily: "inherit", marginBottom: 8,
+                    display: "flex", alignItems: "center", gap: 10,
+                    boxShadow: `0 3px 12px ${ev.color}40`,
+                  }}
+                >
+                  <span style={{ fontSize: 22 }}>{ev.emoji}</span>
+                  <div style={{ textAlign: "left" }}>
+                    <div>{ev.nameShort} のアンケート</div>
+                    <div style={{ fontSize: 11, opacity: 0.8, fontWeight: 400 }}>ご参加ありがとうございました。ぜひ感想をお聞かせください。</div>
+                  </div>
+                  <span style={{ marginLeft: "auto", fontSize: 18 }}>→</span>
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Flash notification */}
           {flash && (

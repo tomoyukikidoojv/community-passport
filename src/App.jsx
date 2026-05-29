@@ -8,6 +8,7 @@ import AnnouncementsPage from "./pages/AnnouncementsPage";
 import CalendarPage from "./pages/CalendarPage";
 import ContactPage from "./pages/ContactPage";
 import AdminDashboard from "./pages/AdminDashboard";
+import SurveyPage from "./pages/SurveyPage";
 import TutorialModal from "./components/TutorialModal";
 import { C, MTN_SVG_NAV, initialAttendance, initialAnnouncements } from "./constants";
 import { LangProvider, useLang } from "./i18n/LangContext";
@@ -725,6 +726,9 @@ function AppRoutes() {
             } />
             <Route path="/contact" element={
               <ContactPage user={registeredUser} />
+            } />
+            <Route path="/survey/:eventId" element={
+              <SurveyPage user={registeredUser} stamps={myStamps} />
             } />
             <Route path="*" element={<Navigate to="/calendar" replace />} />
           </Routes>

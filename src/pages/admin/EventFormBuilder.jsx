@@ -241,7 +241,7 @@ export default function EventFormBuilder() {
           background: "#8E44AD", borderRadius: 2,
         }} />
         <span style={{ fontSize: 13, fontWeight: 700, color: C.charcoal }}>
-          申し込みフォーム作成
+          アンケート作成
         </span>
       </div>
 
@@ -274,7 +274,7 @@ export default function EventFormBuilder() {
                       {ev.nameShort}
                     </div>
                     <div style={{ fontSize: 10, color: hasForm ? "#1A6B45" : C.gray }}>
-                      {hasForm ? "✓ フォームあり" : "未設定"}
+                      {hasForm ? "✓ アンケートあり" : "未設定"}
                     </div>
                   </div>
                 </button>
@@ -321,7 +321,7 @@ export default function EventFormBuilder() {
                     boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
                   }} />
                 </div>
-                {form.enabled ? "受付中" : "受付停止"}
+                {form.enabled ? "公開中" : "非公開"}
               </label>
             </div>
 
@@ -329,7 +329,7 @@ export default function EventFormBuilder() {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16 }}>
               <div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: C.charcoal, marginBottom: 5 }}>
-                  定員
+                  回答目標数（任意）
                 </div>
                 <input
                   type="number" value={form.capacity}
@@ -340,7 +340,7 @@ export default function EventFormBuilder() {
               </div>
               <div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: C.charcoal, marginBottom: 5 }}>
-                  受付開始日
+                  公開開始日
                 </div>
                 <input
                   type="date" value={form.openDate}
@@ -350,7 +350,7 @@ export default function EventFormBuilder() {
               </div>
               <div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: C.charcoal, marginBottom: 5 }}>
-                  受付締め切り日
+                  公開終了日
                 </div>
                 <input
                   type="date" value={form.closeDate}
@@ -368,7 +368,7 @@ export default function EventFormBuilder() {
               }}>
                 質問項目
                 <span style={{ fontSize: 11, color: C.gray, fontWeight: 400 }}>
-                  — お名前・参加人数はデフォルトで含まれます
+                  — 質問を追加してください
                 </span>
               </div>
 
@@ -431,7 +431,7 @@ export default function EventFormBuilder() {
                   transition: "background 0.3s",
                 }}
               >
-                {saved ? "✓ 保存しました" : "💾 保存する"}
+                {saved ? "✓ 公開しました" : "📢 公開する"}
               </button>
             </div>
           </>
