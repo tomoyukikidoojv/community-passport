@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { C } from "../constants";
 import { useLang } from "../i18n/LangContext";
 import LangDropdown from "../components/LangDropdown";
-import { sendPasswordResetEmail, EMAIL_CONFIGURED } from "../lib/emailService";
+import { sendResetCode, EMAIL_CONFIGURED } from "../lib/emailService";
 import { fetchUserByCredentials, saveUserToCloud, hashPassword } from "../lib/userService";
 
 const USER_LOCK_KEY = "cp_user_lock";
@@ -46,7 +46,12 @@ export default function LoginPage({ savedUser, onLogin, onReset, onPasswordChang
 
   // Reset flow states
   const [resetMode, setResetMode] = useState(false);
-  const [resetStatus, setResetStatus] = useState(null); // null | "mismatch" | "weak" | "saving" | "done" | "err"
+  const [resetStep, setResetStep] = useState("email"); // "email" | "code" | "newpwd" | "done"
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetError, setResetError] = useState(null);
+  const [codeInput, setCodeInput] = useState("");
+  const [verifyCode, setVerifyCode] = useState(null);   // 生成した4桁コード（数字）
+  const [codeExpiry, setCodeExpiry] = useState(null);   // 有効期限
   const [newPwd, setNewPwd] = useState("");
   const [confirmPwd, setConfirmPwd] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -76,34 +81,68 @@ export default function LoginPage({ savedUser, onLogin, onReset, onPasswordChang
     }
   };
 
-  // 新パスワード設定
+  const resetClear = () => {
+    setResetMode(false);
+    setResetStep("email");
+    setResetEmail("");
+    setResetError(null);
+    setCodeInput("");
+    setVerifyCode(null);
+    setCodeExpiry(null);
+    setNewPwd("");
+    setConfirmPwd("");
+  };
+
+  // Step1: メール確認 → 4桁コード送信
+  const handleSendCode = async () => {
+    const email = resetEmail.trim();
+    if (!email) return;
+    if (savedUser.email !== email) { setResetError("メールアドレスが一致しません"); return; }
+
+    setResetError("sending");
+    const code = Math.floor(1000 + Math.random() * 9000); // 1000〜9999
+    const result = await sendResetCode(email, savedUser.name, code);
+    if (result === "sent") {
+      setVerifyCode(code);
+      setCodeExpiry(Date.now() + 10 * 60 * 1000); // 10分有効
+      setResetStep("code");
+      setResetError(null);
+    } else if (result === "not_configured") {
+      setResetError("メール送信が設定されていません");
+    } else {
+      setResetError("送信に失敗しました。もう一度お試しください");
+    }
+  };
+
+  // Step2: コード確認
+  const handleVerifyCode = () => {
+    if (!codeInput) return;
+    if (Date.now() > codeExpiry) { setResetError("コードの有効期限が切れました。最初からやり直してください"); return; }
+    if (Number(codeInput) !== verifyCode) { setResetError("コードが違います"); return; }
+    setResetStep("newpwd");
+    setResetError(null);
+  };
+
+  // Step3: 新パスワード設定
   const handleSetNewPassword = async () => {
     const p1 = newPwd;
     const p2 = confirmPwd;
     if (!p1 || !p2) return;
-    if (p1 !== p2) { setResetStatus("mismatch"); return; }
-    if (p1.length < 4) { setResetStatus("weak"); return; }
+    if (p1 !== p2) { setResetError("パスワードが一致しません"); return; }
+    if (p1.length < 4) { setResetError("パスワードは4文字以上で設定してください"); return; }
 
-    setResetStatus("saving");
+    setResetError("saving");
     try {
       const hashed = await hashPassword(p1);
       const updated = { ...savedUser, password: hashed };
-      // localStorage 更新
       localStorage.setItem("cp_user", JSON.stringify(updated));
-      // Firestore 更新
       await saveUserToCloud(updated);
-      // 親コンポーネントに通知（state更新）
       if (onPasswordChange) onPasswordChange(updated);
-      setResetStatus("done");
+      setResetStep("done");
+      setResetError(null);
     } catch {
-      setResetStatus("err");
+      setResetError("保存に失敗しました。もう一度お試しください");
     }
-  };
-
-  const statusMsg = {
-    mismatch: { color: "#E74C3C", text: "パスワードが一致しません" },
-    weak:     { color: "#E74C3C", text: "パスワードは4文字以上で設定してください" },
-    err:      { color: "#E74C3C", text: t("login.reset_err") },
   };
 
   // No local data (different device) — cross-device login form
@@ -416,8 +455,106 @@ export default function LoginPage({ savedUser, onLogin, onReset, onPasswordChang
                 background: `${C.teal}08`, border: `1px solid ${C.tealLight}`,
                 borderRadius: 12, padding: "16px", textAlign: "left",
               }}>
-                {/* ── 新パスワード設定 ── */}
-                {resetStatus !== "done" && (
+
+                {/* ── Step1: メールアドレス入力 ── */}
+                {resetStep === "email" && (
+                  <>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.teal, marginBottom: 8 }}>
+                      🔑 パスワード再設定
+                    </div>
+                    <div style={{ fontSize: 11, color: C.gray, marginBottom: 10, lineHeight: 1.5 }}>
+                      登録メールアドレスに4桁の確認コードを送ります
+                    </div>
+                    <input
+                      type="email"
+                      value={resetEmail}
+                      onChange={e => { setResetEmail(e.target.value); setResetError(null); }}
+                      placeholder="example@email.com"
+                      style={{
+                        width: "100%", padding: "9px 12px", boxSizing: "border-box",
+                        border: `1.5px solid ${resetError && resetError !== "sending" ? "#E74C3C" : C.lightGray}`,
+                        borderRadius: 8, fontSize: 13, fontFamily: "inherit", outline: "none",
+                        marginBottom: 10,
+                      }}
+                    />
+                    {resetError && resetError !== "sending" && (
+                      <div style={{ fontSize: 12, color: "#E74C3C", marginBottom: 10, padding: "8px 10px", borderRadius: 8, background: "#E74C3C12" }}>
+                        {resetError}
+                      </div>
+                    )}
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button
+                        onClick={handleSendCode}
+                        disabled={resetError === "sending"}
+                        style={{
+                          flex: 1, padding: "8px",
+                          background: resetError === "sending" ? C.lightGray : C.teal,
+                          color: C.white, border: "none", borderRadius: 8,
+                          fontSize: 12, fontWeight: 700,
+                          cursor: resetError === "sending" ? "default" : "pointer",
+                          fontFamily: "inherit",
+                        }}
+                      >
+                        {resetError === "sending" ? "送信中..." : "📧 コードを送る"}
+                      </button>
+                      <button onClick={resetClear} style={{ flex: 1, padding: "8px", background: C.white, color: C.gray, border: `1px solid ${C.lightGray}`, borderRadius: 8, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
+                        {t("common.cancel")}
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                {/* ── Step2: コード確認 ── */}
+                {resetStep === "code" && (
+                  <>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.teal, marginBottom: 8 }}>
+                      📬 確認コードを入力
+                    </div>
+                    <div style={{ fontSize: 11, color: C.gray, marginBottom: 10, lineHeight: 1.5 }}>
+                      メールに届いた4桁の数字を入力してください（10分以内）
+                    </div>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      value={codeInput}
+                      onChange={e => { setCodeInput(e.target.value); setResetError(null); }}
+                      placeholder="1234"
+                      maxLength={4}
+                      style={{
+                        width: "100%", padding: "12px", boxSizing: "border-box",
+                        border: `1.5px solid ${resetError ? "#E74C3C" : C.lightGray}`,
+                        borderRadius: 8, fontSize: 22, fontFamily: "monospace",
+                        outline: "none", textAlign: "center", letterSpacing: 6,
+                        marginBottom: 10,
+                      }}
+                    />
+                    {resetError && (
+                      <div style={{ fontSize: 12, color: "#E74C3C", marginBottom: 10, padding: "8px 10px", borderRadius: 8, background: "#E74C3C12" }}>
+                        {resetError}
+                      </div>
+                    )}
+                    <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                      <button
+                        onClick={handleVerifyCode}
+                        style={{ flex: 1, padding: "8px", background: C.teal, color: C.white, border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
+                      >
+                        確認する →
+                      </button>
+                      <button onClick={resetClear} style={{ flex: 1, padding: "8px", background: C.white, color: C.gray, border: `1px solid ${C.lightGray}`, borderRadius: 8, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
+                        {t("common.cancel")}
+                      </button>
+                    </div>
+                    <button
+                      onClick={() => { setResetStep("email"); setResetError(null); setCodeInput(""); }}
+                      style={{ background: "none", border: "none", cursor: "pointer", color: C.gray, fontSize: 11, fontFamily: "inherit", textDecoration: "underline" }}
+                    >
+                      コードを再送する
+                    </button>
+                  </>
+                )}
+
+                {/* ── Step3: 新パスワード設定 ── */}
+                {resetStep === "newpwd" && (
                   <>
                     <div style={{ fontSize: 13, fontWeight: 700, color: C.teal, marginBottom: 12 }}>
                       🔒 新しいパスワードを設定
@@ -425,62 +562,39 @@ export default function LoginPage({ savedUser, onLogin, onReset, onPasswordChang
                     <input
                       type="password"
                       value={newPwd}
-                      onChange={e => { setNewPwd(e.target.value); setResetStatus(null); }}
+                      onChange={e => { setNewPwd(e.target.value); setResetError(null); }}
                       placeholder="新しいパスワード（4文字以上）"
                       style={{
                         width: "100%", padding: "9px 12px", boxSizing: "border-box",
-                        border: `1.5px solid ${(resetStatus === "mismatch" || resetStatus === "weak") ? "#E74C3C" : C.lightGray}`,
-                        borderRadius: 8, fontSize: 13, fontFamily: "inherit", outline: "none",
-                        marginBottom: 8,
+                        border: `1.5px solid ${resetError ? "#E74C3C" : C.lightGray}`,
+                        borderRadius: 8, fontSize: 13, fontFamily: "inherit", outline: "none", marginBottom: 8,
                       }}
                     />
                     <input
                       type="password"
                       value={confirmPwd}
-                      onChange={e => { setConfirmPwd(e.target.value); setResetStatus(null); }}
+                      onChange={e => { setConfirmPwd(e.target.value); setResetError(null); }}
                       placeholder="もう一度入力"
                       style={{
                         width: "100%", padding: "9px 12px", boxSizing: "border-box",
-                        border: `1.5px solid ${resetStatus === "mismatch" ? "#E74C3C" : C.lightGray}`,
-                        borderRadius: 8, fontSize: 13, fontFamily: "inherit", outline: "none",
-                        marginBottom: 10,
+                        border: `1.5px solid ${resetError === "パスワードが一致しません" ? "#E74C3C" : C.lightGray}`,
+                        borderRadius: 8, fontSize: 13, fontFamily: "inherit", outline: "none", marginBottom: 10,
                       }}
                     />
-                    {/* エラーメッセージ */}
-                    {resetStatus && statusMsg[resetStatus] && (
-                      <div style={{
-                        fontSize: 12, color: statusMsg[resetStatus].color,
-                        marginBottom: 10, lineHeight: 1.5,
-                        padding: "8px 10px", borderRadius: 8,
-                        background: `${statusMsg[resetStatus].color}12`,
-                      }}>
-                        {statusMsg[resetStatus].text}
+                    {resetError && resetError !== "saving" && (
+                      <div style={{ fontSize: 12, color: "#E74C3C", marginBottom: 10, padding: "8px 10px", borderRadius: 8, background: "#E74C3C12" }}>
+                        {resetError}
                       </div>
                     )}
                     <div style={{ display: "flex", gap: 8 }}>
                       <button
                         onClick={handleSetNewPassword}
-                        disabled={resetStatus === "saving"}
-                        style={{
-                          flex: 1, padding: "8px",
-                          background: resetStatus === "saving" ? C.lightGray : C.teal,
-                          color: C.white, border: "none", borderRadius: 8,
-                          fontSize: 12, fontWeight: 700,
-                          cursor: resetStatus === "saving" ? "default" : "pointer",
-                          fontFamily: "inherit",
-                        }}
+                        disabled={resetError === "saving"}
+                        style={{ flex: 1, padding: "8px", background: resetError === "saving" ? C.lightGray : C.teal, color: C.white, border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: resetError === "saving" ? "default" : "pointer", fontFamily: "inherit" }}
                       >
-                        {resetStatus === "saving" ? "保存中..." : "✅ 変更する"}
+                        {resetError === "saving" ? "保存中..." : "✅ 変更する"}
                       </button>
-                      <button
-                        onClick={() => { setResetMode(false); setNewPwd(""); setConfirmPwd(""); setResetStatus(null); }}
-                        style={{
-                          flex: 1, padding: "8px",
-                          background: C.white, color: C.gray,
-                          border: `1px solid ${C.lightGray}`, borderRadius: 8,
-                          fontSize: 12, cursor: "pointer", fontFamily: "inherit",
-                        }}
-                      >
+                      <button onClick={resetClear} style={{ flex: 1, padding: "8px", background: C.white, color: C.gray, border: `1px solid ${C.lightGray}`, borderRadius: 8, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
                         {t("common.cancel")}
                       </button>
                     </div>
@@ -488,23 +602,14 @@ export default function LoginPage({ savedUser, onLogin, onReset, onPasswordChang
                 )}
 
                 {/* ── 完了 ── */}
-                {resetStatus === "done" && (
+                {resetStep === "done" && (
                   <>
-                    <div style={{
-                      textAlign: "center", padding: "8px 0 12px",
-                      fontSize: 13, color: "#27AE60", fontWeight: 700,
-                    }}>
+                    <div style={{ textAlign: "center", padding: "8px 0 12px", fontSize: 13, color: "#27AE60", fontWeight: 700 }}>
                       ✅ パスワードを変更しました
                     </div>
                     <button
-                      onClick={() => { setResetMode(false); setNewPwd(""); setConfirmPwd(""); setResetStatus(null); }}
-                      style={{
-                        width: "100%", padding: "8px",
-                        background: C.teal, color: C.white,
-                        border: "none", borderRadius: 8,
-                        fontSize: 12, fontWeight: 700,
-                        cursor: "pointer", fontFamily: "inherit",
-                      }}
+                      onClick={resetClear}
+                      style={{ width: "100%", padding: "8px", background: C.teal, color: C.white, border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
                     >
                       ログインページへ戻る
                     </button>
@@ -512,15 +617,11 @@ export default function LoginPage({ savedUser, onLogin, onReset, onPasswordChang
                 )}
 
                 {/* Delete account link */}
-                {resetStatus !== "done" && (
+                {resetStep !== "done" && (
                   <div style={{ textAlign: "center", marginTop: 12 }}>
                     <button
-                      onClick={() => { setResetMode(false); setShowDeleteConfirm(true); }}
-                      style={{
-                        background: "none", border: "none", cursor: "pointer",
-                        color: "#E74C3C", fontSize: 11, fontFamily: "inherit",
-                        textDecoration: "underline", opacity: 0.7,
-                      }}
+                      onClick={() => { resetClear(); setShowDeleteConfirm(true); }}
+                      style={{ background: "none", border: "none", cursor: "pointer", color: "#E74C3C", fontSize: 11, fontFamily: "inherit", textDecoration: "underline", opacity: 0.7 }}
                     >
                       {t("login.reset_title")}
                     </button>

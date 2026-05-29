@@ -30,7 +30,7 @@ export const EMAIL_CONFIGURED =
 export const CONTACT_CONFIGURED =
   EMAILJS_CONFIG.serviceId && EMAILJS_CONFIG.contactTemplateId && EMAILJS_CONFIG.publicKey;
 
-/** パスワードリセットメール送信 */
+/** パスワードリセットメール送信（旧: ハッシュ送信 — 非推奨） */
 export async function sendPasswordResetEmail(toEmail, name, password) {
   if (!EMAIL_CONFIGURED) return "not_configured";
   try {
@@ -44,6 +44,24 @@ export async function sendPasswordResetEmail(toEmail, name, password) {
     return "sent";
   } catch (err) {
     console.error("EmailJS reset error:", err);
+    return "error";
+  }
+}
+
+/** 4桁の確認コードをメール送信（パスワードリセット用） */
+export async function sendResetCode(toEmail, name, code) {
+  if (!EMAIL_CONFIGURED) return "not_configured";
+  try {
+    const emailjs = await import("@emailjs/browser");
+    await emailjs.send(
+      EMAILJS_CONFIG.serviceId,
+      EMAILJS_CONFIG.templateId,
+      { to_email: toEmail, name, password: String(code) }, // 既存テンプレートの {{password}} に4桁コードを挿入
+      { publicKey: EMAILJS_CONFIG.publicKey }
+    );
+    return "sent";
+  } catch (err) {
+    console.error("EmailJS reset code error:", err);
     return "error";
   }
 }
