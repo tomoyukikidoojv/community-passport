@@ -524,6 +524,11 @@ function AppRoutes() {
     setLoggedIn(false);
   };
 
+  const handlePasswordChange = (updatedUser) => {
+    setRegisteredUser(updatedUser);
+    // localStorage は LoginPage 内で更新済み
+  };
+
   const [attendance, setAttendance] = useState(() => {
     try {
       const saved = JSON.parse(localStorage.getItem(ATTENDANCE_KEY));
@@ -683,6 +688,7 @@ function AppRoutes() {
             savedUser={registeredUser}
             onLogin={handleLogin}
             onReset={handleReset}
+            onPasswordChange={handlePasswordChange}
             onShowRegister={handleReset}
             onCloudLogin={handleCloudLogin}
           />

@@ -10,7 +10,7 @@ const USER_LOCK_KEY = "cp_user_lock";
 const USER_MAX_FAILS = 5;
 const USER_LOCK_MINS = 10;
 
-export default function LoginPage({ savedUser, onLogin, onReset, onShowRegister, onCloudLogin }) {
+export default function LoginPage({ savedUser, onLogin, onReset, onPasswordChange, onShowRegister, onCloudLogin }) {
   const navigate = useNavigate();
   const { t } = useLang();
   const [password, setPassword] = useState("");
@@ -47,7 +47,9 @@ export default function LoginPage({ savedUser, onLogin, onReset, onShowRegister,
   // Reset flow states
   const [resetMode, setResetMode] = useState(false);
   const [resetInput, setResetInput] = useState("");
-  const [resetStatus, setResetStatus] = useState(null); // null | "sending" | "sent" | "not_found" | "err" | "unconfigured"
+  const [resetStatus, setResetStatus] = useState(null); // null | "checking" | "not_found" | "verified" | "saving" | "done" | "mismatch" | "weak" | "err"
+  const [newPwd, setNewPwd] = useState("");
+  const [confirmPwd, setConfirmPwd] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const submit = async (e) => {
@@ -75,27 +77,46 @@ export default function LoginPage({ savedUser, onLogin, onReset, onShowRegister,
     }
   };
 
-  const handleResetSend = async () => {
+  // Step 1: メールアドレス確認
+  const handleVerifyEmail = () => {
     const input = resetInput.trim();
     if (!input) return;
-
     if (savedUser.email !== input) {
       setResetStatus("not_found");
       return;
     }
+    setResetStatus("verified");
+  };
 
-    setResetStatus("sending");
-    const result = await sendPasswordResetEmail(input, savedUser.name, savedUser.password);
-    if (result === "sent") setResetStatus("sent");
-    else if (result === "not_configured") setResetStatus("unconfigured");
-    else setResetStatus("err");
+  // Step 2: 新パスワード設定
+  const handleSetNewPassword = async () => {
+    const p1 = newPwd;
+    const p2 = confirmPwd;
+    if (!p1 || !p2) return;
+    if (p1 !== p2) { setResetStatus("mismatch"); return; }
+    if (p1.length < 4) { setResetStatus("weak"); return; }
+
+    setResetStatus("saving");
+    try {
+      const hashed = await hashPassword(p1);
+      const updated = { ...savedUser, password: hashed };
+      // localStorage 更新
+      localStorage.setItem("cp_user", JSON.stringify(updated));
+      // Firestore 更新
+      await saveUserToCloud(updated);
+      // 親コンポーネントに通知（state更新）
+      if (onPasswordChange) onPasswordChange(updated);
+      setResetStatus("done");
+    } catch {
+      setResetStatus("err");
+    }
   };
 
   const statusMsg = {
-    sent: { color: "#27AE60", text: t("login.reset_sent_email") },
-    unconfigured: { color: C.teal, text: t("login.reset_sent_unconfigured") },
-    not_found: { color: "#E74C3C", text: t("login.reset_not_found") },
-    err: { color: "#E74C3C", text: t("login.reset_err") },
+    not_found: { color: "#E74C3C", text: "メールアドレスが一致しません" },
+    mismatch:  { color: "#E74C3C", text: "パスワードが一致しません" },
+    weak:      { color: "#E74C3C", text: "パスワードは4文字以上で設定してください" },
+    err:       { color: "#E74C3C", text: t("login.reset_err") },
   };
 
   // No local data (different device) — cross-device login form
@@ -408,75 +429,177 @@ export default function LoginPage({ savedUser, onLogin, onReset, onShowRegister,
                 background: `${C.teal}08`, border: `1px solid ${C.tealLight}`,
                 borderRadius: 12, padding: "16px", textAlign: "left",
               }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: C.teal, marginBottom: 12 }}>
-                  🔑 {t("login.reset_email_label")}
-                </div>
-
-                <input
-                  type="email"
-                  value={resetInput}
-                  onChange={e => { setResetInput(e.target.value); setResetStatus(null); }}
-                  placeholder="example@email.com"
-                  style={{
-                    width: "100%", padding: "9px 12px", boxSizing: "border-box",
-                    border: `1.5px solid ${C.lightGray}`, borderRadius: 8,
-                    fontSize: 13, fontFamily: "inherit", outline: "none",
-                    marginBottom: 10,
-                  }}
-                />
-
-                {/* Status message */}
-                {resetStatus && resetStatus !== "sending" && statusMsg[resetStatus] && (
-                  <div style={{
-                    fontSize: 12, color: statusMsg[resetStatus].color,
-                    marginBottom: 10, lineHeight: 1.5,
-                    padding: "8px 10px", borderRadius: 8,
-                    background: `${statusMsg[resetStatus].color}12`,
-                  }}>
-                    {statusMsg[resetStatus].text}
-                  </div>
+                {/* ── Step 1: メール確認 ── */}
+                {resetStatus !== "verified" && resetStatus !== "saving" && resetStatus !== "done" && (
+                  <>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.teal, marginBottom: 12 }}>
+                      🔑 メールアドレスで本人確認
+                    </div>
+                    <div style={{ fontSize: 11, color: C.gray, marginBottom: 10, lineHeight: 1.5 }}>
+                      登録時のメールアドレスを入力してください
+                    </div>
+                    <input
+                      type="email"
+                      value={resetInput}
+                      onChange={e => { setResetInput(e.target.value); setResetStatus(null); }}
+                      placeholder="example@email.com"
+                      style={{
+                        width: "100%", padding: "9px 12px", boxSizing: "border-box",
+                        border: `1.5px solid ${resetStatus === "not_found" ? "#E74C3C" : C.lightGray}`,
+                        borderRadius: 8,
+                        fontSize: 13, fontFamily: "inherit", outline: "none",
+                        marginBottom: 10,
+                      }}
+                    />
+                    {/* エラーメッセージ */}
+                    {resetStatus && statusMsg[resetStatus] && (
+                      <div style={{
+                        fontSize: 12, color: statusMsg[resetStatus].color,
+                        marginBottom: 10, lineHeight: 1.5,
+                        padding: "8px 10px", borderRadius: 8,
+                        background: `${statusMsg[resetStatus].color}12`,
+                      }}>
+                        {statusMsg[resetStatus].text}
+                      </div>
+                    )}
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button
+                        onClick={handleVerifyEmail}
+                        style={{
+                          flex: 1, padding: "8px",
+                          background: C.teal,
+                          color: C.white, border: "none", borderRadius: 8,
+                          fontSize: 12, fontWeight: 700, cursor: "pointer",
+                          fontFamily: "inherit",
+                        }}
+                      >
+                        次へ →
+                      </button>
+                      <button
+                        onClick={() => { setResetMode(false); setResetInput(""); setResetStatus(null); }}
+                        style={{
+                          flex: 1, padding: "8px",
+                          background: C.white, color: C.gray,
+                          border: `1px solid ${C.lightGray}`, borderRadius: 8,
+                          fontSize: 12, cursor: "pointer", fontFamily: "inherit",
+                        }}
+                      >
+                        {t("common.cancel")}
+                      </button>
+                    </div>
+                  </>
                 )}
 
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button
-                    onClick={handleResetSend}
-                    disabled={resetStatus === "sending" || resetStatus === "sent"}
-                    style={{
-                      flex: 1, padding: "8px",
-                      background: (resetStatus === "sending" || resetStatus === "sent") ? C.lightGray : C.teal,
-                      color: C.white, border: "none", borderRadius: 8,
-                      fontSize: 12, fontWeight: 700, cursor: "pointer",
-                      fontFamily: "inherit",
-                    }}
-                  >
-                    {resetStatus === "sending" ? "..." : t("login.reset_send")}
-                  </button>
-                  <button
-                    onClick={() => { setResetMode(false); setResetInput(""); setResetStatus(null); }}
-                    style={{
-                      flex: 1, padding: "8px",
-                      background: C.white, color: C.gray,
-                      border: `1px solid ${C.lightGray}`, borderRadius: 8,
-                      fontSize: 12, cursor: "pointer", fontFamily: "inherit",
-                    }}
-                  >
-                    {t("common.cancel")}
-                  </button>
-                </div>
+                {/* ── Step 2: 新パスワード設定 ── */}
+                {(resetStatus === "verified" || resetStatus === "mismatch" || resetStatus === "weak" || resetStatus === "saving") && (
+                  <>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.teal, marginBottom: 12 }}>
+                      🔒 新しいパスワードを設定
+                    </div>
+                    <input
+                      type="password"
+                      value={newPwd}
+                      onChange={e => { setNewPwd(e.target.value); setResetStatus("verified"); }}
+                      placeholder="新しいパスワード（4文字以上）"
+                      style={{
+                        width: "100%", padding: "9px 12px", boxSizing: "border-box",
+                        border: `1.5px solid ${(resetStatus === "mismatch" || resetStatus === "weak") ? "#E74C3C" : C.lightGray}`,
+                        borderRadius: 8, fontSize: 13, fontFamily: "inherit", outline: "none",
+                        marginBottom: 8,
+                      }}
+                    />
+                    <input
+                      type="password"
+                      value={confirmPwd}
+                      onChange={e => { setConfirmPwd(e.target.value); setResetStatus("verified"); }}
+                      placeholder="もう一度入力"
+                      style={{
+                        width: "100%", padding: "9px 12px", boxSizing: "border-box",
+                        border: `1.5px solid ${resetStatus === "mismatch" ? "#E74C3C" : C.lightGray}`,
+                        borderRadius: 8, fontSize: 13, fontFamily: "inherit", outline: "none",
+                        marginBottom: 10,
+                      }}
+                    />
+                    {/* エラーメッセージ */}
+                    {(resetStatus === "mismatch" || resetStatus === "weak") && statusMsg[resetStatus] && (
+                      <div style={{
+                        fontSize: 12, color: statusMsg[resetStatus].color,
+                        marginBottom: 10, lineHeight: 1.5,
+                        padding: "8px 10px", borderRadius: 8,
+                        background: `${statusMsg[resetStatus].color}12`,
+                      }}>
+                        {statusMsg[resetStatus].text}
+                      </div>
+                    )}
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button
+                        onClick={handleSetNewPassword}
+                        disabled={resetStatus === "saving"}
+                        style={{
+                          flex: 1, padding: "8px",
+                          background: resetStatus === "saving" ? C.lightGray : C.teal,
+                          color: C.white, border: "none", borderRadius: 8,
+                          fontSize: 12, fontWeight: 700,
+                          cursor: resetStatus === "saving" ? "default" : "pointer",
+                          fontFamily: "inherit",
+                        }}
+                      >
+                        {resetStatus === "saving" ? "保存中..." : "✅ 変更する"}
+                      </button>
+                      <button
+                        onClick={() => { setResetMode(false); setResetInput(""); setNewPwd(""); setConfirmPwd(""); setResetStatus(null); }}
+                        style={{
+                          flex: 1, padding: "8px",
+                          background: C.white, color: C.gray,
+                          border: `1px solid ${C.lightGray}`, borderRadius: 8,
+                          fontSize: 12, cursor: "pointer", fontFamily: "inherit",
+                        }}
+                      >
+                        {t("common.cancel")}
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                {/* ── 完了 ── */}
+                {resetStatus === "done" && (
+                  <>
+                    <div style={{
+                      textAlign: "center", padding: "8px 0 12px",
+                      fontSize: 13, color: "#27AE60", fontWeight: 700,
+                    }}>
+                      ✅ パスワードを変更しました
+                    </div>
+                    <button
+                      onClick={() => { setResetMode(false); setResetInput(""); setNewPwd(""); setConfirmPwd(""); setResetStatus(null); }}
+                      style={{
+                        width: "100%", padding: "8px",
+                        background: C.teal, color: C.white,
+                        border: "none", borderRadius: 8,
+                        fontSize: 12, fontWeight: 700,
+                        cursor: "pointer", fontFamily: "inherit",
+                      }}
+                    >
+                      ログインページへ戻る
+                    </button>
+                  </>
+                )}
 
                 {/* Delete account link */}
-                <div style={{ textAlign: "center", marginTop: 12 }}>
-                  <button
-                    onClick={() => { setResetMode(false); setShowDeleteConfirm(true); }}
-                    style={{
-                      background: "none", border: "none", cursor: "pointer",
-                      color: "#E74C3C", fontSize: 11, fontFamily: "inherit",
-                      textDecoration: "underline", opacity: 0.7,
-                    }}
-                  >
-                    {t("login.reset_title")}
-                  </button>
-                </div>
+                {resetStatus !== "done" && (
+                  <div style={{ textAlign: "center", marginTop: 12 }}>
+                    <button
+                      onClick={() => { setResetMode(false); setShowDeleteConfirm(true); }}
+                      style={{
+                        background: "none", border: "none", cursor: "pointer",
+                        color: "#E74C3C", fontSize: 11, fontFamily: "inherit",
+                        textDecoration: "underline", opacity: 0.7,
+                      }}
+                    >
+                      {t("login.reset_title")}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
