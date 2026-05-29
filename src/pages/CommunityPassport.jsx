@@ -535,9 +535,12 @@ export default function CommunityPassport({ stamps, onManualStamp, user, onPhoto
           {/* アンケートセクション：スタンプ持ち & 公開中のイベントのみ */}
           {(() => {
             const now = new Date();
+            // stamps の中身を文字列Setに正規化（型不一致を防ぐ）
+            const stampIds = new Set([...stamps].map(s => String(s)));
             const activeForUser = events.filter(ev => {
-              if (!stamps.has(ev.id)) return false;
-              const f = forms[ev.id];
+              if (!stampIds.has(String(ev.id))) return false;
+              // forms キーは文字列・数値どちらでも対応
+              const f = forms[ev.id] || forms[String(ev.id)];
               if (!f || !f.enabled) return false;
               if (f.openDate && new Date(f.openDate) > now) return false;
               if (f.closeDate && new Date(f.closeDate + "T23:59:59") < now) return false;
