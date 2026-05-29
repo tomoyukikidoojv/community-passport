@@ -937,12 +937,16 @@ function QrScanModal({ onStamp, onClose }) {
   const [selectedEventId, setSelectedEventId] = useState(events[0]?.id);
   const [done, setDone] = useState(false);
   const [error, setError] = useState(null);
+  const [scanKey, setScanKey] = useState(0); // インクリメントでスキャナーを再初期化
   const scannerRef = useRef(null);
   const scannedRef = useRef(false);
 
+  // scanKey が変わるたびにスキャナーを新規作成（リセット対応）
   useEffect(() => {
+    scannedRef.current = false;
     const qr = new Html5Qrcode("qr-reader-admin");
     scannerRef.current = qr;
+
     qr.start(
       { facingMode: "environment" },
       { fps: 10, qrbox: { width: 220, height: 220 } },
@@ -959,12 +963,12 @@ function QrScanModal({ onStamp, onClose }) {
         }
       },
       () => {}
-    ).catch(err => setError("カメラへのアクセスが許可されていません"));
+    ).catch(() => setError("カメラへのアクセスが許可されていません"));
 
     return () => {
       qr.stop().catch(() => {});
     };
-  }, []);
+  }, [scanKey]); // scanKey が変わるたびに再実行
 
   const handleRecord = () => {
     if (!scanned || !selectedEventId) return;
@@ -972,28 +976,15 @@ function QrScanModal({ onStamp, onClose }) {
     setDone(true);
   };
 
-  const handleReset = () => {
-    setScanned(null);
-    setDone(false);
-    scannedRef.current = false;
+  const handleReset = async () => {
+    // 既存スキャナーを停止してから状態リセット → scanKey++で再初期化
     const qr = scannerRef.current;
     if (qr) {
-      qr.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 220, height: 220 } },
-        (text) => {
-          if (scannedRef.current) return;
-          try {
-            const data = JSON.parse(decodeURIComponent(escape(atob(text))));
-            if (!data.id || !data.name) return;
-            scannedRef.current = true;
-            setScanned(data);
-            qr.stop().catch(() => {});
-          } catch {}
-        },
-        () => {}
-      ).catch(() => {});
+      try { await qr.stop(); } catch {}
     }
+    setScanned(null);
+    setDone(false);
+    setScanKey(k => k + 1); // useEffect を再実行してカメラを再起動
   };
 
   const ev = events.find(e => e.id === selectedEventId);
@@ -1010,12 +1001,15 @@ function QrScanModal({ onStamp, onClose }) {
         background: C.white, borderRadius: 20,
         width: "100%", maxWidth: 420, overflow: "hidden",
         boxShadow: "0 24px 80px rgba(0,0,0,0.5)",
+        maxHeight: "92vh",
+        display: "flex", flexDirection: "column",
       }}>
         {/* Header */}
         <div style={{
           background: `linear-gradient(90deg, ${C.teal}, ${C.tealMid})`,
           padding: "14px 20px",
           display: "flex", alignItems: "center", justifyContent: "space-between",
+          flexShrink: 0,
         }}>
           <div>
             <div style={{ color: C.white, fontWeight: 800, fontSize: 14 }}>📷 QRコードスキャン</div>
@@ -1030,7 +1024,7 @@ function QrScanModal({ onStamp, onClose }) {
           }}>✕ 閉じる</button>
         </div>
 
-        <div style={{ padding: "20px" }}>
+        <div style={{ padding: "20px", overflowY: "auto", flex: 1 }}>
           {error ? (
             <div style={{
               background: "#FEF2F2", border: "1px solid #FECACA",
