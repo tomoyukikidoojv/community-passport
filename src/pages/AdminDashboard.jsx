@@ -273,6 +273,7 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
   const [cloudAttendance, setCloudAttendance] = useState({});
   const [loadingMembers, setLoadingMembers] = useState(true);
   const [membersError, setMembersError] = useState(false);
+  const [stampModalUser, setStampModalUser] = useState(null);
   const events = useEvents();
   const navigate = useNavigate();
 
@@ -309,6 +310,14 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
   });
 
   const toggleAttendance = (userId, eventId) => {
+    // Fix: optimistically update cloudAttendance so mergedAttendance reflects the change
+    setCloudAttendance(prev => {
+      const key = Object.keys(prev).find(k => Number(k) === userId) || userId;
+      const cur = new Set(prev[key] || []);
+      if (cur.has(eventId)) cur.delete(eventId);
+      else cur.add(eventId);
+      return { ...prev, [key]: cur };
+    });
     onStamp(userId, eventId);
     setFlash({ userId, eventId });
     setTimeout(() => setFlash(null), 1500);
@@ -326,6 +335,15 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
       <QrScanModal
         onStamp={onStamp}
         onClose={() => setShowQrScanner(false)}
+      />
+    )}
+    {stampModalUser && (
+      <UserStampModal
+        user={stampModalUser}
+        events={events}
+        userStamps={mergedAttendance[stampModalUser.id] || new Set()}
+        onToggle={toggleAttendance}
+        onClose={() => setStampModalUser(null)}
       />
     )}
     <div style={{
@@ -532,7 +550,10 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
 
                   return (
                     <tr key={user.id}>
-                      <td style={{ padding: "10px 16px", background: rowBg, borderBottom: `1px solid ${C.lightGray}` }}>
+                      <td
+                        onClick={() => setStampModalUser(user)}
+                        style={{ padding: "10px 16px", background: rowBg, borderBottom: `1px solid ${C.lightGray}`, cursor: "pointer" }}
+                      >
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           <div style={{
                             width: 34, height: 34, borderRadius: "50%",
@@ -557,6 +578,7 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
                               borderRadius: 20, padding: "1px 7px",
                               fontSize: 9, fontWeight: 700, marginTop: 2,
                             }}>{level.label}</div>
+                            <div style={{ fontSize: 9, color: C.teal, marginTop: 2, opacity: 0.7 }}>📋 タップして管理</div>
                           </div>
                         </div>
                       </td>
@@ -811,6 +833,101 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
       </div>
     </div>
     </>
+  );
+}
+
+function UserStampModal({ user, events, userStamps, onToggle, onClose }) {
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 1000,
+      background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      padding: 16,
+      fontFamily: "'Segoe UI','Hiragino Sans','Meiryo',sans-serif",
+    }}>
+      <div style={{
+        background: C.white, borderRadius: 20,
+        width: "100%", maxWidth: 440, overflow: "hidden",
+        boxShadow: "0 24px 80px rgba(0,0,0,0.5)",
+        maxHeight: "90vh", display: "flex", flexDirection: "column",
+      }}>
+        {/* Header */}
+        <div style={{
+          background: `linear-gradient(90deg, ${C.teal}, ${C.tealMid})`,
+          padding: "14px 20px",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          flexShrink: 0,
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{
+              width: 44, height: 44, borderRadius: "50%",
+              background: "rgba(255,255,255,0.2)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 24, overflow: "hidden",
+            }}>
+              {user.photo
+                ? <img src={user.photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                : user.flag}
+            </div>
+            <div>
+              <div style={{ color: C.white, fontWeight: 800, fontSize: 15 }}>{user.name}</div>
+              <div style={{ color: "rgba(255,255,255,0.65)", fontSize: 11 }}>No. {user.no} · スタンプ {userStamps.size} / {events.length}</div>
+            </div>
+          </div>
+          <button onClick={onClose} style={{
+            background: "rgba(255,255,255,0.15)", border: "none",
+            color: C.white, borderRadius: 8, padding: "6px 12px",
+            cursor: "pointer", fontSize: 13, fontFamily: "inherit",
+          }}>✕</button>
+        </div>
+
+        {/* Event list */}
+        <div style={{ overflowY: "auto", padding: "16px" }}>
+          <div style={{ fontSize: 12, color: C.gray, marginBottom: 12, textAlign: "center" }}>
+            イベントをタップしてスタンプを追加・削除
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {events.map(ev => {
+              const stamped = userStamps.has(ev.id);
+              return (
+                <button
+                  key={ev.id}
+                  onClick={() => onToggle(user.id, ev.id)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 12,
+                    padding: "12px 16px", borderRadius: 12, border: "none",
+                    background: stamped ? `${ev.color}15` : C.offWhite,
+                    cursor: "pointer", fontFamily: "inherit",
+                    borderLeft: `4px solid ${stamped ? ev.color : C.lightGray}`,
+                    transition: "all 0.15s",
+                    textAlign: "left",
+                  }}
+                >
+                  <span style={{ fontSize: 24 }}>{ev.emoji}</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: stamped ? ev.color : C.charcoal }}>
+                      {ev.nameShort}
+                    </div>
+                    <div style={{ fontSize: 10, color: C.gray, marginTop: 2 }}>{ev.fullDate}</div>
+                  </div>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    background: stamped ? ev.color : C.white,
+                    border: `2px solid ${stamped ? ev.color : C.lightGray}`,
+                    color: stamped ? C.white : C.lightGray,
+                    fontSize: 16, fontWeight: 900,
+                    transition: "all 0.15s",
+                  }}>
+                    {stamped ? "✓" : "+"}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
