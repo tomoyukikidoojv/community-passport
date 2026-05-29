@@ -46,8 +46,7 @@ export default function LoginPage({ savedUser, onLogin, onReset, onPasswordChang
 
   // Reset flow states
   const [resetMode, setResetMode] = useState(false);
-  const [resetInput, setResetInput] = useState("");
-  const [resetStatus, setResetStatus] = useState(null); // null | "checking" | "not_found" | "verified" | "saving" | "done" | "mismatch" | "weak" | "err"
+  const [resetStatus, setResetStatus] = useState(null); // null | "mismatch" | "weak" | "saving" | "done" | "err"
   const [newPwd, setNewPwd] = useState("");
   const [confirmPwd, setConfirmPwd] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -77,18 +76,7 @@ export default function LoginPage({ savedUser, onLogin, onReset, onPasswordChang
     }
   };
 
-  // Step 1: メールアドレス確認
-  const handleVerifyEmail = () => {
-    const input = resetInput.trim();
-    if (!input) return;
-    if (savedUser.email !== input) {
-      setResetStatus("not_found");
-      return;
-    }
-    setResetStatus("verified");
-  };
-
-  // Step 2: 新パスワード設定
+  // 新パスワード設定
   const handleSetNewPassword = async () => {
     const p1 = newPwd;
     const p2 = confirmPwd;
@@ -113,10 +101,9 @@ export default function LoginPage({ savedUser, onLogin, onReset, onPasswordChang
   };
 
   const statusMsg = {
-    not_found: { color: "#E74C3C", text: "メールアドレスが一致しません" },
-    mismatch:  { color: "#E74C3C", text: "パスワードが一致しません" },
-    weak:      { color: "#E74C3C", text: "パスワードは4文字以上で設定してください" },
-    err:       { color: "#E74C3C", text: t("login.reset_err") },
+    mismatch: { color: "#E74C3C", text: "パスワードが一致しません" },
+    weak:     { color: "#E74C3C", text: "パスワードは4文字以上で設定してください" },
+    err:      { color: "#E74C3C", text: t("login.reset_err") },
   };
 
   // No local data (different device) — cross-device login form
@@ -429,69 +416,8 @@ export default function LoginPage({ savedUser, onLogin, onReset, onPasswordChang
                 background: `${C.teal}08`, border: `1px solid ${C.tealLight}`,
                 borderRadius: 12, padding: "16px", textAlign: "left",
               }}>
-                {/* ── Step 1: メール確認 ── */}
-                {resetStatus !== "verified" && resetStatus !== "saving" && resetStatus !== "done" && (
-                  <>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: C.teal, marginBottom: 12 }}>
-                      🔑 メールアドレスで本人確認
-                    </div>
-                    <div style={{ fontSize: 11, color: C.gray, marginBottom: 10, lineHeight: 1.5 }}>
-                      登録時のメールアドレスを入力してください
-                    </div>
-                    <input
-                      type="email"
-                      value={resetInput}
-                      onChange={e => { setResetInput(e.target.value); setResetStatus(null); }}
-                      placeholder="example@email.com"
-                      style={{
-                        width: "100%", padding: "9px 12px", boxSizing: "border-box",
-                        border: `1.5px solid ${resetStatus === "not_found" ? "#E74C3C" : C.lightGray}`,
-                        borderRadius: 8,
-                        fontSize: 13, fontFamily: "inherit", outline: "none",
-                        marginBottom: 10,
-                      }}
-                    />
-                    {/* エラーメッセージ */}
-                    {resetStatus && statusMsg[resetStatus] && (
-                      <div style={{
-                        fontSize: 12, color: statusMsg[resetStatus].color,
-                        marginBottom: 10, lineHeight: 1.5,
-                        padding: "8px 10px", borderRadius: 8,
-                        background: `${statusMsg[resetStatus].color}12`,
-                      }}>
-                        {statusMsg[resetStatus].text}
-                      </div>
-                    )}
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <button
-                        onClick={handleVerifyEmail}
-                        style={{
-                          flex: 1, padding: "8px",
-                          background: C.teal,
-                          color: C.white, border: "none", borderRadius: 8,
-                          fontSize: 12, fontWeight: 700, cursor: "pointer",
-                          fontFamily: "inherit",
-                        }}
-                      >
-                        次へ →
-                      </button>
-                      <button
-                        onClick={() => { setResetMode(false); setResetInput(""); setResetStatus(null); }}
-                        style={{
-                          flex: 1, padding: "8px",
-                          background: C.white, color: C.gray,
-                          border: `1px solid ${C.lightGray}`, borderRadius: 8,
-                          fontSize: 12, cursor: "pointer", fontFamily: "inherit",
-                        }}
-                      >
-                        {t("common.cancel")}
-                      </button>
-                    </div>
-                  </>
-                )}
-
-                {/* ── Step 2: 新パスワード設定 ── */}
-                {(resetStatus === "verified" || resetStatus === "mismatch" || resetStatus === "weak" || resetStatus === "saving") && (
+                {/* ── 新パスワード設定 ── */}
+                {resetStatus !== "done" && (
                   <>
                     <div style={{ fontSize: 13, fontWeight: 700, color: C.teal, marginBottom: 12 }}>
                       🔒 新しいパスワードを設定
@@ -499,7 +425,7 @@ export default function LoginPage({ savedUser, onLogin, onReset, onPasswordChang
                     <input
                       type="password"
                       value={newPwd}
-                      onChange={e => { setNewPwd(e.target.value); setResetStatus("verified"); }}
+                      onChange={e => { setNewPwd(e.target.value); setResetStatus(null); }}
                       placeholder="新しいパスワード（4文字以上）"
                       style={{
                         width: "100%", padding: "9px 12px", boxSizing: "border-box",
@@ -511,7 +437,7 @@ export default function LoginPage({ savedUser, onLogin, onReset, onPasswordChang
                     <input
                       type="password"
                       value={confirmPwd}
-                      onChange={e => { setConfirmPwd(e.target.value); setResetStatus("verified"); }}
+                      onChange={e => { setConfirmPwd(e.target.value); setResetStatus(null); }}
                       placeholder="もう一度入力"
                       style={{
                         width: "100%", padding: "9px 12px", boxSizing: "border-box",
@@ -521,7 +447,7 @@ export default function LoginPage({ savedUser, onLogin, onReset, onPasswordChang
                       }}
                     />
                     {/* エラーメッセージ */}
-                    {(resetStatus === "mismatch" || resetStatus === "weak") && statusMsg[resetStatus] && (
+                    {resetStatus && statusMsg[resetStatus] && (
                       <div style={{
                         fontSize: 12, color: statusMsg[resetStatus].color,
                         marginBottom: 10, lineHeight: 1.5,
@@ -547,7 +473,7 @@ export default function LoginPage({ savedUser, onLogin, onReset, onPasswordChang
                         {resetStatus === "saving" ? "保存中..." : "✅ 変更する"}
                       </button>
                       <button
-                        onClick={() => { setResetMode(false); setResetInput(""); setNewPwd(""); setConfirmPwd(""); setResetStatus(null); }}
+                        onClick={() => { setResetMode(false); setNewPwd(""); setConfirmPwd(""); setResetStatus(null); }}
                         style={{
                           flex: 1, padding: "8px",
                           background: C.white, color: C.gray,
@@ -571,7 +497,7 @@ export default function LoginPage({ savedUser, onLogin, onReset, onPasswordChang
                       ✅ パスワードを変更しました
                     </div>
                     <button
-                      onClick={() => { setResetMode(false); setResetInput(""); setNewPwd(""); setConfirmPwd(""); setResetStatus(null); }}
+                      onClick={() => { setResetMode(false); setNewPwd(""); setConfirmPwd(""); setResetStatus(null); }}
                       style={{
                         width: "100%", padding: "8px",
                         background: C.teal, color: C.white,
