@@ -942,9 +942,11 @@ function QrScanModal({ onStamp, onClose }) {
   const scannedRef = useRef(false);
 
   // scanKey が変わるたびにスキャナーを新規作成（リセット対応）
+  // divIdをscanKeyで変えることで前回のDOM残骸との衝突を防ぐ
   useEffect(() => {
     scannedRef.current = false;
-    const qr = new Html5Qrcode("qr-reader-admin");
+    const divId = `qr-reader-admin-${scanKey}`;
+    const qr = new Html5Qrcode(divId);
     scannerRef.current = qr;
 
     qr.start(
@@ -966,7 +968,7 @@ function QrScanModal({ onStamp, onClose }) {
     ).catch(() => setError("カメラへのアクセスが許可されていません"));
 
     return () => {
-      qr.stop().catch(() => {});
+      qr.stop().then(() => { try { qr.clear(); } catch {} }).catch(() => {});
     };
   }, [scanKey]); // scanKey が変わるたびに再実行
 
@@ -977,14 +979,15 @@ function QrScanModal({ onStamp, onClose }) {
   };
 
   const handleReset = async () => {
-    // 既存スキャナーを停止してから状態リセット → scanKey++で再初期化
+    // 既存スキャナーを停止・クリアしてからscanKey++で再初期化
     const qr = scannerRef.current;
     if (qr) {
       try { await qr.stop(); } catch {}
+      try { qr.clear(); } catch {} // DOM残骸を削除
     }
     setScanned(null);
     setDone(false);
-    setScanKey(k => k + 1); // useEffect を再実行してカメラを再起動
+    setScanKey(k => k + 1); // divIdが変わりuseEffectが再実行される
   };
 
   const ev = events.find(e => e.id === selectedEventId);
@@ -1042,7 +1045,7 @@ function QrScanModal({ onStamp, onClose }) {
                 marginBottom: 12,
                 background: "#000",
               }}>
-                <div id="qr-reader-admin" style={{ width: "100%" }} />
+                <div id={`qr-reader-admin-${scanKey}`} style={{ width: "100%" }} />
               </div>
               <div style={{
                 textAlign: "center", fontSize: 12, color: C.gray,
