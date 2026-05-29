@@ -160,25 +160,20 @@ function PhotoCropModal({ src, onConfirm, onCancel }) {
   );
 }
 
-function Stamp({ event, stamped, onClick }) {
-  const [hover, setHover] = useState(false);
+function Stamp({ event, stamped }) {
   return (
     <div
-      onClick={onClick}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
       style={{
         position: "relative",
         borderRadius: 14,
         border: `2px solid ${stamped ? event.color : C.lightGray}`,
         background: stamped ? `${event.color}12` : C.white,
         padding: "18px 10px 12px",
-        cursor: "pointer",
+        cursor: "default",
         transition: "all 0.2s",
-        transform: hover && !stamped ? "translateY(-2px)" : "none",
         boxShadow: stamped
           ? `0 4px 14px ${event.color}30`
-          : hover ? "0 4px 12px rgba(0,0,0,0.1)" : "0 1px 4px rgba(0,0,0,0.06)",
+          : "0 1px 4px rgba(0,0,0,0.06)",
         textAlign: "center",
         userSelect: "none",
         minHeight: 130,
@@ -516,9 +511,6 @@ export default function CommunityPassport({ stamps, onManualStamp, user, onPhoto
                 background: C.teal, borderRadius: 2,
               }} />
               {t("passport.stamp_title")}
-              <span style={{ fontSize: 11, color: C.gray, fontWeight: 400 }}>
-                {t("passport.stamp_hint")}
-              </span>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
               {events.map(ev => (
@@ -526,7 +518,7 @@ export default function CommunityPassport({ stamps, onManualStamp, user, onPhoto
                   key={ev.id}
                   event={ev}
                   stamped={stamps.has(ev.id)}
-                  onClick={() => toggle(ev.id)}
+                  onClick={null}
                 />
               ))}
             </div>
