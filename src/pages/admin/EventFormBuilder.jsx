@@ -179,13 +179,20 @@ export default function EventFormBuilder() {
     questions: [],
   }) : null;
 
-  const updateForm = (patch) => {
+  const updateForm = (patch, autoSave = false) => {
     if (!selectedEventId) return;
-    setForms(prev => ({
-      ...prev,
-      [selectedEventId]: { ...(prev[selectedEventId] || {}), ...patch },
-    }));
-    setSaved(false);
+    setForms(prev => {
+      const updated = {
+        ...prev,
+        [selectedEventId]: { ...(prev[selectedEventId] || {}), ...patch },
+      };
+      if (autoSave) {
+        // トグル変更など即時保存が必要な場合はここで保存
+        saveForm(selectedEventId, updated[selectedEventId]);
+      }
+      return updated;
+    });
+    if (!autoSave) setSaved(false);
   };
 
   const addQuestion = (type) => {
@@ -304,7 +311,7 @@ export default function EventFormBuilder() {
                 color: form.enabled ? "#1A6B45" : C.gray,
               }}>
                 <div
-                  onClick={() => updateForm({ enabled: !form.enabled })}
+                  onClick={() => updateForm({ enabled: !form.enabled }, true)}
                   style={{
                     width: 44, height: 24, borderRadius: 12,
                     background: form.enabled ? "#1A6B45" : C.lightGray,
