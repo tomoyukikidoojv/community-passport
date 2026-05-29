@@ -934,40 +934,42 @@ function UserStampModal({ user, events, userStamps, onToggle, onClose }) {
 // カメラスキャナーを独立コンポーネントに分離
 // key プロップを変えるだけで完全にアンマウント→再マウントされカメラがリセットされる
 function QrCamera({ onScanned, onError }) {
-  const idRef = useRef(`qr-cam-${Date.now()}`);
+  // インスタンスごとにユニークなIDを生成（DOM衝突防止）
+  const id = useRef(`qr-cam-${Date.now()}`).current;
+  // コールバックをrefで保持（stale closure防止）
+  const cbRef = useRef(onScanned);
+  cbRef.current = onScanned;
 
   useEffect(() => {
-    const id = idRef.current;
     const qr = new Html5Qrcode(id);
-    let stopped = false;
+    let fired = false;
 
     qr.start(
       { facingMode: "environment" },
       { fps: 10, qrbox: { width: 220, height: 220 } },
       (text) => {
-        if (stopped) return;
+        if (fired) return;
         try {
           const data = JSON.parse(decodeURIComponent(escape(atob(text))));
           if (!data.id || !data.name) return;
-          stopped = true;
-          qr.stop().catch(() => {});
-          onScanned(data);
+          fired = true;
+          // ここではstopしない → cleanupに任せる（二重stop競合を防ぐ）
+          cbRef.current(data);
         } catch {}
       },
       () => {}
     ).catch(() => onError("カメラへのアクセスが許可されていません"));
 
     return () => {
-      stopped = true;
-      qr.stop()
-        .then(() => { try { qr.clear(); } catch {} })
-        .catch(() => {});
+      fired = true;
+      // stopのみ、clearは呼ばない（ReactがDOM管理するため不要・呼ぶと破壊される）
+      qr.stop().catch(() => {});
     };
-  }, []); // マウント時1回だけ
+  }, []); // マウント時1回だけ実行
 
   return (
     <div style={{ borderRadius: 12, overflow: "hidden", border: `2px solid ${C.teal}`, marginBottom: 12, background: "#000" }}>
-      <div id={idRef.current} style={{ width: "100%" }} />
+      <div id={id} style={{ width: "100%" }} />
     </div>
   );
 }
