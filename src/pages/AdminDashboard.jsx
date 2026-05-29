@@ -931,46 +931,54 @@ function UserStampModal({ user, events, userStamps, onToggle, onClose }) {
   );
 }
 
+// カメラスキャナーを独立コンポーネントに分離
+// key プロップを変えるだけで完全にアンマウント→再マウントされカメラがリセットされる
+function QrCamera({ onScanned, onError }) {
+  const idRef = useRef(`qr-cam-${Date.now()}`);
+
+  useEffect(() => {
+    const id = idRef.current;
+    const qr = new Html5Qrcode(id);
+    let stopped = false;
+
+    qr.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 220, height: 220 } },
+      (text) => {
+        if (stopped) return;
+        try {
+          const data = JSON.parse(decodeURIComponent(escape(atob(text))));
+          if (!data.id || !data.name) return;
+          stopped = true;
+          qr.stop().catch(() => {});
+          onScanned(data);
+        } catch {}
+      },
+      () => {}
+    ).catch(() => onError("カメラへのアクセスが許可されていません"));
+
+    return () => {
+      stopped = true;
+      qr.stop()
+        .then(() => { try { qr.clear(); } catch {} })
+        .catch(() => {});
+    };
+  }, []); // マウント時1回だけ
+
+  return (
+    <div style={{ borderRadius: 12, overflow: "hidden", border: `2px solid ${C.teal}`, marginBottom: 12, background: "#000" }}>
+      <div id={idRef.current} style={{ width: "100%" }} />
+    </div>
+  );
+}
+
 function QrScanModal({ onStamp, onClose }) {
   const events = useEvents();
   const [scanned, setScanned] = useState(null);
   const [selectedEventId, setSelectedEventId] = useState(events[0]?.id);
   const [done, setDone] = useState(false);
   const [error, setError] = useState(null);
-  const [scanKey, setScanKey] = useState(0); // インクリメントでスキャナーを再初期化
-  const scannerRef = useRef(null);
-  const scannedRef = useRef(false);
-
-  // scanKey が変わるたびにスキャナーを新規作成（リセット対応）
-  // divIdをscanKeyで変えることで前回のDOM残骸との衝突を防ぐ
-  useEffect(() => {
-    scannedRef.current = false;
-    const divId = `qr-reader-admin-${scanKey}`;
-    const qr = new Html5Qrcode(divId);
-    scannerRef.current = qr;
-
-    qr.start(
-      { facingMode: "environment" },
-      { fps: 10, qrbox: { width: 220, height: 220 } },
-      (text) => {
-        if (scannedRef.current) return;
-        try {
-          const data = JSON.parse(decodeURIComponent(escape(atob(text))));
-          if (!data.id || !data.name) return;
-          scannedRef.current = true;
-          setScanned(data);
-          qr.stop().catch(() => {});
-        } catch {
-          // not our QR, ignore
-        }
-      },
-      () => {}
-    ).catch(() => setError("カメラへのアクセスが許可されていません"));
-
-    return () => {
-      qr.stop().then(() => { try { qr.clear(); } catch {} }).catch(() => {});
-    };
-  }, [scanKey]); // scanKey が変わるたびに再実行
+  const [camKey, setCamKey] = useState(0); // インクリメントでQrCameraを再マウント
 
   const handleRecord = () => {
     if (!scanned || !selectedEventId) return;
@@ -978,16 +986,11 @@ function QrScanModal({ onStamp, onClose }) {
     setDone(true);
   };
 
-  const handleReset = async () => {
-    // 既存スキャナーを停止・クリアしてからscanKey++で再初期化
-    const qr = scannerRef.current;
-    if (qr) {
-      try { await qr.stop(); } catch {}
-      try { qr.clear(); } catch {} // DOM残骸を削除
-    }
+  // 次の人：状態をリセットしcamKeyを上げてQrCameraを再マウント
+  const handleReset = () => {
     setScanned(null);
     setDone(false);
-    setScanKey(k => k + 1); // divIdが変わりuseEffectが再実行される
+    setCamKey(k => k + 1);
   };
 
   const ev = events.find(e => e.id === selectedEventId);
@@ -1038,19 +1041,12 @@ function QrScanModal({ onStamp, onClose }) {
             </div>
           ) : !scanned ? (
             <>
-              {/* Camera view */}
-              <div style={{
-                borderRadius: 12, overflow: "hidden",
-                border: `2px solid ${C.teal}`,
-                marginBottom: 12,
-                background: "#000",
-              }}>
-                <div id={`qr-reader-admin-${scanKey}`} style={{ width: "100%" }} />
-              </div>
-              <div style={{
-                textAlign: "center", fontSize: 12, color: C.gray,
-                padding: "6px 0",
-              }}>
+              <QrCamera
+                key={camKey}
+                onScanned={data => setScanned(data)}
+                onError={msg => setError(msg)}
+              />
+              <div style={{ textAlign: "center", fontSize: 12, color: C.gray, padding: "6px 0" }}>
                 カメラをQRコードに向けてください
               </div>
             </>
