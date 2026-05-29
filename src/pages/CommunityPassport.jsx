@@ -548,32 +548,80 @@ export default function CommunityPassport({ stamps, onManualStamp, user, onPhoto
             });
             if (activeForUser.length === 0) return null;
             return (
-            <div style={{ margin: "0 22px 20px" }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
-                📝 アンケートに答えてください
-              </div>
-              {activeForUser.map(ev => (
-                <button
-                  key={ev.id}
-                  onClick={() => navigate(`/survey/${ev.id}`)}
-                  style={{
-                    width: "100%", padding: "12px 16px",
-                    background: `linear-gradient(90deg, ${ev.color}, ${ev.color}cc)`,
-                    color: C.white, border: "none", borderRadius: 10,
-                    fontSize: 13, fontWeight: 700, cursor: "pointer",
-                    fontFamily: "inherit", marginBottom: 8,
-                    display: "flex", alignItems: "center", gap: 10,
-                    boxShadow: `0 3px 12px ${ev.color}40`,
-                  }}
-                >
-                  <span style={{ fontSize: 22 }}>{ev.emoji}</span>
-                  <div style={{ textAlign: "left" }}>
-                    <div>{ev.nameShort} のアンケート</div>
-                    <div style={{ fontSize: 11, opacity: 0.8, fontWeight: 400 }}>ご参加ありがとうございました。ぜひ感想をお聞かせください。</div>
+            <div style={{ margin: "0 16px 20px" }}>
+              {/* 目立つバナー */}
+              <div style={{
+                background: "linear-gradient(135deg, #7C3AED, #A855F7)",
+                borderRadius: 16,
+                padding: "4px",
+                boxShadow: "0 6px 24px rgba(124,58,237,0.45)",
+              }}>
+                <div style={{
+                  background: "linear-gradient(135deg, #6D28D9, #9333EA)",
+                  borderRadius: 13,
+                  padding: "16px 18px",
+                }}>
+                  {/* ヘッダー */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                    <div style={{
+                      width: 40, height: 40, borderRadius: "50%",
+                      background: "rgba(255,255,255,0.2)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: 20, flexShrink: 0,
+                    }}>📝</div>
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: "#fff", letterSpacing: 0.3 }}>
+                        アンケートにこたえてください
+                      </div>
+                      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", marginTop: 1 }}>
+                        Your feedback matters!
+                      </div>
+                    </div>
+                    {/* NEW バッジ */}
+                    <div style={{
+                      marginLeft: "auto",
+                      background: "#FCD34D", color: "#92400E",
+                      borderRadius: 20, padding: "3px 10px",
+                      fontSize: 10, fontWeight: 800, letterSpacing: 0.5,
+                      flexShrink: 0,
+                    }}>NEW</div>
                   </div>
-                  <span style={{ marginLeft: "auto", fontSize: 18 }}>→</span>
-                </button>
-              ))}
+
+                  {/* イベントボタン */}
+                  {activeForUser.map(ev => (
+                    <button
+                      key={ev.id}
+                      onClick={() => navigate(`/survey/${ev.id}`)}
+                      style={{
+                        width: "100%", padding: "12px 16px",
+                        background: "rgba(255,255,255,0.15)",
+                        backdropFilter: "blur(8px)",
+                        color: "#fff", border: "1px solid rgba(255,255,255,0.3)",
+                        borderRadius: 10, fontSize: 13, fontWeight: 700,
+                        cursor: "pointer", fontFamily: "inherit",
+                        marginBottom: 6,
+                        display: "flex", alignItems: "center", gap: 10,
+                        transition: "background 0.15s",
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.25)"}
+                      onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.15)"}
+                    >
+                      <span style={{ fontSize: 22 }}>{ev.emoji}</span>
+                      <div style={{ textAlign: "left", flex: 1 }}>
+                        <div style={{ fontSize: 13 }}>{ev.nameShort}</div>
+                        <div style={{ fontSize: 10, opacity: 0.75, fontWeight: 400 }}>
+                          ぜひ かんそうをきかせてください
+                        </div>
+                      </div>
+                      <div style={{
+                        background: "rgba(255,255,255,0.25)",
+                        borderRadius: 20, padding: "4px 12px",
+                        fontSize: 12, fontWeight: 700, flexShrink: 0,
+                      }}>こたえる →</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
             );
           })()}
