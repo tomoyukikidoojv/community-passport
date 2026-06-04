@@ -1190,20 +1190,48 @@ function SurveyResultsPanel() {
   const events = useEvents();
   const [responses, setResponses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [debugInfo, setDebugInfo] = useState(null);
   const [selectedEventId, setSelectedEventId] = useState(null);
 
-  useEffect(() => {
+  const loadResponses = () => {
+    setLoading(true);
+    setLoadError(false);
+
+    // localStorageのデータも取得（フォールバック）
+    let localSurveys = [];
+    try {
+      const raw = JSON.parse(localStorage.getItem("cp_survey_responses") || "[]");
+      localSurveys = Array.isArray(raw) ? raw : [];
+    } catch {}
+
     fetchAllApplicationsFromCloud().then(apps => {
-      const surveys = (apps || []).filter(a => a.type === "survey");
-      setResponses(surveys);
-      if (surveys.length > 0) {
-        // 回答があるイベントのうち最初のものを選択
-        const firstId = surveys[0].eventId;
-        setSelectedEventId(firstId);
+      const allApps = apps || [];
+      const surveys = allApps.filter(a => a.type === "survey");
+
+      // Firestoreになければlocalとマージ
+      const cloudKeys = new Set(surveys.map(s => `${s.eventId}_${s.userId}`));
+      const localOnly = localSurveys.filter(s => !cloudKeys.has(`${s.eventId}_${s.userId}`));
+      const merged = [...surveys, ...localOnly];
+
+      setDebugInfo({ firestore: allApps.length, surveyType: surveys.length, local: localSurveys.length, merged: merged.length });
+      setResponses(merged);
+      if (merged.length > 0) {
+        setSelectedEventId(merged[0].eventId);
       }
       setLoading(false);
+    }).catch(err => {
+      console.error("[SurveyResults] load error:", err);
+      // Firestoreがエラーでもlocalのみで表示
+      setResponses(localSurveys);
+      setDebugInfo({ firestore: "error", local: localSurveys.length });
+      if (localSurveys.length > 0) setSelectedEventId(localSurveys[0].eventId);
+      setLoadError(true);
+      setLoading(false);
     });
-  }, []);
+  };
+
+  useEffect(() => { loadResponses(); }, []);
 
   const forms = loadForms();
 
@@ -1256,17 +1284,35 @@ function SurveyResultsPanel() {
   return (
     <div style={{ background: C.white, borderRadius: 16, boxShadow: "0 8px 30px rgba(0,0,0,0.2)", overflow: "hidden" }}>
       {/* ヘッダー */}
-      <div style={{ padding: "16px 20px 14px", borderBottom: `1px solid ${C.lightGray}`, display: "flex", alignItems: "center", gap: 8 }}>
+      <div style={{ padding: "16px 20px 14px", borderBottom: `1px solid ${C.lightGray}`, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
         <span style={{ display: "inline-block", width: 4, height: 16, background: C.teal, borderRadius: 2 }} />
         <span style={{ fontSize: 13, fontWeight: 700, color: C.charcoal }}>アンケート回答結果</span>
         <span style={{ background: C.tealPale, color: C.teal, borderRadius: 20, padding: "1px 10px", fontSize: 11, fontWeight: 700 }}>
           {responses.length}件
         </span>
+        {loadError && (
+          <span style={{ fontSize: 11, color: "#E74C3C", background: "#FEF2F2", borderRadius: 20, padding: "1px 10px" }}>
+            ⚠️ Firestoreエラー（ローカルデータ表示中）
+          </span>
+        )}
+        {debugInfo && (
+          <span style={{ fontSize: 10, color: C.gray, marginLeft: "auto" }}>
+            Firestore:{debugInfo.firestore} / local:{debugInfo.local} / 合計:{debugInfo.merged ?? responses.length}
+          </span>
+        )}
+        <button onClick={loadResponses} style={{ padding: "4px 12px", borderRadius: 20, border: `1px solid ${C.lightGray}`, background: C.white, color: C.gray, fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>
+          🔄 再読み込み
+        </button>
       </div>
 
       {respondedEventIds.length === 0 ? (
         <div style={{ padding: "48px", textAlign: "center", color: C.gray, fontSize: 13 }}>
-          アンケートの回答はまだありません
+          <div style={{ marginBottom: 12 }}>アンケートの回答はまだありません</div>
+          {debugInfo && (
+            <div style={{ fontSize: 11, color: C.gray, opacity: 0.7 }}>
+              (Firestore: {debugInfo.firestore}件取得 / うちsurvey: {debugInfo.surveyType ?? "—"}件 / local: {debugInfo.local}件)
+            </div>
+          )}
         </div>
       ) : (
         <>
