@@ -7,7 +7,8 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell,
 } from "recharts";
 import { C, getLevel, NOTICE_CATS } from "../constants";
-import { fetchAllUsers, fetchAllAttendance, fetchAllRsvpFromCloud, fetchAllRsvpCountFromCloud } from "../lib/userService";
+import { fetchAllUsers, fetchAllAttendance, fetchAllRsvpFromCloud, fetchAllRsvpCountFromCloud, fetchAllApplicationsFromCloud } from "../lib/userService";
+import { loadForms } from "../lib/formStorage";
 import { useEvents } from "../hooks/useEvents";
 import EventsManager from "./admin/EventsManager";
 import EventFormBuilder from "./admin/EventFormBuilder";
@@ -208,14 +209,15 @@ function NoticeForm({ onPost }) {
 }
 
 const ADMIN_TABS = [
-  { id: "attendance",    label: "出席状況",   emoji: "📊" },
-  { id: "stats",         label: "統計",       emoji: "📈" },
-  { id: "members",       label: "会員一覧",   emoji: "👥" },
-  { id: "announcements", label: "お知らせ",   emoji: "📢" },
-  { id: "applications",  label: "参加者",     emoji: "📋" },
-  { id: "events",        label: "イベント",   emoji: "📅" },
-  { id: "formbuilder",   label: "アンケート", emoji: "📝" },
-  { id: "linecards",     label: "LINE配信",   emoji: "📲" },
+  { id: "attendance",      label: "出席状況",     emoji: "📊" },
+  { id: "stats",           label: "統計",         emoji: "📈" },
+  { id: "members",         label: "会員一覧",     emoji: "👥" },
+  { id: "announcements",   label: "お知らせ",     emoji: "📢" },
+  { id: "applications",    label: "参加者",       emoji: "📋" },
+  { id: "events",          label: "イベント",     emoji: "📅" },
+  { id: "formbuilder",     label: "アンケート",   emoji: "📝" },
+  { id: "surveyresults",   label: "回答結果",     emoji: "📬" },
+  { id: "linecards",       label: "LINE配信",     emoji: "📲" },
 ];
 
 // ── ラベルマップ ──────────────────────────────────────────
@@ -827,6 +829,9 @@ export default function AdminDashboard({ attendance, onStamp, announcements, onP
         {/* ── Tab: フォーム ── */}
         {activeTab === "formbuilder" && <EventFormBuilder />}
 
+        {/* ── Tab: アンケート回答結果 ── */}
+        {activeTab === "surveyresults" && <SurveyResultsPanel />}
+
         {/* ── Tab: LINE配信カード ── */}
         {activeTab === "linecards" && <LineCards />}
 
@@ -1176,6 +1181,226 @@ function QrScanModal({ onStamp, onClose }) {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── アンケート回答結果パネル ──────────────────────────────
+function SurveyResultsPanel() {
+  const events = useEvents();
+  const [responses, setResponses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedEventId, setSelectedEventId] = useState(null);
+
+  useEffect(() => {
+    fetchAllApplicationsFromCloud().then(apps => {
+      const surveys = (apps || []).filter(a => a.type === "survey");
+      setResponses(surveys);
+      if (surveys.length > 0) {
+        // 回答があるイベントのうち最初のものを選択
+        const firstId = surveys[0].eventId;
+        setSelectedEventId(firstId);
+      }
+      setLoading(false);
+    });
+  }, []);
+
+  const forms = loadForms();
+
+  // イベントIDごとにグルーピング
+  const byEvent = {};
+  responses.forEach(r => {
+    const eid = String(r.eventId);
+    if (!byEvent[eid]) byEvent[eid] = [];
+    byEvent[eid].push(r);
+  });
+
+  const respondedEventIds = Object.keys(byEvent);
+  const selectedResponses = byEvent[String(selectedEventId)] || [];
+  const selectedEvent = events.find(e => e.id === Number(selectedEventId));
+  const formConfig = forms[selectedEventId] || forms[String(selectedEventId)] || null;
+  const questions = formConfig?.questions || [];
+
+  // 質問ごとに回答を集計
+  const aggregateAnswers = (q) => {
+    const answers = selectedResponses.map(r => r.answers?.[q.id]).filter(a => a !== undefined && a !== null && a !== "");
+    if (q.type === "radio") {
+      const counts = {};
+      (q.options || []).forEach(o => { counts[o] = 0; });
+      answers.forEach(a => { if (counts[a] !== undefined) counts[a]++; else counts[a] = 1; });
+      return { type: "bar", data: Object.entries(counts).map(([label, count]) => ({ label, count })), total: answers.length };
+    }
+    if (q.type === "checkbox") {
+      const counts = {};
+      (q.options || []).forEach(o => { counts[o] = 0; });
+      answers.forEach(arr => (Array.isArray(arr) ? arr : [arr]).forEach(a => { counts[a] = (counts[a] || 0) + 1; }));
+      return { type: "bar", data: Object.entries(counts).map(([label, count]) => ({ label, count })), total: answers.length };
+    }
+    if (q.type === "number") {
+      const nums = answers.map(Number).filter(n => !isNaN(n));
+      const avg = nums.length ? (nums.reduce((s, n) => s + n, 0) / nums.length).toFixed(1) : "—";
+      const min = nums.length ? Math.min(...nums) : "—";
+      const max = nums.length ? Math.max(...nums) : "—";
+      return { type: "number", avg, min, max, total: nums.length };
+    }
+    // text / textarea / name / email / phone
+    return { type: "text", items: selectedResponses.map(r => ({ user: r, answer: r.answers?.[q.id] })).filter(x => x.answer), total: answers.length };
+  };
+
+  if (loading) return (
+    <div style={{ background: C.white, borderRadius: 16, padding: 48, textAlign: "center", color: C.gray, fontSize: 13, boxShadow: "0 8px 30px rgba(0,0,0,0.2)" }}>
+      読み込み中…
+    </div>
+  );
+
+  return (
+    <div style={{ background: C.white, borderRadius: 16, boxShadow: "0 8px 30px rgba(0,0,0,0.2)", overflow: "hidden" }}>
+      {/* ヘッダー */}
+      <div style={{ padding: "16px 20px 14px", borderBottom: `1px solid ${C.lightGray}`, display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={{ display: "inline-block", width: 4, height: 16, background: C.teal, borderRadius: 2 }} />
+        <span style={{ fontSize: 13, fontWeight: 700, color: C.charcoal }}>アンケート回答結果</span>
+        <span style={{ background: C.tealPale, color: C.teal, borderRadius: 20, padding: "1px 10px", fontSize: 11, fontWeight: 700 }}>
+          {responses.length}件
+        </span>
+      </div>
+
+      {respondedEventIds.length === 0 ? (
+        <div style={{ padding: "48px", textAlign: "center", color: C.gray, fontSize: 13 }}>
+          アンケートの回答はまだありません
+        </div>
+      ) : (
+        <>
+          {/* イベント選択タブ */}
+          <div style={{ padding: "12px 20px", borderBottom: `1px solid ${C.lightGray}`, display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {respondedEventIds.map(eid => {
+              const ev = events.find(e => e.id === Number(eid));
+              const count = byEvent[eid].length;
+              const isActive = String(selectedEventId) === eid;
+              return (
+                <button
+                  key={eid}
+                  onClick={() => setSelectedEventId(Number(eid))}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 6,
+                    padding: "6px 14px", borderRadius: 20,
+                    border: `2px solid ${isActive ? (ev?.color || C.teal) : C.lightGray}`,
+                    background: isActive ? `${ev?.color || C.teal}15` : C.white,
+                    color: isActive ? (ev?.color || C.teal) : C.gray,
+                    fontWeight: isActive ? 700 : 400, fontSize: 12,
+                    cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
+                  }}
+                >
+                  <span>{ev?.emoji || "📅"}</span>
+                  <span>{ev?.nameShort || `イベント${eid}`}</span>
+                  <span style={{
+                    background: isActive ? (ev?.color || C.teal) : C.lightGray,
+                    color: C.white, borderRadius: 20,
+                    padding: "0 6px", fontSize: 10, fontWeight: 700,
+                  }}>{count}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* 回答一覧 */}
+          <div style={{ padding: "20px" }}>
+            {selectedEvent && (
+              <div style={{ marginBottom: 20, padding: "12px 16px", borderRadius: 10, background: `${selectedEvent.color}10`, border: `1px solid ${selectedEvent.color}30`, display: "flex", alignItems: "center", gap: 12 }}>
+                <span style={{ fontSize: 28 }}>{selectedEvent.emoji}</span>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: selectedEvent.color }}>{selectedEvent.nameShort}</div>
+                  <div style={{ fontSize: 11, color: C.gray, marginTop: 2 }}>{selectedEvent.fullDate} · {selectedResponses.length}件の回答</div>
+                </div>
+              </div>
+            )}
+
+            {questions.length === 0 ? (
+              <div style={{ color: C.gray, fontSize: 13, textAlign: "center", padding: "24px 0" }}>
+                このイベントのフォーム設定が見つかりません
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                {questions.map((q, qi) => {
+                  const agg = aggregateAnswers(q);
+                  const maxCount = agg.type === "bar" ? Math.max(...agg.data.map(d => d.count), 1) : 1;
+                  return (
+                    <div key={q.id} style={{ border: `1px solid ${C.lightGray}`, borderRadius: 12, overflow: "hidden" }}>
+                      {/* 質問ヘッダー */}
+                      <div style={{ padding: "12px 16px", background: C.offWhite, borderBottom: `1px solid ${C.lightGray}`, display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ background: C.teal, color: C.white, borderRadius: 20, padding: "2px 8px", fontSize: 10, fontWeight: 700 }}>Q{qi + 1}</span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: C.charcoal }}>{q.label}</span>
+                        {q.required && <span style={{ fontSize: 10, color: "#E74C3C" }}>必須</span>}
+                        <span style={{ marginLeft: "auto", fontSize: 11, color: C.gray }}>{agg.total}件の回答</span>
+                      </div>
+
+                      <div style={{ padding: "14px 16px" }}>
+                        {/* 選択式: 横棒グラフ */}
+                        {agg.type === "bar" && (
+                          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                            {agg.data.map(({ label, count }) => (
+                              <div key={label}>
+                                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                                  <span style={{ fontSize: 12, color: C.charcoal }}>{label}</span>
+                                  <span style={{ fontSize: 12, fontWeight: 700, color: C.teal }}>{count}件 {agg.total > 0 ? `(${Math.round(count / agg.total * 100)}%)` : ""}</span>
+                                </div>
+                                <div style={{ height: 8, background: C.offWhite, borderRadius: 4, overflow: "hidden" }}>
+                                  <div style={{
+                                    height: "100%", borderRadius: 4, transition: "width 0.4s ease",
+                                    width: `${(count / maxCount) * 100}%`,
+                                    background: `linear-gradient(90deg, ${C.teal}, ${C.tealMid})`,
+                                  }} />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* 数値: 統計 */}
+                        {agg.type === "number" && (
+                          <div style={{ display: "flex", gap: 16 }}>
+                            {[
+                              { label: "平均", value: agg.avg },
+                              { label: "最小", value: agg.min },
+                              { label: "最大", value: agg.max },
+                            ].map(({ label, value }) => (
+                              <div key={label} style={{ flex: 1, textAlign: "center", padding: "12px", background: C.offWhite, borderRadius: 8 }}>
+                                <div style={{ fontSize: 10, color: C.gray, marginBottom: 4 }}>{label}</div>
+                                <div style={{ fontSize: 22, fontWeight: 800, color: C.teal }}>{value}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* テキスト: 回答一覧 */}
+                        {agg.type === "text" && (
+                          <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 300, overflowY: "auto" }}>
+                            {agg.items.length === 0 ? (
+                              <div style={{ color: C.gray, fontSize: 12, textAlign: "center", padding: "12px 0" }}>回答なし</div>
+                            ) : agg.items.map(({ user, answer }, i) => (
+                              <div key={i} style={{ padding: "10px 12px", background: C.offWhite, borderRadius: 8, borderLeft: `3px solid ${C.teal}` }}>
+                                <div style={{ fontSize: 10, color: C.gray, marginBottom: 4, display: "flex", alignItems: "center", gap: 4 }}>
+                                  <span>{user.userFlag}</span>
+                                  <span>{user.userName}</span>
+                                  <span style={{ marginLeft: "auto" }}>{user.respondedAt ? new Date(user.respondedAt).toLocaleDateString("ja-JP") : ""}</span>
+                                </div>
+                                <div style={{ fontSize: 13, color: C.charcoal, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
+                                  {typeof answer === "object" && answer !== null
+                                    ? Object.values(answer).filter(Boolean).join(" / ")
+                                    : String(answer)}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }
