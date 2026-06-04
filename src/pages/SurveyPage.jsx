@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { C } from "../constants";
 import { useEvents } from "../hooks/useEvents";
-import { getForm, isFormActive } from "../lib/formStorage";
+import { getForm } from "../lib/formStorage";
 import { saveApplicationToCloud } from "../lib/userService";
 
 const SURVEY_KEY = "cp_survey_responses";
@@ -98,8 +98,12 @@ export default function SurveyPage({ user, stamps, forms = {} }) {
     </>
   );
 
-  // Guard 4: form not active
-  if (!isFormActive(Number(eventId))) return center(
+  // Guard 4: form not active（formsプロップを直接参照、localStorageに依存しない）
+  const now = new Date();
+  const isActive = formConfig?.enabled &&
+    (!formConfig.openDate || new Date(formConfig.openDate) <= now) &&
+    (!formConfig.closeDate || new Date(formConfig.closeDate + "T23:59:59") >= now);
+  if (!isActive) return center(
     <>
       <div style={{ fontSize: 36, marginBottom: 10 }}>🔒</div>
       <div style={{ fontWeight: 700, color: C.charcoal }}>アンケートの受付期間外です</div>
@@ -179,11 +183,14 @@ export default function SurveyPage({ user, stamps, forms = {} }) {
     return errs;
   };
 
-  const handleSubmit = (e) => {
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length) { setErrors(errs); return; }
 
+    setSubmitting(true);
     const resp = {
       type: "survey",
       eventId: event.id,
@@ -194,8 +201,16 @@ export default function SurveyPage({ user, stamps, forms = {} }) {
       answers: form.answers,
       respondedAt: new Date().toISOString(),
     };
+    // localStorageに保存（確実）
     saveSurveyResponse(resp);
-    saveApplicationToCloud(resp);
+    // Firestoreに保存（await して確認）
+    try {
+      await saveApplicationToCloud(resp);
+    } catch (err) {
+      console.error("[SurveyPage] Firestore save error:", err);
+      // localStorageには保存済みなので続行
+    }
+    setSubmitting(false);
     setSubmitted(true);
   };
 
@@ -396,16 +411,18 @@ export default function SurveyPage({ user, stamps, forms = {} }) {
 
             <button
               type="submit"
+              disabled={submitting}
               style={{
                 width: "100%", padding: "14px",
-                background: `linear-gradient(90deg, ${event.color}, ${event.color}cc)`,
+                background: submitting ? C.lightGray : `linear-gradient(90deg, ${event.color}, ${event.color}cc)`,
                 color: C.white, border: "none", borderRadius: 10,
-                fontSize: 15, fontWeight: 700, cursor: "pointer",
+                fontSize: 15, fontWeight: 700,
+                cursor: submitting ? "default" : "pointer",
                 fontFamily: "inherit",
-                boxShadow: `0 4px 16px ${event.color}40`,
+                boxShadow: submitting ? "none" : `0 4px 16px ${event.color}40`,
               }}
             >
-              {event.emoji} 回答を送信する
+              {submitting ? "送信中..." : `${event.emoji} 回答を送信する`}
             </button>
 
             <button
