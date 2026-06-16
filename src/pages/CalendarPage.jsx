@@ -43,6 +43,12 @@ function toPdfEmbedUrl(url) {
   return `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
 }
 
+function toPdfThumbnailUrl(url) {
+  const gdMatch = url.match(/drive\.google\.com\/file\/d\/([^/?]+)/);
+  if (gdMatch) return `https://drive.google.com/thumbnail?id=${gdMatch[1]}&sz=w200`;
+  return null;
+}
+
 function getDaysInMonth(year, month) {
   return new Date(year, month + 1, 0).getDate();
 }
@@ -483,6 +489,7 @@ export default function CalendarPage({ stamps, user }) {
                     }}>
                       {selectedEvent.images.map((img, i) => {
                         const isPdf = img.startsWith("data:application/pdf") || img.startsWith("https://");
+                        const thumbUrl = isPdf ? toPdfThumbnailUrl(img) : null;
                         return isPdf ? (
                           <button
                             key={i}
@@ -491,13 +498,36 @@ export default function CalendarPage({ stamps, user }) {
                               flexShrink: 0, height: 100, width: 80,
                               borderRadius: 8, border: `1px solid ${C.lightGray}`,
                               background: "#FEF2F2", cursor: "pointer",
-                              display: "flex", flexDirection: "column",
-                              alignItems: "center", justifyContent: "center",
-                              gap: 6,
+                              position: "relative", overflow: "hidden",
+                              padding: 0,
                             }}
                           >
-                            <span style={{ fontSize: 32 }}>📄</span>
-                            <span style={{ fontSize: 10, color: C.gray }}>チラシを見る</span>
+                            {thumbUrl ? (
+                              <>
+                                <img
+                                  src={thumbUrl} alt=""
+                                  style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                                />
+                                <div style={{
+                                  position: "absolute", inset: 0,
+                                  background: "rgba(0,0,0,0.28)",
+                                  display: "flex", flexDirection: "column",
+                                  alignItems: "center", justifyContent: "center", gap: 3,
+                                }}>
+                                  <span style={{ fontSize: 22 }}>📄</span>
+                                  <span style={{ fontSize: 9, color: C.white, fontWeight: 700, textShadow: "0 1px 3px rgba(0,0,0,0.8)" }}>チラシを見る</span>
+                                </div>
+                              </>
+                            ) : (
+                              <div style={{
+                                display: "flex", flexDirection: "column",
+                                alignItems: "center", justifyContent: "center",
+                                gap: 6, height: "100%",
+                              }}>
+                                <span style={{ fontSize: 32 }}>📄</span>
+                                <span style={{ fontSize: 10, color: C.gray }}>チラシを見る</span>
+                              </div>
+                            )}
                           </button>
                         ) : (
                           <img
