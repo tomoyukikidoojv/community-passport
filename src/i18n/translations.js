@@ -132,7 +132,7 @@ const T = {
     "calendar.going_done": "✓ 行きます",
     "calendar.not_going": "行きません",
     "calendar.not_going_done": "✗ 行きません",
-    "calendar.rsvp_label": "行きますか？",
+    "calendar.rsvp_label": "いきますか？",
     "calendar.apply_btn": "📝 もうしこむ →",
     "calendar.close": "とじる",
     "calendar.date": "📅 にちじ",
