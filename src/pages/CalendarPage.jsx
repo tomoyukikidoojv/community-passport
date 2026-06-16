@@ -37,6 +37,12 @@ export function getRsvpCounts(eventId) {
 
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
 
+function toPdfEmbedUrl(url) {
+  const gdMatch = url.match(/drive\.google\.com\/file\/d\/([^/?]+)/);
+  if (gdMatch) return `https://drive.google.com/file/d/${gdMatch[1]}/preview`;
+  return `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+}
+
 function getDaysInMonth(year, month) {
   return new Date(year, month + 1, 0).getDate();
 }
@@ -66,6 +72,7 @@ export default function CalendarPage({ stamps, user }) {
   const [allRsvp, setAllRsvp] = useState(loadAllRsvp);
   const events = useEvents();
   const [lightboxImg, setLightboxImg] = useState(null);
+  const [pdfViewerUrl, setPdfViewerUrl] = useState(null);
 
   const uid = user?.id ?? "guest";
   const [allRsvpCount, setAllRsvpCount] = useState(loadAllRsvpCount);
@@ -477,22 +484,21 @@ export default function CalendarPage({ stamps, user }) {
                       {selectedEvent.images.map((img, i) => {
                         const isPdf = img.startsWith("data:application/pdf") || img.startsWith("https://");
                         return isPdf ? (
-                          <a
+                          <button
                             key={i}
-                            href={img}
-                            download={`flyer_${i + 1}.pdf`}
+                            onClick={() => setPdfViewerUrl(toPdfEmbedUrl(img))}
                             style={{
                               flexShrink: 0, height: 100, width: 80,
                               borderRadius: 8, border: `1px solid ${C.lightGray}`,
-                              background: "#FEF2F2",
+                              background: "#FEF2F2", cursor: "pointer",
                               display: "flex", flexDirection: "column",
                               alignItems: "center", justifyContent: "center",
-                              gap: 6, textDecoration: "none",
+                              gap: 6,
                             }}
                           >
                             <span style={{ fontSize: 32 }}>📄</span>
-                            <span style={{ fontSize: 10, color: C.gray }}>PDF</span>
-                          </a>
+                            <span style={{ fontSize: 10, color: C.gray }}>チラシを見る</span>
+                          </button>
                         ) : (
                           <img
                             key={i}
@@ -552,6 +558,52 @@ export default function CalendarPage({ stamps, user }) {
               position: "absolute", top: 16, right: 16,
               color: "rgba(255,255,255,0.6)", fontSize: 12,
             }}>{t("calendar.close")}</div>
+          </div>
+        )}
+
+        {/* PDF viewer modal */}
+        {pdfViewerUrl && (
+          <div
+            onClick={() => setPdfViewerUrl(null)}
+            style={{
+              position: "fixed", inset: 0, zIndex: 300,
+              background: "rgba(0,0,0,0.92)", backdropFilter: "blur(6px)",
+              display: "flex", flexDirection: "column",
+              alignItems: "center", justifyContent: "center",
+              padding: 16,
+            }}
+          >
+            <div
+              onClick={e => e.stopPropagation()}
+              style={{
+                width: "100%", maxWidth: 600, height: "85vh",
+                borderRadius: 12, overflow: "hidden",
+                boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
+                display: "flex", flexDirection: "column",
+              }}
+            >
+              <div style={{
+                background: C.charcoal, padding: "10px 16px",
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                flexShrink: 0,
+              }}>
+                <span style={{ color: C.white, fontSize: 13, fontWeight: 700 }}>📄 チラシ</span>
+                <button
+                  onClick={() => setPdfViewerUrl(null)}
+                  style={{
+                    background: "none", border: "none",
+                    color: "rgba(255,255,255,0.7)", fontSize: 22,
+                    cursor: "pointer", lineHeight: 1, padding: "0 4px",
+                  }}
+                >×</button>
+              </div>
+              <iframe
+                src={pdfViewerUrl}
+                style={{ flex: 1, border: "none", background: C.white }}
+                title="チラシ"
+                allow="autoplay"
+              />
+            </div>
           </div>
         )}
 
