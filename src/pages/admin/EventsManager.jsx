@@ -2,7 +2,6 @@ import { useState } from "react";
 import { C } from "../../constants";
 import { loadEvents, saveEvents } from "../../lib/eventStorage";
 import { useEvents } from "../../hooks/useEvents";
-import { uploadPdfToStorage } from "../../lib/userService";
 
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
 const PRESET_COLORS = ["#1B4F72","#2471A3","#8E44AD","#1A6B45","#9B3A1B","#C0392B","#D4AC0D","#2E4057"];
@@ -23,6 +22,7 @@ export default function EventsManager() {
   const [editingId, setEditingId] = useState(null); // null = closed, "new" = adding, id = editing
   const [form, setForm] = useState(emptyForm());
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [pdfUrl, setPdfUrl] = useState("");
 
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
 
@@ -39,7 +39,7 @@ export default function EventsManager() {
     });
     setEditingId(ev.id);
   };
-  const closeForm = () => { setEditingId(null); setForm(emptyForm()); };
+  const closeForm = () => { setEditingId(null); setForm(emptyForm()); setPdfUrl(""); };
 
   const handleSave = () => {
     if (!form.nameShort.trim() || !form.fullDate) return;
@@ -268,38 +268,57 @@ export default function EventsManager() {
 
             {/* Images / PDFs */}
             <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 11, color: C.gray, marginBottom: 6 }}>チラシ・画像・PDF（複数可）</div>
+              <div style={{ fontSize: 11, color: C.gray, marginBottom: 6 }}>チラシ・画像・PDF</div>
+              {/* 画像アップロード */}
               <label style={{
                 display: "inline-block", padding: "7px 16px", borderRadius: 8,
                 border: `1.5px dashed ${C.lightGray}`, cursor: "pointer",
                 fontSize: 12, color: C.gray, background: C.white, marginBottom: 8,
               }}>
-                📎 ファイルを追加
+                🖼️ 画像を追加
                 <input
-                  type="file" accept="image/*,.pdf,application/pdf" multiple
+                  type="file" accept="image/*" multiple
                   style={{ display: "none" }}
-                  onChange={async e => {
+                  onChange={e => {
                     const files = Array.from(e.target.files);
                     e.target.value = "";
-                    for (const file of files) {
-                      if (file.type === "application/pdf") {
-                        // PDFはFirebase Storageにアップロードし、URLを保存
-                        const url = await uploadPdfToStorage(file);
-                        if (url) {
-                          setForm(f => ({ ...f, images: [...(f.images || []), url] }));
-                        }
-                      } else {
-                        // 画像はbase64データURLとして保存
-                        const reader = new FileReader();
-                        reader.onload = ev => {
-                          setForm(f => ({ ...f, images: [...(f.images || []), ev.target.result] }));
-                        };
-                        reader.readAsDataURL(file);
-                      }
-                    }
+                    files.forEach(file => {
+                      const reader = new FileReader();
+                      reader.onload = ev => {
+                        setForm(f => ({ ...f, images: [...(f.images || []), ev.target.result] }));
+                      };
+                      reader.readAsDataURL(file);
+                    });
                   }}
                 />
               </label>
+              {/* PDF URL入力 */}
+              <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                <input
+                  type="url"
+                  value={pdfUrl}
+                  onChange={e => setPdfUrl(e.target.value)}
+                  placeholder="📄 PDFのURL（Google Drive / Dropbox など）"
+                  style={{ ...inputStyle, flex: 1, fontSize: 12 }}
+                />
+                <button
+                  onClick={() => {
+                    const url = pdfUrl.trim();
+                    if (url) {
+                      setForm(f => ({ ...f, images: [...(f.images || []), url] }));
+                      setPdfUrl("");
+                    }
+                  }}
+                  disabled={!pdfUrl.trim()}
+                  style={{
+                    padding: "8px 14px", borderRadius: 8, border: "none",
+                    background: pdfUrl.trim() ? C.teal : C.lightGray,
+                    color: C.white, fontSize: 12, fontWeight: 700,
+                    cursor: pdfUrl.trim() ? "pointer" : "default", fontFamily: "inherit",
+                    whiteSpace: "nowrap",
+                  }}
+                >追加</button>
+              </div>
               {(form.images || []).length > 0 && (
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   {(form.images || []).map((img, i) => {

@@ -1,6 +1,5 @@
 import { doc, setDoc, getDoc, collection, getDocs, deleteDoc } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { db, storage } from "./firebase";
+import { db } from "./firebase";
 
 // ── パスワードハッシュ (SHA-256 / Web Crypto API) ──────────
 // ブラウザ標準APIで外部ライブラリ不要、平文保存を防ぐ
@@ -322,19 +321,6 @@ export async function fetchAllRsvpFromCloud() {
   } catch (err) {
     console.error("fetchAllRsvpFromCloud error:", err);
     return {};
-  }
-}
-
-/** PDFファイルをFirebase StorageにアップロードしてダウンロードURLを返す */
-export async function uploadPdfToStorage(file) {
-  try {
-    const path = `event-pdfs/${Date.now()}_${file.name}`;
-    const storageRef = ref(storage, path);
-    await uploadBytes(storageRef, file);
-    return await getDownloadURL(storageRef);
-  } catch (err) {
-    console.error("uploadPdfToStorage error:", err);
-    return null;
   }
 }
 
