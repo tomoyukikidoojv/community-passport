@@ -265,17 +265,17 @@ export default function EventsManager() {
                 placeholder="例：芦屋市民センター" style={inputStyle} />
             </div>
 
-            {/* Images */}
+            {/* Images / PDFs */}
             <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 11, color: C.gray, marginBottom: 6 }}>チラシ・画像（複数可）</div>
+              <div style={{ fontSize: 11, color: C.gray, marginBottom: 6 }}>チラシ・画像・PDF（複数可）</div>
               <label style={{
                 display: "inline-block", padding: "7px 16px", borderRadius: 8,
                 border: `1.5px dashed ${C.lightGray}`, cursor: "pointer",
                 fontSize: 12, color: C.gray, background: C.white, marginBottom: 8,
               }}>
-                📎 画像を追加
+                📎 ファイルを追加
                 <input
-                  type="file" accept="image/*" multiple
+                  type="file" accept="image/*,.pdf,application/pdf" multiple
                   style={{ display: "none" }}
                   onChange={e => {
                     const files = Array.from(e.target.files);
@@ -292,24 +292,41 @@ export default function EventsManager() {
               </label>
               {(form.images || []).length > 0 && (
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {(form.images || []).map((img, i) => (
-                    <div key={i} style={{ position: "relative" }}>
-                      <img src={img} alt="" style={{
-                        width: 80, height: 80, objectFit: "cover",
-                        borderRadius: 8, border: `1px solid ${C.lightGray}`,
-                      }} />
-                      <button
-                        onClick={() => setForm(f => ({ ...f, images: f.images.filter((_, j) => j !== i) }))}
-                        style={{
-                          position: "absolute", top: -6, right: -6,
-                          width: 20, height: 20, borderRadius: "50%",
-                          background: C.red, color: C.white, border: "none",
-                          fontSize: 12, cursor: "pointer", lineHeight: 1,
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                        }}
-                      >×</button>
-                    </div>
-                  ))}
+                  {(form.images || []).map((img, i) => {
+                    const isPdf = img.startsWith("data:application/pdf");
+                    return (
+                      <div key={i} style={{ position: "relative" }}>
+                        {isPdf ? (
+                          <div style={{
+                            width: 80, height: 80, borderRadius: 8,
+                            border: `1px solid ${C.lightGray}`,
+                            background: "#FEF2F2",
+                            display: "flex", flexDirection: "column",
+                            alignItems: "center", justifyContent: "center",
+                            gap: 4,
+                          }}>
+                            <span style={{ fontSize: 28 }}>📄</span>
+                            <span style={{ fontSize: 9, color: C.gray }}>PDF</span>
+                          </div>
+                        ) : (
+                          <img src={img} alt="" style={{
+                            width: 80, height: 80, objectFit: "cover",
+                            borderRadius: 8, border: `1px solid ${C.lightGray}`,
+                          }} />
+                        )}
+                        <button
+                          onClick={() => setForm(f => ({ ...f, images: f.images.filter((_, j) => j !== i) }))}
+                          style={{
+                            position: "absolute", top: -6, right: -6,
+                            width: 20, height: 20, borderRadius: "50%",
+                            background: C.red, color: C.white, border: "none",
+                            fontSize: 12, cursor: "pointer", lineHeight: 1,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                          }}
+                        >×</button>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

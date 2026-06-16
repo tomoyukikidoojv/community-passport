@@ -324,6 +324,20 @@ export async function fetchAllRsvpFromCloud() {
   }
 }
 
+/** メールアドレスだけでFirestoreからユーザーを取得（パスワードリセット用） */
+export async function fetchUserByEmail(email) {
+  if (!email) return null;
+  try {
+    const ref = doc(db, "users", emailToId(email.toLowerCase().trim()));
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return null;
+    return snap.data();
+  } catch (err) {
+    console.error("fetchUserByEmail error:", err);
+    return null;
+  }
+}
+
 /** 別デバイスからのログイン: メール＋パスワードでユーザーを取得 */
 export async function fetchUserByCredentials(email, password) {
   if (!email || !password) return "not_found";

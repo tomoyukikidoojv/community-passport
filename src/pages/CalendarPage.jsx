@@ -465,7 +465,7 @@ export default function CalendarPage({ stamps, user }) {
                 )}
 
 
-                {/* Image gallery */}
+                {/* Image / PDF gallery */}
                 {selectedEvent.images && selectedEvent.images.length > 0 && (
                   <div style={{ marginBottom: 14 }}>
                     <div style={{ fontSize: 11, color: C.gray, marginBottom: 8 }}>{t("calendar.images")}</div>
@@ -474,23 +474,43 @@ export default function CalendarPage({ stamps, user }) {
                       WebkitOverflowScrolling: "touch", scrollbarWidth: "none",
                       paddingBottom: 4,
                     }}>
-                      {selectedEvent.images.map((img, i) => (
-                        <img
-                          key={i}
-                          src={img}
-                          alt=""
-                          onClick={() => setLightboxImg(img)}
-                          style={{
-                            height: 100, borderRadius: 8,
-                            objectFit: "cover", cursor: "pointer",
-                            border: `1px solid ${C.lightGray}`,
-                            flexShrink: 0,
-                            transition: "transform 0.15s",
-                          }}
-                          onMouseEnter={e => e.currentTarget.style.transform = "scale(1.03)"}
-                          onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
-                        />
-                      ))}
+                      {selectedEvent.images.map((img, i) => {
+                        const isPdf = img.startsWith("data:application/pdf");
+                        return isPdf ? (
+                          <a
+                            key={i}
+                            href={img}
+                            download={`flyer_${i + 1}.pdf`}
+                            style={{
+                              flexShrink: 0, height: 100, width: 80,
+                              borderRadius: 8, border: `1px solid ${C.lightGray}`,
+                              background: "#FEF2F2",
+                              display: "flex", flexDirection: "column",
+                              alignItems: "center", justifyContent: "center",
+                              gap: 6, textDecoration: "none",
+                            }}
+                          >
+                            <span style={{ fontSize: 32 }}>📄</span>
+                            <span style={{ fontSize: 10, color: C.gray }}>PDF</span>
+                          </a>
+                        ) : (
+                          <img
+                            key={i}
+                            src={img}
+                            alt=""
+                            onClick={() => setLightboxImg(img)}
+                            style={{
+                              height: 100, borderRadius: 8,
+                              objectFit: "cover", cursor: "pointer",
+                              border: `1px solid ${C.lightGray}`,
+                              flexShrink: 0,
+                              transition: "transform 0.15s",
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.transform = "scale(1.03)"}
+                            onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
+                          />
+                        );
+                      })}
                     </div>
                   </div>
                 )}

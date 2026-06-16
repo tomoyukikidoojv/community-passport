@@ -4,7 +4,7 @@ import { C } from "../constants";
 import { useLang } from "../i18n/LangContext";
 import LangDropdown from "../components/LangDropdown";
 import { sendResetCode, EMAIL_CONFIGURED } from "../lib/emailService";
-import { fetchUserByCredentials, saveUserToCloud, hashPassword } from "../lib/userService";
+import { fetchUserByCredentials, fetchUserByEmail, saveUserToCloud, hashPassword } from "../lib/userService";
 
 const USER_LOCK_KEY = "cp_user_lock";
 const USER_MAX_FAILS = 5;
@@ -44,6 +44,76 @@ export default function LoginPage({ savedUser, onLogin, onReset, onPasswordChang
   const [crossPassword, setCrossPassword] = useState("");
   const [crossStatus, setCrossStatus] = useState(null); // null | "loading" | "not_found" | "wrong" | "error"
 
+  // Cross-device password reset state (for Chrome where no savedUser)
+  const [crossResetMode, setCrossResetMode] = useState(false);
+  const [crossResetStep, setCrossResetStep] = useState("email"); // "email" | "code" | "newpwd" | "done"
+  const [crossResetEmail, setCrossResetEmail] = useState("");
+  const [crossResetError, setCrossResetError] = useState(null);
+  const [crossCodeInput, setCrossCodeInput] = useState("");
+  const [crossVerifyCode, setCrossVerifyCode] = useState(null);
+  const [crossCodeExpiry, setCrossCodeExpiry] = useState(null);
+  const [crossNewPwd, setCrossNewPwd] = useState("");
+  const [crossConfirmPwd, setCrossConfirmPwd] = useState("");
+  const [crossResetUser, setCrossResetUser] = useState(null); // Firestoreから取得したユーザー
+
+  const crossResetClear = () => {
+    setCrossResetMode(false);
+    setCrossResetStep("email");
+    setCrossResetEmail("");
+    setCrossResetError(null);
+    setCrossCodeInput("");
+    setCrossVerifyCode(null);
+    setCrossCodeExpiry(null);
+    setCrossNewPwd("");
+    setCrossConfirmPwd("");
+    setCrossResetUser(null);
+  };
+
+  const handleCrossResetSendCode = async () => {
+    const email = crossResetEmail.trim();
+    if (!email) return;
+    setCrossResetError("sending");
+    const user = await fetchUserByEmail(email);
+    if (!user) { setCrossResetError("このメールアドレスは登録されていません"); return; }
+    const code = Math.floor(1000 + Math.random() * 9000);
+    const result = await sendResetCode(email, user.name, code);
+    if (result === "sent") {
+      setCrossResetUser(user);
+      setCrossVerifyCode(code);
+      setCrossCodeExpiry(Date.now() + 10 * 60 * 1000);
+      setCrossResetStep("code");
+      setCrossResetError(null);
+    } else if (result === "not_configured") {
+      setCrossResetError("メール送信が設定されていません");
+    } else {
+      setCrossResetError("送信に失敗しました。もう一度お試しください");
+    }
+  };
+
+  const handleCrossResetVerifyCode = () => {
+    if (!crossCodeInput) return;
+    if (Date.now() > crossCodeExpiry) { setCrossResetError("コードの有効期限が切れました"); return; }
+    if (Number(crossCodeInput) !== crossVerifyCode) { setCrossResetError("コードが違います"); return; }
+    setCrossResetStep("newpwd");
+    setCrossResetError(null);
+  };
+
+  const handleCrossResetSetPassword = async () => {
+    if (!crossNewPwd || !crossConfirmPwd) return;
+    if (crossNewPwd !== crossConfirmPwd) { setCrossResetError("パスワードが一致しません"); return; }
+    if (crossNewPwd.length < 4) { setCrossResetError("パスワードは4文字以上で設定してください"); return; }
+    setCrossResetError("saving");
+    try {
+      const hashed = await hashPassword(crossNewPwd);
+      const updated = { ...crossResetUser, password: hashed };
+      await saveUserToCloud(updated);
+      setCrossResetStep("done");
+      setCrossResetError(null);
+    } catch {
+      setCrossResetError("保存に失敗しました。もう一度お試しください");
+    }
+  };
+
   // Reset flow states
   const [resetMode, setResetMode] = useState(false);
   const [resetStep, setResetStep] = useState("email"); // "email" | "code" | "newpwd" | "done"
@@ -60,25 +130,37 @@ export default function LoginPage({ savedUser, onLogin, onReset, onPasswordChang
     e.preventDefault();
     if (isUserLocked) return;
     const hashed = await hashPassword(password);
-    // ハッシュ比較（新形式）または平文比較（旧形式の後方互換）
-    const match = savedUser.password === hashed || savedUser.password === password;
-    if (match) {
+    // ローカルハッシュ比較（新形式）または平文比較（旧形式の後方互換）
+    const localMatch = savedUser.password === hashed || savedUser.password === password;
+    if (localMatch) {
       localStorage.removeItem(USER_LOCK_KEY);
       setUserFails(0);
       setUserLockedUntil(null);
       onLogin();
       saveUserToCloud(savedUser);
-    } else {
-      const newFails = userFails + 1;
-      setUserFails(newFails);
-      if (newFails >= USER_MAX_FAILS) {
-        const until = new Date(Date.now() + USER_LOCK_MINS * 60 * 1000);
-        localStorage.setItem(USER_LOCK_KEY, JSON.stringify({ until: until.toISOString(), fails: newFails }));
-        setUserLockedUntil(until);
-      }
-      setError(true);
-      setPassword("");
+      return;
     }
+    // ローカルが一致しない場合はFirestoreで再確認（別デバイスでリセットされた場合に対応）
+    const cloudResult = await fetchUserByCredentials(savedUser.email, password);
+    if (cloudResult !== "not_found" && cloudResult !== "wrong_password" && cloudResult !== "error") {
+      // Firestoreで一致 → ローカルを最新に更新してログイン
+      localStorage.setItem("cp_user", JSON.stringify(cloudResult));
+      if (onPasswordChange) onPasswordChange(cloudResult);
+      localStorage.removeItem(USER_LOCK_KEY);
+      setUserFails(0);
+      setUserLockedUntil(null);
+      onLogin();
+      return;
+    }
+    const newFails = userFails + 1;
+    setUserFails(newFails);
+    if (newFails >= USER_MAX_FAILS) {
+      const until = new Date(Date.now() + USER_LOCK_MINS * 60 * 1000);
+      localStorage.setItem(USER_LOCK_KEY, JSON.stringify({ until: until.toISOString(), fails: newFails }));
+      setUserLockedUntil(until);
+    }
+    setError(true);
+    setPassword("");
   };
 
   const resetClear = () => {
@@ -221,70 +303,228 @@ export default function LoginPage({ savedUser, onLogin, onReset, onPasswordChang
           </div>
 
           <div style={{ padding: "24px 28px 28px" }}>
-            <div style={{ marginBottom: 6 }}>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 6 }}>
-                {t("register.email")}
-              </label>
-              <input
-                type="email"
-                value={crossEmail}
-                onChange={e => { setCrossEmail(e.target.value); setCrossStatus(null); }}
-                placeholder="email@example.com"
-                style={inputStyle}
-              />
-            </div>
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 6 }}>
-                {t("login.password")}
-              </label>
-              <input
-                type="password"
-                value={crossPassword}
-                onChange={e => { setCrossPassword(e.target.value); setCrossStatus(null); }}
-                placeholder={t("login.password_placeholder")}
-                style={{ ...inputStyle, marginBottom: 0 }}
-              />
-            </div>
+            {!crossResetMode ? (
+              <>
+                <div style={{ marginBottom: 6 }}>
+                  <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 6 }}>
+                    {t("register.email")}
+                  </label>
+                  <input
+                    type="email"
+                    value={crossEmail}
+                    onChange={e => { setCrossEmail(e.target.value); setCrossStatus(null); }}
+                    placeholder="email@example.com"
+                    style={inputStyle}
+                  />
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: C.charcoal, marginBottom: 6 }}>
+                    {t("login.password")}
+                  </label>
+                  <input
+                    type="password"
+                    value={crossPassword}
+                    onChange={e => { setCrossPassword(e.target.value); setCrossStatus(null); }}
+                    placeholder={t("login.password_placeholder")}
+                    style={{ ...inputStyle, marginBottom: 0 }}
+                  />
+                </div>
 
-            {crossStatus === "wrong" && (
-              <div style={{ color: "#E74C3C", fontSize: 12, marginBottom: 12 }}>
-                {t("login.cross_err")}
+                {crossStatus === "wrong" && (
+                  <div style={{ color: "#E74C3C", fontSize: 12, marginBottom: 12 }}>
+                    {t("login.cross_err")}
+                  </div>
+                )}
+                {crossStatus === "error" && (
+                  <div style={{ color: "#E74C3C", fontSize: 12, marginBottom: 12 }}>
+                    {t("login.reset_err")}
+                  </div>
+                )}
+
+                <button
+                  onClick={handleCrossLogin}
+                  disabled={crossStatus === "loading"}
+                  style={{
+                    width: "100%", padding: "13px",
+                    background: crossStatus === "loading" ? C.lightGray : `linear-gradient(90deg, ${C.teal}, ${C.tealMid})`,
+                    color: C.white, border: "none", borderRadius: 10,
+                    fontSize: 15, fontWeight: 700,
+                    cursor: crossStatus === "loading" ? "default" : "pointer",
+                    fontFamily: "inherit", marginBottom: 12,
+                  }}
+                >
+                  {crossStatus === "loading" ? "..." : `🎫 ${t("login.btn")}`}
+                </button>
+
+                <div style={{ textAlign: "center", marginBottom: 12 }}>
+                  <button
+                    onClick={() => setCrossResetMode(true)}
+                    style={{
+                      background: "none", border: "none", cursor: "pointer",
+                      color: C.gray, fontSize: 12, fontFamily: "inherit",
+                      textDecoration: "underline",
+                    }}
+                  >
+                    {t("login.forgot")}
+                  </button>
+                </div>
+
+                <div style={{ textAlign: "center", fontSize: 13, color: C.gray }}>
+                  {t("register.have_account_no")}{" "}
+                  <button
+                    onClick={onShowRegister}
+                    style={{
+                      background: "none", border: "none", cursor: "pointer",
+                      color: C.teal, fontSize: 13, fontWeight: 700,
+                      fontFamily: "inherit", textDecoration: "underline",
+                    }}
+                  >
+                    {t("register.title")} →
+                  </button>
+                </div>
+              </>
+            ) : (
+              /* パスワードリセットパネル（別デバイス用） */
+              <div style={{
+                background: `${C.teal}08`, border: `1px solid ${C.tealLight}`,
+                borderRadius: 12, padding: "16px", textAlign: "left",
+              }}>
+                {crossResetStep === "email" && (
+                  <>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.teal, marginBottom: 8 }}>
+                      🔑 パスワード再設定
+                    </div>
+                    <div style={{ fontSize: 11, color: C.gray, marginBottom: 10, lineHeight: 1.5 }}>
+                      登録メールアドレスに4桁の確認コードを送ります
+                    </div>
+                    <input
+                      type="email"
+                      value={crossResetEmail}
+                      onChange={e => { setCrossResetEmail(e.target.value); setCrossResetError(null); }}
+                      placeholder="example@email.com"
+                      style={{
+                        width: "100%", padding: "9px 12px", boxSizing: "border-box",
+                        border: `1.5px solid ${crossResetError && crossResetError !== "sending" ? "#E74C3C" : C.lightGray}`,
+                        borderRadius: 8, fontSize: 13, fontFamily: "inherit", outline: "none", marginBottom: 10,
+                      }}
+                    />
+                    {crossResetError && crossResetError !== "sending" && (
+                      <div style={{ fontSize: 12, color: "#E74C3C", marginBottom: 10, padding: "8px 10px", borderRadius: 8, background: "#E74C3C12" }}>
+                        {crossResetError}
+                      </div>
+                    )}
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button
+                        onClick={handleCrossResetSendCode}
+                        disabled={crossResetError === "sending"}
+                        style={{
+                          flex: 1, padding: "8px",
+                          background: crossResetError === "sending" ? C.lightGray : C.teal,
+                          color: C.white, border: "none", borderRadius: 8,
+                          fontSize: 12, fontWeight: 700,
+                          cursor: crossResetError === "sending" ? "default" : "pointer",
+                          fontFamily: "inherit",
+                        }}
+                      >
+                        {crossResetError === "sending" ? "送信中..." : "📧 コードを送る"}
+                      </button>
+                      <button onClick={crossResetClear} style={{ flex: 1, padding: "8px", background: C.white, color: C.gray, border: `1px solid ${C.lightGray}`, borderRadius: 8, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
+                        キャンセル
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                {crossResetStep === "code" && (
+                  <>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.teal, marginBottom: 8 }}>📬 確認コードを入力</div>
+                    <div style={{ fontSize: 11, color: C.gray, marginBottom: 10 }}>
+                      メールに届いた4桁の数字を入力してください（10分以内）
+                    </div>
+                    <input
+                      type="number" inputMode="numeric"
+                      value={crossCodeInput}
+                      onChange={e => { setCrossCodeInput(e.target.value); setCrossResetError(null); }}
+                      placeholder="1234" maxLength={4}
+                      style={{
+                        width: "100%", padding: "12px", boxSizing: "border-box",
+                        border: `1.5px solid ${crossResetError ? "#E74C3C" : C.lightGray}`,
+                        borderRadius: 8, fontSize: 22, fontFamily: "monospace",
+                        outline: "none", textAlign: "center", letterSpacing: 6, marginBottom: 10,
+                      }}
+                    />
+                    {crossResetError && (
+                      <div style={{ fontSize: 12, color: "#E74C3C", marginBottom: 10, padding: "8px 10px", borderRadius: 8, background: "#E74C3C12" }}>
+                        {crossResetError}
+                      </div>
+                    )}
+                    <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                      <button onClick={handleCrossResetVerifyCode} style={{ flex: 1, padding: "8px", background: C.teal, color: C.white, border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                        確認する →
+                      </button>
+                      <button onClick={crossResetClear} style={{ flex: 1, padding: "8px", background: C.white, color: C.gray, border: `1px solid ${C.lightGray}`, borderRadius: 8, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
+                        キャンセル
+                      </button>
+                    </div>
+                    <button onClick={() => { setCrossResetStep("email"); setCrossResetError(null); setCrossCodeInput(""); }} style={{ background: "none", border: "none", cursor: "pointer", color: C.gray, fontSize: 11, fontFamily: "inherit", textDecoration: "underline" }}>
+                      コードを再送する
+                    </button>
+                  </>
+                )}
+
+                {crossResetStep === "newpwd" && (
+                  <>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.teal, marginBottom: 12 }}>🔒 新しいパスワードを設定</div>
+                    <input
+                      type="password" value={crossNewPwd}
+                      onChange={e => { setCrossNewPwd(e.target.value); setCrossResetError(null); }}
+                      placeholder="新しいパスワード（4文字以上）"
+                      style={{ width: "100%", padding: "9px 12px", boxSizing: "border-box", border: `1.5px solid ${crossResetError ? "#E74C3C" : C.lightGray}`, borderRadius: 8, fontSize: 13, fontFamily: "inherit", outline: "none", marginBottom: 8 }}
+                    />
+                    <input
+                      type="password" value={crossConfirmPwd}
+                      onChange={e => { setCrossConfirmPwd(e.target.value); setCrossResetError(null); }}
+                      placeholder="もう一度入力"
+                      style={{ width: "100%", padding: "9px 12px", boxSizing: "border-box", border: `1.5px solid ${crossResetError === "パスワードが一致しません" ? "#E74C3C" : C.lightGray}`, borderRadius: 8, fontSize: 13, fontFamily: "inherit", outline: "none", marginBottom: 10 }}
+                    />
+                    {crossResetError && crossResetError !== "saving" && (
+                      <div style={{ fontSize: 12, color: "#E74C3C", marginBottom: 10, padding: "8px 10px", borderRadius: 8, background: "#E74C3C12" }}>
+                        {crossResetError}
+                      </div>
+                    )}
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button
+                        onClick={handleCrossResetSetPassword}
+                        disabled={crossResetError === "saving"}
+                        style={{ flex: 1, padding: "8px", background: crossResetError === "saving" ? C.lightGray : C.teal, color: C.white, border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: crossResetError === "saving" ? "default" : "pointer", fontFamily: "inherit" }}
+                      >
+                        {crossResetError === "saving" ? "保存中..." : "✅ 変更する"}
+                      </button>
+                      <button onClick={crossResetClear} style={{ flex: 1, padding: "8px", background: C.white, color: C.gray, border: `1px solid ${C.lightGray}`, borderRadius: 8, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
+                        キャンセル
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                {crossResetStep === "done" && (
+                  <>
+                    <div style={{ textAlign: "center", padding: "8px 0 12px", fontSize: 13, color: "#27AE60", fontWeight: 700 }}>
+                      ✅ パスワードを変更しました
+                    </div>
+                    <div style={{ fontSize: 11, color: C.gray, textAlign: "center", marginBottom: 12 }}>
+                      新しいパスワードでログインしてください
+                    </div>
+                    <button
+                      onClick={crossResetClear}
+                      style={{ width: "100%", padding: "8px", background: C.teal, color: C.white, border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
+                    >
+                      ログインページへ戻る
+                    </button>
+                  </>
+                )}
               </div>
             )}
-            {crossStatus === "error" && (
-              <div style={{ color: "#E74C3C", fontSize: 12, marginBottom: 12 }}>
-                {t("login.reset_err")}
-              </div>
-            )}
-
-            <button
-              onClick={handleCrossLogin}
-              disabled={crossStatus === "loading"}
-              style={{
-                width: "100%", padding: "13px",
-                background: crossStatus === "loading" ? C.lightGray : `linear-gradient(90deg, ${C.teal}, ${C.tealMid})`,
-                color: C.white, border: "none", borderRadius: 10,
-                fontSize: 15, fontWeight: 700,
-                cursor: crossStatus === "loading" ? "default" : "pointer",
-                fontFamily: "inherit", marginBottom: 16,
-              }}
-            >
-              {crossStatus === "loading" ? "..." : `🎫 ${t("login.btn")}`}
-            </button>
-
-            <div style={{ textAlign: "center", fontSize: 13, color: C.gray }}>
-              {t("register.have_account_no")}{" "}
-              <button
-                onClick={onShowRegister}
-                style={{
-                  background: "none", border: "none", cursor: "pointer",
-                  color: C.teal, fontSize: 13, fontWeight: 700,
-                  fontFamily: "inherit", textDecoration: "underline",
-                }}
-              >
-                {t("register.title")} →
-              </button>
-            </div>
           </div>
         </div>
       </div>
