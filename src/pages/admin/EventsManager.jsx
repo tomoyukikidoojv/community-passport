@@ -2,6 +2,7 @@ import { useState } from "react";
 import { C } from "../../constants";
 import { loadEvents, saveEvents } from "../../lib/eventStorage";
 import { useEvents } from "../../hooks/useEvents";
+import { uploadPdfToStorage } from "../../lib/userService";
 
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
 const PRESET_COLORS = ["#1B4F72","#2471A3","#8E44AD","#1A6B45","#9B3A1B","#C0392B","#D4AC0D","#2E4057"];
@@ -277,23 +278,32 @@ export default function EventsManager() {
                 <input
                   type="file" accept="image/*,.pdf,application/pdf" multiple
                   style={{ display: "none" }}
-                  onChange={e => {
+                  onChange={async e => {
                     const files = Array.from(e.target.files);
-                    files.forEach(file => {
-                      const reader = new FileReader();
-                      reader.onload = ev => {
-                        setForm(f => ({ ...f, images: [...(f.images || []), ev.target.result] }));
-                      };
-                      reader.readAsDataURL(file);
-                    });
                     e.target.value = "";
+                    for (const file of files) {
+                      if (file.type === "application/pdf") {
+                        // PDFはFirebase Storageにアップロードし、URLを保存
+                        const url = await uploadPdfToStorage(file);
+                        if (url) {
+                          setForm(f => ({ ...f, images: [...(f.images || []), url] }));
+                        }
+                      } else {
+                        // 画像はbase64データURLとして保存
+                        const reader = new FileReader();
+                        reader.onload = ev => {
+                          setForm(f => ({ ...f, images: [...(f.images || []), ev.target.result] }));
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }
                   }}
                 />
               </label>
               {(form.images || []).length > 0 && (
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   {(form.images || []).map((img, i) => {
-                    const isPdf = img.startsWith("data:application/pdf");
+                    const isPdf = img.startsWith("data:application/pdf") || img.startsWith("https://");
                     return (
                       <div key={i} style={{ position: "relative" }}>
                         {isPdf ? (

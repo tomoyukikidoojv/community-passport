@@ -475,7 +475,7 @@ export default function CalendarPage({ stamps, user }) {
                       paddingBottom: 4,
                     }}>
                       {selectedEvent.images.map((img, i) => {
-                        const isPdf = img.startsWith("data:application/pdf");
+                        const isPdf = img.startsWith("data:application/pdf") || img.startsWith("https://");
                         return isPdf ? (
                           <a
                             key={i}
