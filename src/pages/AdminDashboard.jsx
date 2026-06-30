@@ -2015,6 +2015,7 @@ function RsvpSummaryPanel() {
   const [loading, setLoading] = useState(true);
   const [openEventId, setOpenEventId] = useState(null);
   const [copiedEmailsId, setCopiedEmailsId] = useState(null);
+  const [copiedUserId, setCopiedUserId] = useState(null);
 
   useEffect(() => {
     Promise.all([fetchAllRsvpFromCloud(), fetchAllRsvpCountFromCloud(), fetchAllUsers()])
@@ -2214,14 +2215,17 @@ function RsvpSummaryPanel() {
                           <div key={u.userId} style={{
                             display: "flex", alignItems: "center", gap: 10,
                             padding: "8px 16px",
-                            borderTop: i > 0 ? `1px solid ${C.lightGray}` : `1px solid ${C.lightGray}`,
+                            borderTop: `1px solid ${C.lightGray}`,
                             background: i % 2 === 0 ? C.white : C.offWhite,
                           }}>
                             <span style={{ fontSize: 18, flexShrink: 0 }}>{u.flag}</span>
-                            <span style={{ fontSize: 13, fontWeight: 600, color: C.charcoal, flex: 1, minWidth: 0 }}>
-                              {u.name}
-                            </span>
-                            <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: C.charcoal }}>{u.name}</div>
+                              {u.email && (
+                                <div style={{ fontSize: 11, color: C.gray, marginTop: 1 }}>{u.email}</div>
+                              )}
+                            </div>
+                            <div style={{ display: "flex", gap: 6, flexShrink: 0, alignItems: "center" }}>
                               <span style={{
                                 background: `${ev.color}18`, color: ev.color,
                                 borderRadius: 6, padding: "2px 8px",
@@ -2232,6 +2236,26 @@ function RsvpSummaryPanel() {
                                 borderRadius: 6, padding: "2px 8px",
                                 fontSize: 11, fontWeight: 700,
                               }}>こども {u.children}</span>
+                              {u.email && (
+                                <button
+                                  onClick={e => {
+                                    e.stopPropagation();
+                                    navigator.clipboard.writeText(u.email).then(() => {
+                                      setCopiedUserId(u.userId);
+                                      setTimeout(() => setCopiedUserId(null), 2000);
+                                    });
+                                  }}
+                                  style={{
+                                    padding: "2px 8px", borderRadius: 6, border: `1px solid ${C.lightGray}`,
+                                    background: copiedUserId === u.userId ? C.teal : C.white,
+                                    color: copiedUserId === u.userId ? C.white : C.gray,
+                                    fontSize: 11, cursor: "pointer", fontFamily: "inherit",
+                                    transition: "all 0.2s", whiteSpace: "nowrap",
+                                  }}
+                                >
+                                  {copiedUserId === u.userId ? "✓" : "📋"}
+                                </button>
+                              )}
                             </div>
                           </div>
                         ))}
