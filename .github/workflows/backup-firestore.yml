@@ -43,7 +43,7 @@ jobs:
       - name: Run Firestore backup
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: node scripts/backup-firestore.js
+        run: node scripts/backup-firestore.cjs
 
       - name: Upload backup artifact
         uses: actions/upload-artifact@v4
