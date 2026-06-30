@@ -2014,6 +2014,7 @@ function RsvpSummaryPanel() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openEventId, setOpenEventId] = useState(null);
+  const [copiedEmailsId, setCopiedEmailsId] = useState(null);
 
   useEffect(() => {
     Promise.all([fetchAllRsvpFromCloud(), fetchAllRsvpCountFromCloud(), fetchAllUsers()])
@@ -2028,8 +2029,8 @@ function RsvpSummaryPanel() {
   const getUserInfo = (userId) => {
     const u = users.find(u => String(u.id) === String(userId));
     return u
-      ? { name: u.name || `#${userId}`, flag: u.country?.flag || u.flag || "" }
-      : { name: `#${userId}`, flag: "" };
+      ? { name: u.name || `#${userId}`, flag: u.country?.flag || u.flag || "", email: u.email || "" }
+      : { name: `#${userId}`, flag: "", email: "" };
   };
 
   // イベントごとの参加データを計算
@@ -2178,14 +2179,36 @@ function RsvpSummaryPanel() {
                     {goingUsers.length > 0 && (
                       <div style={{ borderBottom: notGoingUsers.length > 0 ? `1px solid ${C.lightGray}` : "none" }}>
                         <div style={{
-                          padding: "8px 16px 4px",
+                          padding: "8px 16px 6px",
                           fontSize: 11, fontWeight: 700, color: ev.color,
                           display: "flex", alignItems: "center", justifyContent: "space-between",
+                          flexWrap: "wrap", gap: 6,
                         }}>
                           <span>🙋 さんかしたい</span>
-                          <span style={{ fontSize: 11, color: C.gray, fontWeight: 400 }}>
-                            おとな計 {totalAdults}人 ／ こども計 {totalChildren}人
-                          </span>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <span style={{ fontSize: 11, color: C.gray, fontWeight: 400 }}>
+                              おとな計 {totalAdults}人 ／ こども計 {totalChildren}人
+                            </span>
+                            <button
+                              onClick={e => {
+                                e.stopPropagation();
+                                const emails = goingUsers.map(u => u.email).filter(Boolean).join(", ");
+                                navigator.clipboard.writeText(emails).then(() => {
+                                  setCopiedEmailsId(ev.id);
+                                  setTimeout(() => setCopiedEmailsId(null), 2000);
+                                });
+                              }}
+                              style={{
+                                padding: "3px 10px", borderRadius: 6, border: "none",
+                                background: copiedEmailsId === ev.id ? C.teal : ev.color,
+                                color: C.white, fontSize: 11, fontWeight: 700,
+                                cursor: "pointer", fontFamily: "inherit",
+                                whiteSpace: "nowrap", transition: "background 0.2s",
+                              }}
+                            >
+                              {copiedEmailsId === ev.id ? "✓ コピーしました" : "📋 メールをコピー"}
+                            </button>
+                          </div>
                         </div>
                         {goingUsers.map((u, i) => (
                           <div key={u.userId} style={{
